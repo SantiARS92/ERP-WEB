@@ -1,0 +1,104 @@
+<div class="h-[calc(100vh-theme(spacing.20))] overflow-y-auto bg-white">
+
+  <div class="max-w-4xl mx-auto py-8 px-8 pb-20 relative">
+
+    <!-- Compact Header -->
+    <div class="mb-8">
+      <div class="text-[13px] font-medium text-slate-500 mb-1 flex items-center gap-1.5">
+        <span class="hover:text-blue-600 cursor-pointer transition-colors" routerLink="/servicios">Servicios</span>
+        <span class="text-slate-400 text-[15px]">›</span>
+        <span class="text-slate-600">Crear Servicio</span>
+      </div>
+      <h1 class="text-[28px] font-bold text-slate-900 leading-tight">Crear Nuevo Servicio</h1>
+    </div>
+
+  <!-- Form Card -->
+  <div class="bg-white rounded-2xl border border-slate-200 p-8 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] max-w-2xl">
+    
+    <div class="space-y-6">
+      
+      <!-- Service Name -->
+      <div>
+        <label class="block text-[13px] font-bold text-slate-800 mb-2">Nombre del Servicio</label>
+        <input type="text" [(ngModel)]="service.name" name="name" placeholder="Ej. Corte de Cabello Básico" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
+      </div>
+
+      <!-- Description -->
+      <div>
+        <label class="block text-[13px] font-bold text-slate-800 mb-2">Descripción</label>
+        <textarea rows="4" [(ngModel)]="service.description" name="description" placeholder="Describa los detalles del servicio..." class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow resize-y"></textarea>
+      </div>
+
+      <div class="grid grid-cols-2 gap-6">
+        <!-- Category -->
+        <div>
+          <label class="block text-[13px] font-bold text-slate-800 mb-2">Categoría</label>
+          <div class="relative">
+            <select [(ngModel)]="service.categoryId" name="categoryId" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow appearance-none cursor-pointer">
+              <option [value]="0">Seleccionar categoría</option>
+              @for (cat of categories; track cat.id) {
+                <option [value]="cat.id">{{ cat.name }}</option>
+              }
+            </select>
+            <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+          </div>
+        </div>
+
+        <!-- Duration -->
+        <div>
+          <label class="block text-[13px] font-bold text-slate-800 mb-2">Duración (minutos)</label>
+          <div class="relative">
+            <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">schedule</span>
+            <input type="number" [(ngModel)]="service.durationMinutes" name="durationMinutes" placeholder="60" class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-6 pb-6 border-b border-slate-100">
+        <!-- Price -->
+        <div>
+          <label class="block text-[13px] font-bold text-slate-800 mb-2">Precio</label>
+          <div class="relative">
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-medium">€</span>
+            <input type="number" [(ngModel)]="service.price" name="price" placeholder="0.00" class="w-full pl-8 pr-12 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
+            <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-[13px] font-medium uppercase">EUR</span>
+          </div>
+        </div>
+
+        <!-- Status Toggle -->
+        <div class="flex flex-col justify-start">
+          <label class="block text-[13px] font-bold text-slate-800 mb-3">Estado</label>
+          <div class="flex items-center gap-3">
+            <button (click)="toggleStatus()" 
+                    [class.bg-blue-500]="service.active" 
+                    [class.bg-slate-200]="!service.active"
+                    class="relative w-11 h-6 rounded-full transition-colors flex shrink-0">
+              <span [class.translate-x-6]="service.active" 
+                    [class.translate-x-1]="!service.active"
+                    class="absolute top-1 left-0 w-4 h-4 rounded-full bg-white transition-transform shadow-sm"></span>
+            </button>
+            <span class="text-[14px] font-medium text-slate-500">{{ service.active ? 'Activo' : 'Inactivo' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions Footer -->
+      <div class="flex items-center justify-end gap-3 pt-2">
+        <a [routerLink]="['/servicios']" class="px-6 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-[14px] transition-colors shadow-sm cursor-pointer">
+          Cancelar
+        </a>
+        <button (click)="saveService()" class="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-[14px] transition-colors shadow-sm cursor-pointer">
+          <span class="material-symbols-outlined text-[18px]">save</span>
+          Guardar Servicio
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="mt-8 text-center text-[12px] text-slate-400 font-medium">
+    Los cambios pueden tardar unos momentos en reflejarse en la agenda.
+  </div>
+
+  </div>
+</div>

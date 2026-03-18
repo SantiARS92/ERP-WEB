@@ -1,0 +1,95 @@
+<aside class="w-64 h-screen bg-white border-r border-gray-100 flex flex-col">
+
+  <!-- Branding -->
+  <div class="flex items-center gap-3 px-5 py-5 border-b border-gray-100">
+    <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shrink-0 shadow-sm shadow-blue-200">
+      <span class="material-symbols-outlined text-white text-[18px] [font-variation-settings:'FILL'_1,'wght'_300]">diamond</span>
+    </div>
+    <div>
+      <h1 class="text-sm font-semibold text-gray-800 leading-tight">Centro de Estética</h1>
+      <span class="text-[10px] font-medium tracking-widest uppercase text-gray-400">Gestión</span>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-0.5 scrollbar-none">
+
+    <p class="px-3 pt-1 pb-2 text-[10px] font-semibold tracking-widest uppercase text-gray-400">Principal</p>
+
+    <a routerLink="/panel" routerLinkActive="!bg-blue-50 !text-blue-600 font-semibold" [routerLinkActiveOptions]="{exact:true}"
+       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors">
+      <span class="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-gray-600 transition-colors">dashboard</span>
+      Panel de Control
+    </a>
+
+    <a routerLink="/agenda" routerLinkActive="!bg-blue-50 !text-blue-600 font-semibold" [routerLinkActiveOptions]="{exact:false}"
+       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors">
+      <span class="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-gray-600 transition-colors">calendar_month</span>
+      Agenda
+    </a>
+
+    <a routerLink="/servicios" routerLinkActive="!bg-blue-50 !text-blue-600 font-semibold" [routerLinkActiveOptions]="{exact:false}"
+       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors">
+      <span class="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-gray-600 transition-colors">spa</span>
+      Servicios
+    </a>
+
+    <a routerLink="/clientes" routerLinkActive="!bg-blue-50 !text-blue-600 font-semibold" [routerLinkActiveOptions]="{exact:false}"
+       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors">
+      <span class="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-gray-600 transition-colors">people</span>
+      Clientes
+    </a>
+
+    <p class="px-3 pt-4 pb-2 text-[10px] font-semibold tracking-widest uppercase text-gray-400">Finanzas</p>
+
+    <a routerLink="/ventas" routerLinkActive="!bg-blue-50 !text-blue-600 font-semibold" [routerLinkActiveOptions]="{exact:false}"
+       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors">
+      <span class="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-gray-600 transition-colors">point_of_sale</span>
+      Ventas
+    </a>
+
+    <a routerLink="/gastos" routerLinkActive="!bg-blue-50 !text-blue-600 font-semibold" [routerLinkActiveOptions]="{exact:false}"
+       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors">
+      <span class="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-gray-600 transition-colors">receipt_long</span>
+      Gastos
+    </a>
+
+    <a routerLink="/inventario" routerLinkActive="!bg-blue-50 !text-blue-600 font-semibold" [routerLinkActiveOptions]="{exact:false}"
+       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors">
+      <span class="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-gray-600 transition-colors">inventory_2</span>
+      Inventario
+    </a>
+
+    <a routerLink="/informes" routerLinkActive="!bg-blue-50 !text-blue-600 font-semibold" [routerLinkActiveOptions]="{exact:false}"
+       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors">
+      <span class="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-gray-600 transition-colors">insights</span>
+      Informes
+    </a>
+
+    <p class="px-3 pt-4 pb-2 text-[10px] font-semibold tracking-widest uppercase text-gray-400">Sistema</p>
+
+    <a routerLink="/ajustes" routerLinkActive="!bg-blue-50 !text-blue-600 font-semibold" [routerLinkActiveOptions]="{exact:false}"
+       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors">
+      <span class="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-gray-600 transition-colors">tune</span>
+      Ajustes
+    </a>
+
+  </nav>
+
+  <!-- User Profile -->
+  <div class="flex items-center gap-3 px-4 py-3.5 border-t border-gray-100">
+    <img
+      src="https://ui-avatars.com/api/?name=Sarah+Wilson&background=EEF2FF&color=4338CA&bold=true&size=128"
+      alt="Sarah Wilson"
+      class="w-8 h-8 rounded-full object-cover ring-2 ring-indigo-100 shrink-0"
+    />
+    <div class="flex-1 min-w-0">
+      <p class="text-sm font-semibold text-gray-800 truncate">Sarah Wilson</p>
+      <p class="text-[11px] text-gray-400">Gerente</p>
+    </div>
+    <button class="p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+      <span class="material-symbols-outlined text-[18px]">more_vert</span>
+    </button>
+  </div>
+
+</aside>

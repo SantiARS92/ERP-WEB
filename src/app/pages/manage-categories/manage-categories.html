@@ -1,0 +1,178 @@
+<div class="h-[calc(100vh-theme(spacing.20))] overflow-y-auto bg-white">
+
+  <div class="max-w-5xl mx-auto py-8 px-8 pb-20 relative">
+
+    <!-- Compact Header -->
+    <div class="flex items-start justify-between mb-8">
+      <div>
+        <div class="text-[13px] font-medium text-slate-500 mb-1 flex items-center gap-1.5">
+          <span class="hover:text-blue-600 cursor-pointer transition-colors" routerLink="/servicios">Servicios</span>
+          <span class="text-slate-400 text-[15px]">›</span>
+          <span class="text-slate-600">Categorías</span>
+        </div>
+        <h1 class="text-[28px] font-bold text-slate-900 leading-tight">Gestionar Categorías</h1>
+        <p class="text-[14px] text-slate-500 mt-1">Organice sus servicios en categorías para una mejor visibilidad.</p>
+      </div>
+      <button (click)="openModal()" class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-semibold text-[14px] transition-colors shadow-sm whitespace-nowrap mt-1">
+        <span class="material-symbols-outlined text-[20px]">add</span>
+        Nueva Categoría
+      </button>
+    </div>
+
+  <!-- Search Input -->
+  <div class="relative w-80 mb-6">
+    <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
+    <input type="text" [(ngModel)]="searchText" (input)="onSearch()" placeholder="Buscar categorías..." class="w-full pl-11 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow text-[15px] text-slate-800 placeholder-slate-400">
+  </div>
+
+  <!-- Data Table -->
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] overflow-hidden">
+    
+    <!-- Table Header -->
+    <div class="grid grid-cols-[1fr_200px_100px] gap-4 px-6 py-4 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+      <div>NOMBRE DE CATEGORÍA</div>
+      <div class="text-center">SERVICIOS ASIGNADOS</div>
+      <div class="text-right">ACCIONES</div>
+    </div>
+
+    <!-- Table Body -->
+    <div class="divide-y divide-slate-100">
+      @for (cat of categories; track cat.id) {
+      <div class="grid grid-cols-[1fr_200px_100px] gap-4 px-6 py-4 items-center hover:bg-slate-50 transition-colors group cursor-pointer">
+        <div class="flex items-center gap-4">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" [style.background-color]="cat.color">
+            <span class="material-symbols-outlined text-[20px] text-slate-700">{{ cat.icon }}</span>
+          </div>
+          <div class="font-bold text-slate-800 text-[15px]">{{ cat.name }}</div>
+        </div>
+        <div class="text-center">
+          <span class="text-[13px] font-bold text-slate-700">{{ cat.servicesCount }} servicios</span>
+        </div>
+        <div class="flex justify-end gap-2">
+          <button (click)="openModal(cat)" class="w-8 h-8 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 flex items-center justify-center transition-colors">
+            <span class="material-symbols-outlined text-[18px]">edit</span>
+          </button>
+          <button (click)="deleteCategory(cat)" class="w-8 h-8 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center transition-colors">
+            <span class="material-symbols-outlined text-[18px]">delete</span>
+          </button>
+        </div>
+      </div>
+      }
+      @empty {
+        <div class="p-8 text-center text-slate-500 font-medium text-[15px]">No se encontraron categorías.</div>
+      }
+    </div>
+  </div>
+
+  <div class="mt-8 text-center text-[12px] text-slate-400 font-medium">
+    Los datos mostrados son únicamente para fines de control comercial interno.
+  </div>
+
+  <!-- Overlay Modal -->
+  @if (isModalOpen) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+    <!-- Modal Content -->
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+      
+      <!-- Header -->
+      <div class="px-6 py-5 border-b border-slate-100 flex flex-col relative">
+        <button (click)="closeModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-600 transition-colors">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+        <h3 class="text-[20px] font-bold text-slate-900 tracking-tight">
+          {{ isEditMode ? 'Editar Categoría' : 'Añadir Nueva Categoría' }}
+        </h3>
+        <p class="text-[13px] text-slate-500 font-medium mt-1">
+          {{ isEditMode ? 'Modifique los detalles de esta clasificación de servicios.' : 'Complete los detalles para crear una nueva clasificación de servicios.' }}
+        </p>
+      </div>
+
+      <!-- Body -->
+      <div class="p-6 space-y-6">
+        
+        <!-- Category Name -->
+        <div>
+          <label class="block text-[13px] font-bold text-slate-800 mb-2">Nombre de la Categoría</label>
+          <input type="text" [(ngModel)]="categoryForm.name" placeholder="Ej. Depilación, Tratamientos..." class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[14px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
+        </div>
+
+        <!-- Color/Icon Selection -->
+        <div>
+          <label class="block text-[13px] font-bold text-slate-800 mb-3">Color o Icono Distintivo</label>
+          
+          <!-- Colors Row -->
+          <div class="flex items-center gap-3 mb-4">
+            @for (c of ['#DCEBFF', '#E9D9F7', '#FFE4E6', '#ECFDF5', '#FFF7ED', '#3B82F6']; track c) {
+              <button (click)="selectColor(c)" 
+                      [style.background-color]="c"
+                      class="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110"
+                      [class.border-2]="categoryForm.color === c"
+                      [class.border-slate-800]="categoryForm.color === c">
+                @if (categoryForm.color === c) {
+                  <span class="material-symbols-outlined text-[16px] font-bold" [class.text-white]="c === '#3B82F6'" [class.text-slate-800]="c !== '#3B82F6'">check</span>
+                }
+              </button>
+            }
+          </div>
+
+          <!-- Icons Row -->
+          <div class="flex items-center gap-3">
+            @for (icon of ['spa', 'content_cut', 'brush', 'palette', 'clean_hands', 'face']; track icon) {
+              <button (click)="selectIcon(icon)" 
+                      [class.border-blue-400]="categoryForm.icon === icon"
+                      [class.text-blue-500]="categoryForm.icon === icon"
+                      class="w-10 h-10 rounded-xl border border-slate-200 text-slate-400 hover:border-blue-400 hover:text-blue-500 flex items-center justify-center transition-colors">
+                <span class="material-symbols-outlined text-[20px]">{{ icon }}</span>
+              </button>
+            }
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer -->
+      <div class="flex items-center justify-end gap-3 px-6 py-5 bg-slate-50/50 border-t border-slate-100">
+        <button (click)="closeModal()" class="px-5 py-2.5 rounded-xl text-[14px] font-bold text-slate-600 hover:bg-slate-100 transition-colors">
+          Cancelar
+        </button>
+        <button (click)="saveCategory()" class="px-5 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-[14px] transition-colors shadow-sm">
+          {{ isEditMode ? 'Guardar Cambios' : 'Guardar Categoría' }}
+        </button>
+      </div>
+
+    </div>
+  </div>
+  }
+
+  <!-- Delete Confirmation Modal -->
+  @if (isDeleteModalOpen) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden text-center p-6 lg:p-8">
+      
+      <!-- Icon -->
+      <div class="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-5">
+        <span class="material-symbols-outlined text-red-500 text-[32px]">delete_forever</span>
+      </div>
+
+      <!-- Content -->
+      <h3 class="text-[20px] font-bold text-slate-900 tracking-tight mb-2">¿Eliminar Categoría?</h3>
+      <p class="text-[14px] text-slate-500 font-medium mb-8">
+        Está a punto de eliminar la categoría <span class="font-bold text-slate-800">"{{ selectedCategoryName }}"</span>. Esta acción no se puede deshacer. Los servicios asignados quedarán "Sin Categoría".
+      </p>
+
+      <!-- Actions -->
+      <div class="flex items-center justify-center gap-3">
+        <button (click)="closeDeleteModal()" class="px-5 py-2.5 rounded-xl text-[14px] font-bold text-slate-600 hover:bg-slate-100 transition-colors w-full">
+          Cancelar
+        </button>
+        <button (click)="confirmDelete()" class="px-5 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-[14px] transition-colors shadow-sm w-full">
+          Sí, Eliminar
+        </button>
+      </div>
+
+    </div>
+  </div>
+  }
+
+  </div>
+</div>

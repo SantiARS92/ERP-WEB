@@ -1,0 +1,373 @@
+<div class="h-[calc(100vh-theme(spacing.20))] flex flex-col bg-white">
+  
+  <!-- Header Sticky Section -->
+  <div class="px-8 pt-6 pb-4 border-b border-slate-200 bg-white z-20 shrink-0">
+    <!-- Breadcrumb + Title row (same style as rest of pages) -->
+    <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
+      <div>
+        <div class="text-[13px] font-medium text-slate-500 mb-1 flex items-center gap-1.5">
+          <span class="hover:text-blue-600 cursor-pointer transition-colors" routerLink="/">Inicio</span>
+          <span class="text-slate-400 text-[15px]">›</span>
+          <span class="text-slate-600">Agenda</span>
+        </div>
+        <h1 class="text-[28px] font-bold text-slate-900 leading-tight">Agenda Semanal</h1>
+        <p class="text-[14px] text-slate-500 mt-0.5">Gestione sus citas y horarios.</p>
+      </div>
+
+      <!-- Action Button in line with title -->
+      <a routerLink="/agenda/crear" class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-semibold text-[14px] transition-colors shadow-[0_2px_10px_rgba(59,130,246,0.3)] cursor-pointer whitespace-nowrap mt-1">
+        <span class="material-symbols-outlined text-[20px]">add</span>
+        Nueva Cita
+      </a>
+    </div>
+    
+    <!-- Calendar Controls row (below title, consistent with calendar UX) -->
+    <div class="flex items-center gap-3">
+      <!-- Date Range Navigator -->
+      <div class="flex items-center rounded-xl border border-slate-200 bg-white px-2 py-1.5 shadow-sm">
+        <button (click)="prev()" class="p-1.5 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors focus:outline-none">
+          <span class="material-symbols-outlined text-[20px]">chevron_left</span>
+        </button>
+        <div class="px-4 text-[14px] font-bold text-slate-700 min-w-[140px] text-center">
+          {{ viewMode === 'week' ? getWeekDateRange() : (days[0]?.dateObj | date:'dd MMM, yyyy') }}
+        </div>
+        <button (click)="next()" class="p-1.5 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors focus:outline-none">
+          <span class="material-symbols-outlined text-[20px]">chevron_right</span>
+        </button>
+      </div>
+
+      <!-- View Toggles -->
+      <div class="flex items-center rounded-xl bg-slate-100 p-1">
+        <button (click)="toggleViewMode('day')" 
+                [class]="viewMode === 'day' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+                class="px-4 py-1.5 text-[14px] font-semibold rounded-lg transition-all">Día</button>
+        <button (click)="toggleViewMode('week')"
+                [class]="viewMode === 'week' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+                class="px-4 py-1.5 text-[14px] font-semibold rounded-lg transition-all">Semana</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Calendar Grid Area (Scrollable body) -->
+  <div class="flex-1 overflow-auto bg-white relative pb-20">
+    
+    <!-- Week Days Header -->
+    <div class="sticky top-0 z-10 grid border-b border-slate-200 bg-white/95 backdrop-blur-sm"
+         [ngStyle]="{'grid-template-columns': viewMode === 'week' ? '80px repeat(7, 1fr)' : '80px 1fr'}">
+      <div class="border-r border-slate-100"></div> <!-- Empty corner -->
+      
+      @for (day of days; track day.dateStr) {
+        <div class="py-4 border-r border-slate-100 flex flex-col items-center justify-center">
+          <span class="text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-1">{{ day.dayName }}</span>
+          
+          <div class="w-10 h-10 flex items-center justify-center rounded-full text-[18px] font-bold transition-colors"
+               [ngClass]="day.isToday ? 'bg-blue-500 text-white shadow-md' : 'text-slate-700'">
+            {{ day.dayNumber }}
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Time Grid Body -->
+    <div class="relative grid"
+         [ngStyle]="{'grid-template-columns': viewMode === 'week' ? '80px repeat(7, 1fr)' : '80px 1fr'}">
+      
+      <!-- Current Time Red Line (absolute across the entire grid) -->
+      @if (currentTimePosition >= 0) {
+        <div class="absolute left-0 right-0 border-t-2 border-red-500 z-10 flex items-center shadow-sm pointer-events-none"
+             [style.top.px]="currentTimePosition">
+             <div class="absolute -left-1 w-2 h-2 rounded-full bg-red-500"></div>
+             <div class="absolute left-2 text-[11px] font-bold text-red-500 -mt-[14px] bg-white px-1 leading-none rounded">{{ currentTimeLabel }}</div>
+        </div>
+      }
+
+      <!-- Background Grid Rows -->
+      <div class="col-span-8 absolute inset-0 z-0 pointer-events-none flex flex-col">
+        @for (hour of hours; track hour) {
+          <div class="h-[100px] border-b border-slate-100 w-full flex-shrink-0"></div>
+        }
+      </div>
+
+      <!-- Time Labels Column (Left) -->
+      <div class="relative z-0 border-r border-slate-100 bg-white">
+        @for (hour of hours; track hour) {
+          <div class="h-[100px] flex items-start justify-center pt-2">
+            <!-- First label '08 AM' goes slightly above the first row physically in design -->
+            <span class="text-[12px] font-medium text-slate-400 transform -translate-y-4 bg-white px-2">
+              {{ formatHourLabel(hour) }}
+            </span>
+          </div>
+        }
+      </div>
+
+      <!-- Days Columns (Cards Container) -->
+      @for (day of days; track day.dateStr) {
+        <div class="relative border-r border-slate-100 h-full min-h-[900px]">
+          
+          <!-- Iterate over ALL appointments for this SPECIFIC day -->
+          @for (app of getAppointmentsForDay(day.dateStr); track app.id) {
+            
+            <div class="absolute rounded-lg p-2 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-all cursor-pointer z-10 group"
+                 [ngStyle]="getAppointmentStyle(app)"
+                 [class]="getAppointmentClass(app)"
+                 (click)="openEditModal(app)">
+              
+              <!-- Client Name - Smaller font if multiple in slot -->
+              <div class="font-bold leading-tight mb-0.5 truncate"
+                   [ngClass]="getAppointmentStyle(app)['width.%'] < 40 ? 'text-[11px]' : 'text-[13px]'">
+                {{ app.clientName }}
+              </div>
+              
+              <!-- Badges - Hide labels if very narrow -->
+              <div class="flex flex-wrap gap-1 mb-1">
+                @if (app.status === 'CANCELLED') {
+                  <div class="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-200/50 text-slate-500 text-[9px] font-bold uppercase tracking-wider w-fit">
+                    {{ getAppointmentStyle(app)['width.%'] < 30 ? 'C' : 'Cancelada' }}
+                  </div>
+                }
+                @if (app.status === 'PENDING') {
+                  <div class="inline-flex items-center px-1.5 py-0.5 rounded bg-orange-200/50 text-orange-500 text-[9px] font-bold uppercase tracking-wider w-fit whitespace-nowrap">
+                    {{ getAppointmentStyle(app)['width.%'] < 30 ? 'P' : 'S. Conf' }}
+                  </div>
+                }
+                @if (app.status === 'CONFIRMED') {
+                  <div class="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-200/50 text-blue-500 text-[9px] font-bold uppercase tracking-wider w-fit">
+                    {{ getAppointmentStyle(app)['width.%'] < 30 ? 'OK' : 'Confirmada' }}
+                  </div>
+                }
+              </div>
+              
+              <!-- Service - Hide if very narrow -->
+              @if (app.serviceName && getAppointmentStyle(app)['width.%'] >= 40) {
+                <div class="text-[11px] leading-tight opacity-80 truncate">{{ app.serviceName }}</div>
+              }
+              
+              <!-- Time - Always show but potentially smaller -->
+              <div class="flex items-center gap-1 mt-auto font-semibold opacity-70"
+                   [ngClass]="getAppointmentStyle(app)['width.%'] < 30 ? 'text-[9px]' : 'text-[11px]'">
+                <span class="material-symbols-outlined shrink-0" 
+                      [ngStyle]="{'font-size': getAppointmentStyle(app)['width.%'] < 30 ? '10px' : '12px'}">schedule</span>
+                {{ app.appointmentTime | slice:0:5 }}
+              </div>
+            </div>
+            
+          }
+
+        </div>
+      }
+
+    </div>
+
+  </div>
+
+  <!-- MODAL: Modificar Cita -->
+  @if (isEditModalOpen) {
+    <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+      
+      <!-- Modal Content (mimicking the image provided by user) -->
+      <div class="bg-white w-full max-w-2xl rounded-[24px] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200">
+        
+        <!-- Modal Header -->
+        <div class="px-8 py-6 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <div class="text-[13px] font-medium text-slate-500 mb-0.5 flex items-center gap-1.5">
+              <span>Agenda</span>
+              <span class="text-slate-400 text-[15px]">›</span>
+              <span class="text-slate-600">Editar Cita</span>
+            </div>
+            <h2 class="text-[24px] font-bold text-slate-900">Modificar Cita</h2>
+          </div>
+          <button (click)="closeEditModal()" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+            <span class="material-symbols-outlined text-[24px]">close</span>
+          </button>
+        </div>
+
+        <!-- Modal Body (Scrollable) -->
+        <div class="flex-1 overflow-y-auto p-8 space-y-8">
+          
+          <!-- Client Section -->
+          <div class="p-6 rounded-2xl bg-slate-50 border border-slate-100 space-y-4">
+            <div class="flex items-center gap-2 text-blue-600 font-bold text-[15px]">
+              <span class="material-symbols-outlined text-[20px]">person</span>
+              Detalles del Cliente
+            </div>
+            
+            <div class="space-y-2 relative">
+              <label class="block text-[13px] font-bold text-slate-700">Nombre del Cliente *</label>
+              <div class="relative">
+                <span class="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-[20px]">search</span>
+                <input type="text" 
+                       [(ngModel)]="selectedAppointment.clientName" 
+                       (input)="onClientSearch()"
+                       placeholder="Buscar o escribir nombre..."
+                       class="w-full pl-11 pr-4 py-3.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-slate-700 font-medium placeholder:text-slate-400 lg:text-[15px]">
+                
+                @if (filteredClients.length > 0) {
+                  <div class="absolute z-20 w-full mt-2 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden max-h-48 overflow-y-auto animate-in slide-in-from-top-2">
+                    @for (c of filteredClients; track c.id) {
+                      <div (click)="selectClient(c)" class="px-4 py-3 hover:bg-slate-50 cursor-pointer flex items-center gap-3 transition-colors">
+                        <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-[12px]">
+                          {{ c.fullName.charAt(0) }}
+                        </div>
+                        <span class="text-[14px] font-medium text-slate-700">{{ c.fullName }}</span>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Service & Professional Section -->
+          <div class="p-6 rounded-2xl bg-slate-50 border border-slate-100 space-y-5">
+            <div class="flex items-center gap-2 text-blue-600 font-bold text-[15px]">
+              <span class="material-symbols-outlined text-[20px]">auto_awesome</span>
+              Servicio y Profesional
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div class="space-y-2">
+                <label class="block text-[13px] font-bold text-slate-700">Servicio *</label>
+                <select [(ngModel)]="selectedAppointment.serviceName" 
+                        (change)="onServiceChange()"
+                        class="w-full px-4 py-3.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-slate-700 font-medium lg:text-[15px]">
+                  <option value="" disabled>Seleccionar</option>
+                  @for (s of allServices; track s.id) {
+                    <option [value]="s.name">{{ s.name }}</option>
+                  }
+                </select>
+              </div>
+              <div class="space-y-2">
+                <label class="block text-[13px] font-bold text-slate-700">Precio *</label>
+                <div class="relative">
+                  <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
+                  <input type="number" 
+                         [(ngModel)]="selectedAppointment.price"
+                         class="w-full pl-8 pr-4 py-3.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-slate-700 font-medium lg:text-[15px]">
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <label class="block text-[13px] font-bold text-slate-700">Profesional (Opcional)</label>
+              <input type="text" 
+                     [(ngModel)]="selectedAppointment.professionalName"
+                     class="w-full px-4 py-3.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-slate-700 font-medium lg:text-[15px]">
+            </div>
+          </div>
+
+          <!-- Schedule Section -->
+          <div class="p-6 rounded-2xl bg-slate-50 border border-slate-100 space-y-5">
+            <div class="flex items-center gap-2 text-blue-600 font-bold text-[15px]">
+              <span class="material-symbols-outlined text-[20px]">schedule</span>
+              Horario
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <!-- Date -->
+              <div class="space-y-2">
+                <label class="block text-[13px] font-bold text-slate-700">Fecha *</label>
+                <div class="relative">
+                  <input type="date" 
+                         [(ngModel)]="selectedAppointment.appointmentDate"
+                         class="w-full px-4 py-3.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-slate-700 font-medium lg:text-[15px]">
+                </div>
+              </div>
+
+              <!-- Time -->
+              <div class="space-y-2 relative">
+                <label class="block text-[13px] font-bold text-slate-700">Hora *</label>
+                <button (click)="toggleTimeDropdown($event)" 
+                        class="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-white text-left flex items-center justify-between hover:border-slate-300 transition-all text-slate-700 font-medium lg:text-[15px]">
+                  <span>{{ formatTimeAMPM(selectedAppointment.appointmentTime || '') }}</span>
+                  <span class="material-symbols-outlined text-slate-400 text-[20px]">schedule</span>
+                </button>
+                
+                @if (isTimeDropdownOpen) {
+                  <div class="absolute z-20 bottom-full mb-2 w-full bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden max-h-48 overflow-y-auto animate-in slide-in-from-bottom-2">
+                    @for (time of timeOptions; track time) {
+                      <div (click)="selectTime(time)" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-[14px] font-medium text-slate-700 transition-colors">
+                        {{ formatTimeAMPM(time) }}
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+
+              <!-- Status -->
+              <div class="space-y-2 relative">
+                <label class="block text-[13px] font-bold text-slate-700">Estado</label>
+                <button (click)="toggleStatusDropdown($event)"
+                        class="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-white text-left flex items-center justify-between hover:border-slate-300 transition-all text-slate-700 font-medium lg:text-[15px]">
+                  <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full" 
+                         [ngClass]="{
+                           'bg-orange-400': selectedAppointment.status === 'PENDING',
+                           'bg-blue-400': selectedAppointment.status === 'CONFIRMED',
+                           'bg-slate-400': selectedAppointment.status === 'CANCELLED'
+                         }"></div>
+                    {{ selectedAppointment.status === 'PENDING' ? 'Sin confirmar' : selectedAppointment.status === 'CONFIRMED' ? 'Confirmada' : 'Cancelada' }}
+                  </div>
+                  <span class="material-symbols-outlined text-slate-400 text-[20px]">expand_more</span>
+                </button>
+
+                @if (isStatusDropdownOpen) {
+                  <div class="absolute z-20 bottom-full mb-2 w-full bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden animate-in slide-in-from-bottom-2">
+                    <div (click)="selectStatus('PENDING')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer flex items-center gap-2 transition-colors">
+                      <div class="w-2 h-2 rounded-full bg-orange-400"></div>
+                      <span class="text-[14px] font-medium text-slate-700">Sin confirmar</span>
+                    </div>
+                    <div (click)="selectStatus('CONFIRMED')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer flex items-center gap-2 transition-colors">
+                      <div class="w-2 h-2 rounded-full bg-blue-400"></div>
+                      <span class="text-[14px] font-medium text-slate-700">Confirmada</span>
+                    </div>
+                    <div (click)="selectStatus('CANCELLED')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer flex items-center gap-2 transition-colors">
+                      <div class="w-2 h-2 rounded-full bg-slate-400"></div>
+                      <span class="text-[14px] font-medium text-slate-700">Cancelada</span>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Internal Notes (Optional, matching contract even if not in provided shot) -->
+          <div class="p-6 rounded-2xl bg-white border border-slate-100 space-y-2">
+            <label class="block text-[13px] font-bold text-slate-700 uppercase tracking-wider">Notas Internas</label>
+            <textarea [(ngModel)]="selectedAppointment.internalNotes"
+                      rows="3"
+                      placeholder="Alguna nota o requisito especial..."
+                      class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-slate-700 font-medium placeholder:text-slate-400 text-[14px] resize-none"></textarea>
+          </div>
+          
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="px-8 py-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-4">
+          <button (click)="deleteAppointment()"
+                  [disabled]="isSubmitting"
+                  class="flex items-center gap-2 px-6 py-3 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 font-bold text-[14px] transition-all disabled:opacity-50">
+            <span class="material-symbols-outlined text-[20px]">delete</span>
+            Eliminar
+          </button>
+          
+          <div class="flex items-center gap-3">
+            <button (click)="closeEditModal()" 
+                    class="px-6 py-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-bold text-[14px] transition-all">
+              Cancelar
+            </button>
+            <button (click)="updateAppointment()"
+                    [disabled]="isSubmitting"
+                    class="px-8 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-[14px] transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50 flex items-center gap-2">
+              @if (isSubmitting) {
+                <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              }
+              Actualizar Cita
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  }
+</div>

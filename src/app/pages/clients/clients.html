@@ -1,0 +1,151 @@
+<div class="h-[calc(100vh-theme(spacing.20))] overflow-y-auto bg-white" (click)="closeDropdown()">
+
+  <div class="max-w-7xl mx-auto py-8 px-8 pb-20">
+
+  <!-- Compact Page Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+    <div>
+      <div class="text-[13px] font-medium text-slate-500 mb-1 flex items-center gap-1.5">
+        <span class="hover:text-blue-600 cursor-pointer transition-colors" routerLink="/">Inicio</span>
+        <span class="text-slate-400 text-[15px]">›</span>
+        <span class="text-slate-600">Clientes</span>
+      </div>
+      <h1 class="text-[28px] font-bold text-slate-900 leading-tight">Clientes</h1>
+      <p class="text-[14px] text-slate-500 mt-0.5">Administra tus relaciones con clientes e historial de citas.</p>
+    </div>
+    <a routerLink="/clientes/crear" class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-semibold text-[14px] transition-colors shadow-sm cursor-pointer whitespace-nowrap">
+      <span class="material-symbols-outlined text-[20px]">add</span>
+      Añadir Cliente
+    </a>
+  </div>
+
+  <!-- Search toolbar -->
+  <div class="flex items-center justify-between mb-6">
+    <!-- Left side controls (Search) -->
+    <div class="relative w-[480px]">
+      <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
+      <input type="text" [(ngModel)]="searchText" (input)="onSearch()" placeholder="Buscar por nombre, email o teléfono..." class="w-full pl-11 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow text-[15px] text-slate-800 placeholder-slate-400">
+    </div>
+  </div>
+
+  <!-- Data Table -->
+  <div class="bg-white rounded-2xl border border-slate-200 overflow-visible shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
+    
+    <!-- Table Header -->
+    <div class="grid grid-cols-[minmax(250px,1fr)_180px_250px_100px] gap-4 px-6 py-4 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+      <div>NOMBRE DEL CLIENTE</div>
+      <div>TELÉFONO</div>
+      <div>EMAIL</div>
+      <div class="text-center">ACCIÓN</div>
+    </div>
+
+    <!-- Table Body -->
+    <div class="divide-y divide-slate-100">
+      @if (isLoading) {
+        @for (i of [1,2,3,4,5]; track i) {
+          <div class="grid grid-cols-[minmax(250px,1fr)_180px_250px_100px] gap-4 px-6 py-4 items-center animate-pulse">
+            <div class="flex items-center gap-4">
+              <div class="w-10 h-10 rounded-full bg-slate-200"></div>
+              <div class="h-4 bg-slate-200 rounded w-36"></div>
+            </div>
+            <div class="h-4 bg-slate-200 rounded w-28"></div>
+            <div class="h-4 bg-slate-200 rounded w-44"></div>
+            <div class="flex justify-center"><div class="h-8 w-8 bg-slate-200 rounded-lg"></div></div>
+          </div>
+        }
+      } @else {
+        @for (client of clients; track client.id) {
+        <div class="grid grid-cols-[minmax(250px,1fr)_180px_250px_100px] gap-4 px-6 py-4 items-center hover:bg-slate-50 transition-colors group">
+          
+          <!-- Client Info (Avatar + Name) -->
+          <div class="flex items-center gap-4">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-bold text-[15px]" [ngClass]="getAvatarColor(client.fullName)">
+              {{ getInitials(client.fullName) }}
+            </div>
+            <div class="font-bold text-slate-800 text-[14px]">{{ client.fullName }}</div>
+          </div>
+
+          <!-- Phone -->
+          <div class="text-slate-700 font-medium text-[14px]">
+            {{ client.phone }}
+          </div>
+
+          <!-- Email -->
+          <div class="text-slate-500 text-[14px]">
+            {{ client.email || '—' }}
+          </div>
+
+          <!-- Action Dropdown -->
+          <div class="flex justify-center relative">
+            <button (click)="toggleDropdown(client.id!, $event)" class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors focus:outline-none">
+              <span class="material-symbols-outlined text-[20px]">more_vert</span>
+            </button>
+            
+            <!-- Dropdown Menu -->
+            @if (openDropdownId === client.id) {
+              <div class="absolute right-8 top-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-50">
+                <a [routerLink]="['/clientes/editar', client.id]" class="flex items-center gap-2 px-4 py-2 text-[14px] text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors cursor-pointer">
+                  <span class="material-symbols-outlined text-[18px]">edit</span>
+                  Editar cliente
+                </a>
+                <button (click)="openDeleteModal(client, $event)" class="w-full flex items-center gap-2 px-4 py-2 text-[14px] text-slate-700 hover:bg-slate-50 hover:text-red-600 transition-colors">
+                  <span class="material-symbols-outlined text-[18px]">delete</span>
+                  Eliminar cliente
+                </button>
+              </div>
+            }
+          </div>
+
+        </div>
+        }
+        @empty {
+          <div class="p-8 text-center text-slate-500 font-medium text-[15px]">No hay clientes registrados.</div>
+        }
+      }
+    </div>
+  </div>
+
+  <div class="mt-12 text-center text-[13px] text-slate-400 font-medium">
+    Los datos mostrados son solo para fines de control comercial interno.
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  @if (isDeleteModalOpen) {
+    <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+        
+        <!-- Modal Content -->
+        <div class="p-6">
+          <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 mb-4 mx-auto">
+            <span class="material-symbols-outlined text-[24px]">delete</span>
+          </div>
+          <h3 class="text-[20px] font-bold text-slate-900 text-center mb-2">¿Eliminar cliente?</h3>
+          <p class="text-[15px] text-slate-500 text-center">
+            Estás a punto de eliminar a <span class="font-bold text-slate-800">{{ clientToDelete?.fullName }}</span>. Esta acción no se puede deshacer.
+          </p>
+        </div>
+
+        <!-- Layout Footer -->
+        <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+          <button 
+            (click)="closeDeleteModal()"
+            [disabled]="isDeleting"
+            class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-semibold text-[14px] hover:bg-white transition-colors disabled:opacity-50">
+            Cancelar
+          </button>
+          <button 
+            (click)="confirmDelete()"
+            [disabled]="isDeleting"
+            class="px-5 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold text-[14px] transition-colors shadow-sm disabled:opacity-50 flex items-center">
+            @if (isDeleting) {
+              <span class="material-symbols-outlined animate-spin text-[18px] mr-2">progress_activity</span>
+            }
+            Eliminar
+          </button>
+        </div>
+
+      </div>
+    </div>
+  }
+  </div>
+</div>

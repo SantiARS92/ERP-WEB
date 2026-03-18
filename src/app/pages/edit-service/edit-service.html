@@ -1,0 +1,110 @@
+<div class="h-[calc(100vh-theme(spacing.20))] overflow-y-auto bg-white">
+
+  <div class="max-w-4xl mx-auto py-8 px-8 pb-20 relative">
+
+    <!-- Compact Header -->
+    <div class="mb-8">
+      <div class="text-[13px] font-medium text-slate-500 mb-1 flex items-center gap-1.5">
+        <span class="hover:text-blue-600 cursor-pointer transition-colors" routerLink="/servicios">Servicios</span>
+        <span class="text-slate-400 text-[15px]">›</span>
+        <span class="text-slate-600">Editar Servicio</span>
+      </div>
+      <h1 class="text-[28px] font-bold text-slate-900 leading-tight">Modificar Servicio</h1>
+    </div>
+
+  <!-- Form Card -->
+  <div class="bg-white rounded-2xl border border-slate-200 p-8 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] max-w-2xl">
+    
+    <div class="space-y-6">
+      
+      <!-- Service Name -->
+      <div>
+        <label class="block text-[13px] font-bold text-slate-800 mb-2">Nombre del Servicio</label>
+        <input type="text" [(ngModel)]="service.name" name="name" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
+        <p class="text-[12px] text-slate-400 font-medium mt-2">El nombre que verán los clientes en la reserva.</p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-6">
+        <!-- Category -->
+        <div>
+          <label class="block text-[13px] font-bold text-slate-800 mb-2">Categoría</label>
+          <div class="relative">
+            <select [(ngModel)]="service.categoryId" name="categoryId" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow appearance-none cursor-pointer">
+              <option value="0">Seleccionar categoría</option>
+              @for (cat of categories; track cat.id) {
+                <option [value]="cat.id">{{ cat.name }}</option>
+              }
+            </select>
+            <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+          </div>
+        </div>
+        
+        <!-- Status -->
+        <div>
+          <label class="block text-[13px] font-bold text-slate-800 mb-3">Estado</label>
+          <div class="flex items-center gap-3">
+            <button (click)="toggleStatus()" 
+                    [class.bg-blue-500]="service.active" 
+                    [class.bg-slate-200]="!service.active"
+                    class="relative w-11 h-6 rounded-full transition-colors flex shrink-0">
+              <span [class.translate-x-6]="service.active" 
+                    [class.translate-x-1]="!service.active"
+                    class="absolute top-1 left-0 w-4 h-4 rounded-full bg-white transition-transform shadow-sm"></span>
+            </button>
+            <span class="text-[14px] font-medium text-slate-500">{{ service.active ? 'Activo' : 'Inactivo' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div>
+        <label class="block text-[13px] font-bold text-slate-800 mb-2">Descripción</label>
+        <textarea rows="4" [(ngModel)]="service.description" name="description" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow resize-y"></textarea>
+      </div>
+
+      <div class="grid grid-cols-2 gap-6 pb-6 border-b border-slate-100">
+        <!-- Price -->
+        <div>
+          <label class="block text-[13px] font-bold text-slate-800 mb-2">Precio ($)</label>
+          <div class="relative">
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-medium">$</span>
+            <input type="number" [(ngModel)]="service.price" name="price" class="w-full pl-8 pr-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
+          </div>
+        </div>
+
+        <!-- Duration -->
+        <div>
+          <label class="block text-[13px] font-bold text-slate-800 mb-2">Duración (minutos)</label>
+          <div class="relative">
+            <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-[20px]">schedule</span>
+            <input type="number" [(ngModel)]="service.durationMinutes" name="durationMinutes" class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions Footer -->
+      <div class="flex items-center justify-between pt-2">
+        <button (click)="deleteService()" class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-red-500 hover:bg-red-50 font-medium text-[14px] transition-colors cursor-pointer">
+          <span class="material-symbols-outlined text-[18px]">delete</span>
+          Eliminar Servicio
+        </button>
+
+        <div class="flex items-center gap-3">
+          <a [routerLink]="['/servicios']" class="px-6 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-[14px] transition-colors shadow-sm cursor-pointer">
+            Cancelar
+          </a>
+          <button (click)="saveChanges()" class="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-[14px] transition-colors shadow-sm cursor-pointer">
+            <span class="material-symbols-outlined text-[18px]">save</span>
+            Guardar Cambios
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="mt-8 text-center text-[12px] text-slate-400 font-medium">
+    Los cambios se reflejarán inmediatamente en el sistema de reservas.
+  </div>
+  </div>
+</div>
