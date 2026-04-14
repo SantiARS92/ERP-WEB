@@ -1,13 +1,16 @@
+import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Category } from '../../core/models/category.model';
 import { CategoryApiService } from '../../core/services/category-api.service';
-import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { PaginationComponent } from '../../shared/components/pagination/pagination';
+import { AuthService } from '../../core/services/auth.service';
+import { UserRole } from '../../core/models/user.model';
 
 @Component({
   selector: 'app-manage-categories',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, PaginationComponent],
   templateUrl: './manage-categories.html',
   styles: ``,
 })
@@ -28,7 +31,15 @@ export class ManageCategories implements OnInit {
   editingId?: number;
 
   categories: Category[] = [];
+  
+  // Pagination State
+  currentPage = 0;
+  pageSize = 10;
+  totalElements = 0;
+  totalPages = 0;
 
+  public authService = inject(AuthService);
+  public UserRole = UserRole;
   private categoryApi = inject(CategoryApiService);
   private cdr = inject(ChangeDetectorRef);
 
@@ -38,12 +49,25 @@ export class ManageCategories implements OnInit {
 
   loadCategories() {
     this.categoryApi.getCategories(this.searchText).subscribe(cats => {
-      this.categories = cats;
+      this.totalElements = cats.length;
+      this.totalPages = Math.ceil(this.totalElements / this.pageSize) || 1;
+      
+      // Client-side pagination since API returns full list
+      const start = this.currentPage * this.pageSize;
+      const end = start + this.pageSize;
+      this.categories = cats.slice(start, end);
+      
       this.cdr.detectChanges();
     });
   }
 
+  goToPage(p: number) {
+    this.currentPage = p;
+    this.loadCategories();
+  }
+
   onSearch() {
+    this.currentPage = 0;
     this.loadCategories();
   }
 

@@ -6,9 +6,11 @@ import { finalize } from 'rxjs';
 import { AppointmentApiService } from '../../core/services/appointment-api.service';
 import { ClientApiService } from '../../core/services/client-api.service';
 import { ServiceApiService } from '../../core/services/service-api.service';
+import { ProfessionalApiService } from '../../core/services/professional-api.service';
 import { Appointment } from '../../core/models/appointment.model';
 import { Client } from '../../core/models/client.model';
 import { Service, ServicePage } from '../../core/models/service.model';
+import { Professional } from '../../core/models/professional.model';
 
 @Component({
   selector: 'app-create-appointment',
@@ -21,7 +23,7 @@ export class CreateAppointment {
   appointment: Partial<Appointment> = {
     clientName: '',
     serviceName: '',
-    professionalName: 'TEMPORAL', // default as per design contract
+    professionalName: '',
     appointmentDate: this.getTodayDateString(),
     appointmentTime: '09:30:00', // Default format HH:mm:ss
     status: 'PENDING',
@@ -37,6 +39,7 @@ export class CreateAppointment {
   clients: Client[] = [];
   filteredClients: Client[] = [];
   services: Service[] = [];
+  professionals: Professional[] = [];
   timeOptions = [
     '09:00', '09:30', '10:00', '10:30', 
     '11:00', '11:30', '12:00', '12:30',
@@ -47,12 +50,20 @@ export class CreateAppointment {
   private appointmentApi = inject(AppointmentApiService);
   private clientApi = inject(ClientApiService);
   private serviceApi = inject(ServiceApiService);
+  private professionalApi = inject(ProfessionalApiService);
   private router = inject(Router);
   private eRef = inject(ElementRef);
 
   ngOnInit() {
     this.loadClients();
     this.loadServices();
+    this.loadProfessionals();
+  }
+
+  loadProfessionals() {
+    this.professionalApi.getProfessionals(true).subscribe(res => {
+      this.professionals = res;
+    });
   }
 
   loadServices() {

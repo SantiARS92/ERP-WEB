@@ -5,11 +5,12 @@ import { RouterModule } from '@angular/router';
 import { ClientApiService } from '../../core/services/client-api.service';
 import { Client } from '../../core/models/client.model';
 import { finalize } from 'rxjs';
+import { PaginationComponent } from '../../shared/components/pagination/pagination';
 
 @Component({
   selector: 'app-clients',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule, PaginationComponent],
   templateUrl: './clients.html',
 })
 export class Clients implements OnInit {
@@ -23,13 +24,7 @@ export class Clients implements OnInit {
   totalPages = 0;
   isLoading = false;
 
-  // Dropdown state tracked by row ID
-  openDropdownId: number | null = null;
 
-  // Delete Modal State
-  isDeleteModalOpen = false;
-  clientToDelete: Client | null = null;
-  isDeleting = false;
 
   Math = Math;
 
@@ -48,24 +43,29 @@ export class Clients implements OnInit {
     };
     if (this.searchText.trim()) filters.search = this.searchText.trim();
 
-    this.clientApi.getClients(filters)
-      .pipe(
-        finalize(() => {
-          this.isLoading = false;
-          this.cdr.detectChanges();
-        })
-      )
-      .subscribe({
-        next: (data) => {
-          this.clients = data.content ?? [];
-          this.totalElements = data.totalElements;
-          this.totalPages = data.totalPages;
-        },
-        error: (err) => {
-          console.error('Error fetching clients:', err);
-          this.clients = [];
+    this.clientApi.getClients(filters).subscribe({
+      next: (data: any) => {
+        if (data && typeof data === 'object') {
+          if (Array.isArray(data.content)) {
+            this.clients = data.content;
+            this.totalElements = data.totalElements ?? data.content.length;
+            this.totalPages = data.totalPages ?? Math.ceil(this.totalElements / this.pageSize);
+          } else if (Array.isArray(data)) {
+            this.clients = data;
+            this.totalElements = data.length;
+            this.totalPages = Math.ceil(data.length / this.pageSize);
+          }
         }
-      });
+        this.isLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error fetching clients:', err);
+        this.clients = [];
+        this.isLoading = false;
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   get pagesArray(): number[] {
@@ -82,50 +82,7 @@ export class Clients implements OnInit {
     this.loadClients();
   }
 
-  toggleDropdown(clientId: number, event: Event) {
-    event.stopPropagation();
-    this.openDropdownId = this.openDropdownId === clientId ? null : clientId;
-  }
 
-  closeDropdown() {
-    this.openDropdownId = null;
-  }
-
-  openDeleteModal(client: Client, event: Event) {
-    event.stopPropagation();
-    this.clientToDelete = client;
-    this.isDeleteModalOpen = true;
-    this.closeDropdown();
-  }
-
-  closeDeleteModal() {
-    this.isDeleteModalOpen = false;
-    this.clientToDelete = null;
-  }
-
-  confirmDelete() {
-    if (!this.clientToDelete?.id) return;
-    this.isDeleting = true;
-    this.clientApi.deleteClient(this.clientToDelete.id)
-      .pipe(
-        finalize(() => {
-          this.isDeleting = false;
-          this.closeDeleteModal();
-        })
-      )
-      .subscribe({
-        next: () => {
-          if (this.clients.length === 1 && this.currentPage > 0) {
-            this.currentPage--;
-          }
-          this.loadClients();
-        },
-        error: (err) => {
-          console.error('Error deleting client:', err);
-          alert('Error al eliminar el cliente. Comprueba la conexión.');
-        }
-      });
-  }
 
   getInitials(name: string): string {
     if (!name) return '';

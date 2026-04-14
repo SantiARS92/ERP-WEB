@@ -2,13 +2,17 @@ import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { finalize } from 'rxjs';
+import { AuthService } from '../../core/services/auth.service';
+import { UserRole } from '../../core/models/user.model';
 import { AppointmentApiService } from '../../core/services/appointment-api.service';
 import { Appointment, AgendaDay } from '../../core/models/appointment.model';
 import { ClientApiService } from '../../core/services/client-api.service';
 import { ServiceApiService } from '../../core/services/service-api.service';
+import { ProfessionalApiService } from '../../core/services/professional-api.service';
 import { FormsModule } from '@angular/forms';
 import { Client } from '../../core/models/client.model';
 import { Service } from '../../core/models/service.model';
+import { Professional } from '../../core/models/professional.model';
 
 @Component({
   selector: 'app-agenda',
@@ -29,10 +33,12 @@ export class Agenda implements OnInit {
   isEditModalOpen = false;
   selectedAppointment: Partial<Appointment> = {};
   isSubmitting = false;
+  UserRole = UserRole;
   
   // For the modal select/autocomplete
   allClients: any[] = [];
   allServices: any[] = [];
+  allProfessionals: Professional[] = [];
   filteredClients: any[] = [];
   timeOptions = [
     '09:00', '09:30', '10:00', '10:30', 
@@ -47,8 +53,10 @@ export class Agenda implements OnInit {
   private appointmentApi = inject(AppointmentApiService);
   private clientApi = inject(ClientApiService);
   private serviceApi = inject(ServiceApiService);
+  private professionalApi = inject(ProfessionalApiService);
   private cdr = inject(ChangeDetectorRef);
   private datePipe = inject(DatePipe);
+  public authService = inject(AuthService);
 
   ngOnInit() {
     this.selectedDate = new Date();
@@ -76,6 +84,7 @@ export class Agenda implements OnInit {
   loadAllData() {
     this.clientApi.getClients({ size: 100 }).subscribe((res: any) => this.allClients = res.content);
     this.serviceApi.getServices({ size: 100, active: true }).subscribe((res: any) => this.allServices = res.content);
+    this.professionalApi.getProfessionals(true).subscribe(res => this.allProfessionals = res);
   }
 
   generateDays() {
@@ -189,38 +198,66 @@ export class Agenda implements OnInit {
     return this.appointments.filter(a => a.appointmentDate === dateStr);
   }
 
+  getAppointmentDuration(app: Appointment): number {
+    const srv = this.allServices.find(s => s.name === app.serviceName || s.id === app.serviceId);
+    return srv ? srv.durationMinutes : 60; // Default to 60 if not found
+  }
+
   getAppointmentStyle(app: Appointment): any {
-    // Determine top offset
     const [startH, startM] = app.appointmentTime.split(':').map(Number);
     const topPx = this.timeToPixels(startH, startM);
     
-    // Determine height - default to 60 mins since endTime is removed
-    const heightPx = 100; // 100px = 1 hour in this grid
+    const duration = this.getAppointmentDuration(app);
+    const heightPx = (duration / 60) * 100;
     
-    // OVERLAP LOGIC: Calculate width and left based on concurrent apps
     const dayApps = this.getAppointmentsForDay(app.appointmentDate)
                     .sort((a, b) => a.appointmentTime.localeCompare(b.appointmentTime));
     
-    // Find clusters of overlapping appointments
-    // Simplified algorithm for "split space"
-    const concurrent = dayApps.filter(other => {
+    // Improved overlap clustering logic
+    const t1Start = startH * 60 + startM;
+    const t1End = t1Start + duration;
+
+    // Find all apps that overlap with this one
+    const overlapping = dayApps.filter(other => {
       if (other.id === app.id) return false;
-      const [h1, m1] = app.appointmentTime.split(':').map(Number);
       const [h2, m2] = other.appointmentTime.split(':').map(Number);
-      const t1 = h1 * 60 + m1;
-      const t2 = h2 * 60 + m2;
-      // Overlap if start times are within 59 mins (assuming 60 min duration)
-      return Math.abs(t1 - t2) < 60;
+      const t2Start = h2 * 60 + m2;
+      const t2End = t2Start + this.getAppointmentDuration(other);
+      
+      return t1Start < t2End && t2Start < t1End;
     });
 
-    const totalInSlot = concurrent.length + 1;
-    const positionInSlot = concurrent.filter(other => 
-      other.appointmentTime < app.appointmentTime || 
-      (other.appointmentTime === app.appointmentTime && (other.id || 0) < (app.id || 0))
-    ).length;
+    // If no overlaps, full width
+    if (overlapping.length === 0) {
+      return {
+        'top.px': topPx,
+        'height.px': heightPx,
+        'width.%': 90,
+        'left.%': 5
+      };
+    }
 
-    const width = (90 / totalInSlot);
-    const left = 5 + (positionInSlot * (90 / totalInSlot));
+    // Determine position using a "first available column" approach
+    // We need to know which "columns" are occupied by overlapping apps at this specific time
+    const columns: (number | undefined)[] = [];
+    
+    // Sort overlapping apps by ID or something stable so we all agree on order
+    const sortedActive = dayApps.filter(other => {
+      const [h2, m2] = other.appointmentTime.split(':').map(Number);
+      const t2Start = h2 * 60 + m2;
+      const t2End = t2Start + this.getAppointmentDuration(other);
+      return t1Start < t2End && t2Start < t1End;
+    }).sort((a, b) => {
+      const timeDiff = a.appointmentTime.localeCompare(b.appointmentTime);
+      if (timeDiff !== 0) return timeDiff;
+      return (a.id || 0) - (b.id || 0);
+    });
+
+    const totalColumns = sortedActive.length;
+    const myIndex = sortedActive.findIndex(a => a.id === app.id);
+
+    const width = 90 / totalColumns;
+    const left = 5 + (myIndex * width);
 
     return {
       'top.px': topPx,

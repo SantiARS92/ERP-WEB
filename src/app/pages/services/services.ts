@@ -6,11 +6,12 @@ import { ServiceApiService } from '../../core/services/service-api.service';
 import { CategoryApiService } from '../../core/services/category-api.service';
 import { Service } from '../../core/models/service.model';
 import { Category } from '../../core/models/category.model';
+import { PaginationComponent } from '../../shared/components/pagination/pagination';
 
 @Component({
   selector: 'app-services',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule, PaginationComponent],
   templateUrl: './services.html',
   styles: ``,
 })

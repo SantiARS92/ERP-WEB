@@ -2,12 +2,21 @@
 
   <!-- Branding -->
   <div class="flex items-center gap-3 px-5 py-5 border-b border-gray-100">
-    <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shrink-0 shadow-sm shadow-blue-200">
-      <span class="material-symbols-outlined text-white text-[18px] [font-variation-settings:'FILL'_1,'wght'_300]">diamond</span>
+    <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 overflow-hidden"
+         [class.bg-blue-600]="!settings()?.businessLogo"
+         [class.shadow-sm]="!settings()?.businessLogo"
+         [class.shadow-blue-200]="!settings()?.businessLogo">
+      @if (settings()?.businessLogo) {
+        <img [src]="settings()?.businessLogo" class="w-full h-full object-contain">
+      } @else {
+        <span class="material-symbols-outlined text-white text-[18px] [font-variation-settings:'FILL'_1,'wght'_300]">diamond</span>
+      }
     </div>
-    <div>
-      <h1 class="text-sm font-semibold text-gray-800 leading-tight">Centro de Estética</h1>
-      <span class="text-[10px] font-medium tracking-widest uppercase text-gray-400">Gestión</span>
+    <div class="flex-1 min-w-0">
+      <h1 class="text-sm font-semibold text-gray-800 leading-tight truncate">
+        {{ settings()?.businessName || 'Centro de Estética' }}
+      </h1>
+      <span class="text-[10px] font-medium tracking-widest uppercase text-gray-400">Portal de Gestión</span>
     </div>
   </div>
 
@@ -15,81 +24,114 @@
   <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-0.5 scrollbar-none">
 
     <p class="px-3 pt-1 pb-2 text-[10px] font-semibold tracking-widest uppercase text-gray-400">Principal</p>
-
+    
+    <!-- Panel de Control (Guest, Professional, Admin) -->
     <a routerLink="/panel" routerLinkActive="!bg-blue-50 !text-blue-600 font-semibold" [routerLinkActiveOptions]="{exact:true}"
        class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors">
       <span class="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-gray-600 transition-colors">dashboard</span>
       Panel de Control
     </a>
 
+    <!-- Agenda (Guest, Professional, Admin) -->
     <a routerLink="/agenda" routerLinkActive="!bg-blue-50 !text-blue-600 font-semibold" [routerLinkActiveOptions]="{exact:false}"
        class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors">
       <span class="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-gray-600 transition-colors">calendar_month</span>
       Agenda
     </a>
 
-    <a routerLink="/servicios" routerLinkActive="!bg-blue-50 !text-blue-600 font-semibold" [routerLinkActiveOptions]="{exact:false}"
-       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors">
-      <span class="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-gray-600 transition-colors">spa</span>
-      Servicios
-    </a>
+    @if (authService.hasRole([UserRole.ADMIN, UserRole.PROFESSIONAL])) {
+      <!-- Servicios (Professional, Admin) -->
+      <a routerLink="/servicios" routerLinkActive="!bg-blue-50 !text-blue-600 font-semibold" [routerLinkActiveOptions]="{exact:false}"
+         class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors">
+        <span class="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-gray-600 transition-colors">spa</span>
+        Servicios
+      </a>
 
-    <a routerLink="/clientes" routerLinkActive="!bg-blue-50 !text-blue-600 font-semibold" [routerLinkActiveOptions]="{exact:false}"
-       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors">
-      <span class="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-gray-600 transition-colors">people</span>
-      Clientes
-    </a>
+      <!-- Clientes (Professional, Admin) -->
+      <a routerLink="/clientes" routerLinkActive="!bg-blue-50 !text-blue-600 font-semibold" [routerLinkActiveOptions]="{exact:false}"
+         class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors">
+        <span class="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-gray-600 transition-colors">people</span>
+        Clientes
+      </a>
 
-    <p class="px-3 pt-4 pb-2 text-[10px] font-semibold tracking-widest uppercase text-gray-400">Finanzas</p>
+      <p class="px-3 pt-4 pb-2 text-[10px] font-semibold tracking-widest uppercase text-gray-400">Finanzas</p>
 
-    <a routerLink="/ventas" routerLinkActive="!bg-blue-50 !text-blue-600 font-semibold" [routerLinkActiveOptions]="{exact:false}"
-       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors">
-      <span class="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-gray-600 transition-colors">point_of_sale</span>
-      Ventas
-    </a>
+      <a routerLink="/ventas" routerLinkActive="!bg-blue-50 !text-blue-600 font-semibold" [routerLinkActiveOptions]="{exact:false}"
+         class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors">
+        <span class="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-gray-600 transition-colors">point_of_sale</span>
+        Ventas
+      </a>
 
-    <a routerLink="/gastos" routerLinkActive="!bg-blue-50 !text-blue-600 font-semibold" [routerLinkActiveOptions]="{exact:false}"
-       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors">
-      <span class="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-gray-600 transition-colors">receipt_long</span>
-      Gastos
-    </a>
+      <a routerLink="/gastos" routerLinkActive="!bg-blue-50 !text-blue-600 font-semibold" [routerLinkActiveOptions]="{exact:false}"
+         class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors">
+        <span class="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-gray-600 transition-colors">receipt_long</span>
+        Gastos
+      </a>
 
-    <a routerLink="/inventario" routerLinkActive="!bg-blue-50 !text-blue-600 font-semibold" [routerLinkActiveOptions]="{exact:false}"
-       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors">
-      <span class="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-gray-600 transition-colors">inventory_2</span>
-      Inventario
-    </a>
+      <a routerLink="/inventario" routerLinkActive="!bg-blue-50 !text-blue-600 font-semibold" [routerLinkActiveOptions]="{exact:false}"
+         class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors">
+        <span class="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-gray-600 transition-colors">inventory_2</span>
+        Inventario
+      </a>
 
-    <a routerLink="/informes" routerLinkActive="!bg-blue-50 !text-blue-600 font-semibold" [routerLinkActiveOptions]="{exact:false}"
-       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors">
-      <span class="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-gray-600 transition-colors">insights</span>
-      Informes
-    </a>
+      @if (authService.hasRole([UserRole.ADMIN])) {
+        <a routerLink="/informes" routerLinkActive="!bg-blue-50 !text-blue-600 font-semibold" [routerLinkActiveOptions]="{exact:false}"
+           class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors">
+          <span class="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-gray-600 transition-colors">insights</span>
+          Informes
+        </a>
+      }
+    }
 
-    <p class="px-3 pt-4 pb-2 text-[10px] font-semibold tracking-widest uppercase text-gray-400">Sistema</p>
+    @if (authService.hasRole([UserRole.ADMIN, UserRole.PROFESSIONAL])) {
+      <p class="px-3 pt-4 pb-2 text-[10px] font-semibold tracking-widest uppercase text-gray-400">Sistema</p>
 
-    <a routerLink="/ajustes" routerLinkActive="!bg-blue-50 !text-blue-600 font-semibold" [routerLinkActiveOptions]="{exact:false}"
-       class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors">
-      <span class="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-gray-600 transition-colors">tune</span>
-      Ajustes
-    </a>
+      <a routerLink="/configuracion" routerLinkActive="!bg-blue-50 !text-blue-600 font-semibold" [routerLinkActiveOptions]="{exact:false}"
+         class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors">
+        <span class="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-gray-600 transition-colors">settings</span>
+        Ajustes
+      </a>
+    }
 
   </nav>
 
   <!-- User Profile -->
-  <div class="flex items-center gap-3 px-4 py-3.5 border-t border-gray-100">
-    <img
-      src="https://ui-avatars.com/api/?name=Sarah+Wilson&background=EEF2FF&color=4338CA&bold=true&size=128"
-      alt="Sarah Wilson"
-      class="w-8 h-8 rounded-full object-cover ring-2 ring-indigo-100 shrink-0"
-    />
-    <div class="flex-1 min-w-0">
-      <p class="text-sm font-semibold text-gray-800 truncate">Sarah Wilson</p>
-      <p class="text-[11px] text-gray-400">Gerente</p>
+  <div class="relative px-4 py-3.5 border-t border-gray-100">
+    <!-- Dropdown Menu -->
+    @if (isUserMenuOpen()) {
+      <div class="absolute bottom-full left-4 right-4 mb-2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+        <div class="p-1.5 space-y-0.5">
+          <button (click)="logout()" class="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+            <span class="material-symbols-outlined text-[18px]">logout</span>
+            Cerrar sesión
+          </button>
+        </div>
+      </div>
+    }
+
+    <div class="flex items-center gap-3">
+      <img
+        [src]="authService.currentUser()?.avatar"
+        [alt]="authService.currentUser()?.name"
+        class="w-8 h-8 rounded-full object-cover ring-2 ring-indigo-100 shrink-0"
+      />
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-semibold text-gray-800 truncate">
+          {{ authService.currentUser()?.name }}
+        </p>
+        <p class="text-[11px] text-gray-400">
+          {{ authService.currentUser()?.role === UserRole.ADMIN ? 'Administrador' : (authService.currentUser()?.role === UserRole.PROFESSIONAL ? 'Profesional' : 'Invitado') }}
+        </p>
+      </div>
+      <button 
+        (click)="toggleUserMenu()"
+        class="p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+        [class.bg-gray-100]="isUserMenuOpen()"
+        [class.text-gray-600]="isUserMenuOpen()"
+      >
+        <span class="material-symbols-outlined text-[18px]">more_vert</span>
+      </button>
     </div>
-    <button class="p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
-      <span class="material-symbols-outlined text-[18px]">more_vert</span>
-    </button>
   </div>
 
 </aside>

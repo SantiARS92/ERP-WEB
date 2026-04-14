@@ -14,11 +14,11 @@
       <p class="text-[14px] text-slate-500 mt-0.5">Administre su inventario de servicios, precios y duraciones.</p>
     </div>
     <div class="flex items-center gap-3">
-      <a href="/servicios/categorias" class="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold text-[14px] transition-colors shadow-sm">
+      <a routerLink="/servicios/categorias" class="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold text-[14px] transition-colors shadow-sm">
         <span class="material-symbols-outlined text-[20px]">folder</span>
         Categorías
       </a>
-      <a href="/servicios/crear" class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-[14px] transition-colors shadow-sm whitespace-nowrap">
+      <a routerLink="/servicios/crear" class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-[14px] transition-colors shadow-sm whitespace-nowrap">
         <span class="material-symbols-outlined text-[20px]">add</span>
         Crear Servicio
       </a>
@@ -109,7 +109,7 @@
   <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
     
     <!-- Table Header -->
-    <div class="grid grid-cols-[minmax(300px,1fr)_150px_150px_150px_100px] gap-4 px-6 py-4 bg-slate-50/50 border-b border-slate-100 text-[12px] font-bold text-slate-500 uppercase tracking-wider">
+    <div class="grid grid-cols-[minmax(300px,1fr)_150px_150px_150px_100px] gap-4 px-6 py-4 bg-slate-50 border-b border-slate-100 text-[12px] font-bold text-slate-500 uppercase tracking-wider">
       <div>NOMBRE DEL SERVICIO</div>
       <div class="text-center">DURACIÓN</div>
       <div class="text-center">PRECIO</div>
@@ -123,8 +123,12 @@
       <div class="grid grid-cols-[minmax(300px,1fr)_150px_150px_150px_100px] gap-4 px-6 py-4 items-center hover:bg-slate-50 transition-colors group">
         <!-- Service Info -->
         <div class="flex items-center gap-4">
-          <div class="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
-            <span class="material-symbols-outlined text-indigo-400 text-xl">content_cut</span>
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+               [style.backgroundColor]="service.category?.color ? service.category?.color + '20' : '#f0f4ff'">
+            <span class="material-symbols-outlined text-xl"
+                  [style.color]="service.category?.color || '#818cf8'">
+              {{ service.category?.icon || 'content_cut' }}
+            </span>
           </div>
           <div>
             <div class="font-bold text-slate-800 text-[15px]">{{ service.name }}</div>
@@ -160,9 +164,17 @@
     </div>
   </div>
 
-  <div class="mt-12 text-center text-[13px] text-slate-400 font-medium">
-    Los datos mostrados son solo para fines de control comercial interno.
-  </div>
+    <app-pagination 
+      [totalElements]="totalElements" 
+      [pageSize]="pageSize" 
+      [currentPage]="currentPage" 
+      [itemsLabel]="'servicios'"
+      (pageChange)="changePage($event)">
+    </app-pagination>
+
+    <div class="mt-8 text-center text-[13px] text-slate-400 font-medium">
+      Los datos mostrados son solo para fines de control comercial interno.
+    </div>
 
   <!-- Help floating button -->
   <button class="fixed bottom-8 right-8 w-12 h-12 rounded-full bg-slate-800 text-white shadow-lg flex items-center justify-center hover:bg-slate-700 transition-colors">

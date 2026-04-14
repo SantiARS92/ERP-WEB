@@ -1,0 +1,141 @@
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { CommonModule, DatePipe } from '@angular/common';
+import { RouterModule } from '@angular/router';
+import { AppointmentApiService } from '../../core/services/appointment-api.service';
+import { ClientApiService } from '../../core/services/client-api.service';
+import { ProductApiService } from '../../core/services/product-api.service';
+import { Appointment } from '../../core/models/appointment.model';
+import { Product } from '../../core/models/product.model';
+import { ThemeService } from '../../core/services/theme.service';
+import { AuthService } from '../../core/services/auth.service';
+import { UserRole } from '../../core/models/user.model';
+
+@Component({
+  selector: 'app-dashboard',
+  standalone: true,
+  imports: [CommonModule, RouterModule],
+  providers: [DatePipe],
+  templateUrl: './dashboard.html',
+})
+export class Dashboard implements OnInit {
+  private appointmentApi = inject(AppointmentApiService);
+  private clientApi = inject(ClientApiService);
+  private productApi = inject(ProductApiService);
+  private datePipe = inject(DatePipe);
+  public themeService = inject(ThemeService);
+  private cdr = inject(ChangeDetectorRef);
+  public authService = inject(AuthService);
+  UserRole = UserRole;
+
+  // Stats Resumen Operativo
+  citasHoyCount: number = 0;
+  porConfirmarCount: number = 0;
+  clientesNuevosCount: number = 0;
+  topService: string = 'Limpieza Facial';
+  topServicePercentage: string = '45%';
+
+  // Alertas
+  sinStockCount: number = 0;
+  pocoStockCount: number = 0;
+  stockSuficienteCount: number = 0;
+
+  // Próximas Citas Table
+  proximasCitas: Appointment[] = [];
+  
+  // Date tracking
+  todayStr: string = '';
+
+  ngOnInit() {
+    const today = new Date();
+    this.todayStr = this.formatDate(today);
+    this.loadAppointmentsData();
+    this.loadClientsData();
+    this.loadInventoryData();
+  }
+
+  private formatDate(date: Date): string {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  private loadAppointmentsData() {
+    this.appointmentApi.getAppointments(this.todayStr, this.todayStr).subscribe({
+      next: (data) => {
+        this.citasHoyCount = data.length;
+        this.proximasCitas = data.sort((a, b) => a.appointmentTime.localeCompare(b.appointmentTime)).slice(0, 5);
+        this.porConfirmarCount = data.filter(a => a.status === 'PENDING').length;
+        
+        // Calculate Top Service roughly based on today
+        if (data.length > 0) {
+          const serviceCounts = data.reduce((acc, curr) => {
+            acc[curr.serviceName || ''] = (acc[curr.serviceName || ''] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>);
+          
+          let maxSrv = 'Limpieza Facial';
+          let maxCount = 0;
+          for (const [srv, count] of Object.entries(serviceCounts)) {
+            if (count > maxCount && srv !== '') {
+              maxCount = count;
+              maxSrv = srv;
+            }
+          }
+          this.topService = maxSrv;
+          this.topServicePercentage = Math.round((maxCount / data.length) * 100) + '%';
+        }
+        this.cdr.detectChanges();
+      },
+      error: (err) => console.error('Error fetching appointments', err)
+    });
+  }
+
+  private loadClientsData() {
+    this.clientApi.getClients({ size: 1 }).subscribe({
+      next: (res) => {
+        this.clientesNuevosCount = res.totalElements; // Approximate total clients as new to show something
+        this.cdr.detectChanges();
+      },
+      error: (err) => console.error('Error fetching clients', err)
+    });
+  }
+
+  private loadInventoryData() {
+    this.productApi.getProducts({ size: 1000 }).subscribe({
+      next: (res) => {
+        this.sinStockCount = res.content.filter(p => p.status === 'OUT_OF_STOCK' || p.stock === 0).length;
+        this.pocoStockCount = res.content.filter(p => p.status === 'LOW_STOCK').length;
+        this.stockSuficienteCount = res.content.filter(p => p.status === 'IN_STOCK' && p.stock > 0).length;
+        this.cdr.detectChanges();
+      },
+      error: (err) => console.error('Error fetching products', err)
+    });
+  }
+
+  getAppointmentStatusClass(status: string): string {
+    if (status === 'CONFIRMED') {
+      return 'bg-emerald-100 text-emerald-700';
+    } else if (status === 'PENDING') {
+      return 'bg-orange-100 text-orange-700';
+    } else if (status === 'CANCELLED') {
+      return 'bg-slate-100 text-slate-700';
+    }
+    return 'bg-blue-100 text-blue-700';
+  }
+
+  getAppointmentStatusLabel(status: string): string {
+    if (status === 'CONFIRMED') return 'Confirmada';
+    if (status === 'PENDING') return 'Pendiente';
+    if (status === 'CANCELLED') return 'Cancelada';
+    return status;
+  }
+
+  formatTimeAMPM(time: string): string {
+    if (!time) return '';
+    const [h, m] = time.split(':').map(Number);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    let hour = h % 12 || 12;
+    return `${String(hour).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
+  }
+}

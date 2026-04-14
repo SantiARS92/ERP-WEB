@@ -1,0 +1,228 @@
+<div class="h-full flex flex-col items-center bg-slate-50/30 dark:bg-slate-950 transition-colors">
+  <div class="w-full max-w-[1200px] flex flex-col h-full items-start px-4 md:px-8 py-6">
+
+    <!-- Header area -->
+    <header class="w-full flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8">
+      <div>
+        <div class="text-[13px] font-medium text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1.5">
+          <a class="hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors" routerLink="/informes">Informes</a>
+          <span class="text-slate-400 text-[15px]">›</span>
+          <span class="text-slate-600 dark:text-slate-300 font-bold">Mensual Simple</span>
+        </div>
+        <h1 class="text-[32px] font-extrabold text-slate-900 dark:text-white tracking-tight pb-1">Información Mensual del Negocio</h1>
+        <p class="text-slate-500 dark:text-slate-400 font-medium">Resumen detallado del rendimiento de tu centro de belleza</p>
+      </div>
+      
+      <div class="flex items-center gap-3">
+        <button (click)="exportPdf()" [disabled]="isDownloadingPdf"
+                class="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 font-bold text-sm rounded-xl hover:border-blue-500 hover:text-blue-500 transition-all shadow-sm active:scale-95 disabled:opacity-50">
+          <span class="material-symbols-outlined text-[20px]" [class.animate-spin]="isDownloadingPdf">
+            {{ isDownloadingPdf ? 'progress_activity' : 'picture_as_pdf' }}
+          </span>
+          {{ isDownloadingPdf ? 'Exportando...' : 'Exportar a PDF' }}
+        </button>
+
+        <div class="relative">
+          <select (change)="onMonthChange($event)" class="appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 font-bold text-sm rounded-xl pl-4 pr-10 py-2.5 outline-none focus:ring-4 focus:ring-blue-500/10 cursor-pointer hover:border-slate-300 dark:hover:border-slate-700 shadow-sm transition-all">
+            <option>{{ selectedMonth }}/{{ selectedYear }}</option>
+          </select>
+          <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none text-[20px]">expand_more</span>
+        </div>
+        
+        <button class="bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm px-5 py-2.5 rounded-xl shadow-sm shadow-blue-500/20 transition-colors">
+          Ver detalles
+        </button>
+      </div>
+    </header>
+
+    @if (hasError) {
+      <div class="w-full mb-4 flex items-center gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 rounded-2xl px-5 py-3">
+        <span class="material-symbols-outlined text-[20px] shrink-0">wifi_off</span>
+        <p class="text-[13px] font-semibold">Backend no disponible — mostrando <strong>datos de ejemplo</strong>. Al conectar el servidor, la información se actualizará automáticamente.</p>
+      </div>
+    }
+    @if (reportData) {
+      <main class="w-full space-y-6 pb-10">
+        
+        <!-- 3 Top Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          <!-- Card 1 -->
+          <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between hover:shadow-md dark:hover:shadow-blue-500/5 transition-all h-40">
+            <div class="flex justify-between items-start">
+              <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-500 dark:text-blue-400 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-[20px]">payments</span>
+              </div>
+              @if (reportData.incomeChangePercentage !== null) {
+                <div class="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold" 
+                     [ngClass]="reportData.incomeChangePercentage >= 0 ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'text-red-500 bg-red-50 dark:bg-red-900/20'">
+                  <span class="material-symbols-outlined text-[14px]">
+                    {{ reportData.incomeChangePercentage >= 0 ? 'trending_up' : 'trending_down' }}
+                  </span> 
+                  {{ getAbs(reportData.incomeChangePercentage) | number:'1.1-1' }}%
+                </div>
+              }
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1">Ingresos este mes</p>
+              <h2 class="text-[32px] font-black text-slate-900 dark:text-white leading-none tabular-nums">€{{ reportData.totalIncome | number:'1.0-0' }}</h2>
+            </div>
+          </div>
+
+          <!-- Card 2 -->
+          <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between hover:shadow-md dark:hover:shadow-blue-500/5 transition-all h-40">
+            <div class="flex justify-between items-start">
+              <div class="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-900/30 text-orange-500 dark:text-orange-400 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-[20px]">receipt_long</span>
+              </div>
+              @if (reportData.expenseChangePercentage !== null) {
+                <div class="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold" 
+                     [ngClass]="reportData.expenseChangePercentage <= 0 ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'text-red-500 bg-red-50 dark:bg-red-900/20'">
+                  <span class="material-symbols-outlined text-[14px]">
+                    {{ reportData.expenseChangePercentage <= 0 ? 'trending_down' : 'trending_up' }}
+                  </span> 
+                  {{ getAbs(reportData.expenseChangePercentage) | number:'1.1-1' }}%
+                </div>
+              }
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1">Gastos este mes</p>
+              <h2 class="text-[32px] font-black text-slate-900 dark:text-white leading-none tabular-nums">€{{ reportData.totalExpenses | number:'1.0-0' }}</h2>
+            </div>
+          </div>
+
+          <!-- Card 3 -->
+          <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between hover:shadow-md dark:hover:shadow-blue-500/5 transition-all h-40">
+            <div class="flex justify-between items-start">
+              <div class="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-purple-500 dark:text-purple-400 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-[20px]">event_available</span>
+              </div>
+              @if (reportData.confirmedAppointmentsChangePercentage !== null) {
+                <div class="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold" 
+                     [ngClass]="reportData.confirmedAppointmentsChangePercentage >= 0 ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'text-red-500 bg-red-50 dark:bg-red-900/20'">
+                  <span class="material-symbols-outlined text-[14px]">
+                    {{ reportData.confirmedAppointmentsChangePercentage >= 0 ? 'trending_up' : 'trending_down' }}
+                  </span> 
+                  {{ getAbs(reportData.confirmedAppointmentsChangePercentage) | number:'1.1-1' }}%
+                </div>
+              }
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1">Total de Citas confirmadas</p>
+              <h2 class="text-[32px] font-black text-slate-900 dark:text-white leading-none tabular-nums">{{ reportData.totalConfirmedAppointments | number }}</h2>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Second Row: Charts and Side Panels -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          <!-- Main Bar Chart Area -->
+          <div class="lg:col-span-2 bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col h-[400px]">
+            <div class="flex justify-between items-start mb-8">
+              <div>
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white">Ingresos VS Gastos Simplificado</h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400 font-medium">Rendimiento simplificado ultimos 3 meses</p>
+              </div>
+              <div class="flex gap-4">
+                <div class="flex items-center gap-2">
+                  <div class="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
+                  <span class="text-xs font-bold text-slate-500 dark:text-slate-400">Ingresos</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <div class="w-3 h-3 rounded-full bg-slate-200 dark:bg-slate-700"></div>
+                  <span class="text-xs font-bold text-slate-500 dark:text-slate-400">Gastos</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- CSS Bar Chart (Pure Tailwind) -->
+            <div class="flex-1 flex items-end justify-around px-8 sm:px-16 pb-4">
+              @for (data of reportData.lastThreeMonths; track data.period) {
+                <div class="flex flex-col items-center gap-4 h-full pt-10">
+                  <div class="flex items-end gap-2 h-full">
+                    <div class="w-10 sm:w-14 bg-blue-500 rounded-t-sm hover:opacity-90 transition-opacity cursor-pointer relative group" 
+                         [style.height]="getBarHeight(data.income)">
+                       <div class="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800 dark:bg-slate-700 text-white text-[11px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 shadow-xl">€{{ data.income | number:'1.0-0' }}</div>
+                    </div>
+                    <div class="w-10 sm:w-14 bg-slate-100 dark:bg-slate-800 rounded-t-sm hover:opacity-90 transition-opacity cursor-pointer relative group" 
+                         [style.height]="getBarHeight(data.expenses)">
+                        <div class="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800 dark:bg-slate-700 text-white text-[11px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 shadow-xl">€{{ data.expenses | number:'1.0-0' }}</div>
+                    </div>
+                  </div>
+                  <span class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tighter">{{ data.month }}/{{ data.year | number:'1.0-0' | slice:-2 }}</span>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Small side columns (Services + Occupancy) -->
+          <div class="flex flex-col gap-6">
+            
+            <!-- Servicios Top -->
+            <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm flex-1 transition-all">
+              <div class="flex justify-between items-center mb-6">
+                <h3 class="font-bold text-slate-900 dark:text-white">Servicios Top</h3>
+                <a routerLink="/informes/ranking-servicios" class="text-xs font-bold text-blue-500 hover:text-blue-400 cursor-pointer transition-colors">Ver Todo</a>
+              </div>
+              
+              <div class="space-y-5">
+                @for (srv of reportData.topServices; track srv.id; let i = $index) {
+                  <div class="flex items-center gap-4 group">
+                    <div class="w-7 h-7 rounded-full bg-slate-50 dark:bg-slate-800 font-bold text-slate-500 dark:text-slate-400 text-xs flex items-center justify-center shrink-0 transition-colors group-hover:bg-blue-500 group-hover:text-white">
+                      {{ srv.position || i + 1 }}
+                    </div>
+                    <div class="flex-1">
+                      <div class="flex justify-between items-center mb-1">
+                        <span class="text-[13px] font-bold text-slate-700 dark:text-slate-300 truncate max-w-[140px]" [title]="srv.name">{{ srv.name }}</span>
+                        <span class="text-[13px] font-bold text-slate-500 dark:text-slate-400 tabular-nums">{{ srv.totalCount }}</span>
+                      </div>
+                      <div class="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div class="h-full rounded-full transition-all duration-500" [ngClass]="getServiceColor(i)" [style.width]="getServiceWidth(srv.totalCount)"></div>
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Dias Ocupados (Blue solid card) -->
+            <div class="bg-blue-500 dark:bg-blue-600 rounded-3xl p-6 border border-blue-400 dark:border-blue-500 shadow-md text-white relative overflow-hidden group">
+              <!-- Decorative element -->
+              <div class="absolute -top-10 -right-10 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-colors"></div>
+
+              <div class="flex justify-between items-start mb-6 relative z-10">
+                <div>
+                  <h3 class="font-bold text-white text-lg tracking-tight">Días Ocupados</h3>
+                  <p class="text-xs text-blue-100 font-medium opacity-80 uppercase tracking-wider">Tráfico pico</p>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0">
+                  <span class="material-symbols-outlined text-[20px] text-white">calendar_month</span>
+                </div>
+              </div>
+              
+              <div class="flex justify-between items-end gap-2 pt-2 relative z-10">
+                @for (day of reportData.busiestDays; track day.dayOfWeek; let i = $index) {
+                  <div class="flex flex-col items-center flex-1 rounded-xl px-1 backdrop-blur-md transition-all duration-500"
+                       [ngClass]="i === 0 ? 'bg-white/30 py-4 border border-white/20 shadow-lg -translate-y-2' : 'bg-white/10 py-3'">
+                    <span class="text-[10px] font-black tracking-[0.1em] uppercase mb-1" 
+                          [ngClass]="i === 0 ? 'text-white' : 'text-blue-100 opacity-70'">{{ getDayTranslate(day.dayOfWeek) }}</span>
+                    <span class="font-black tracking-tighter leading-none tabular-nums"
+                          [ngClass]="i === 0 ? 'text-[26px]' : 'text-[22px]'">{{ day.percentage | number:'1.0-0' }}%</span>
+                  </div>
+                }
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </main>
+    } @else {
+      <div class="w-full h-64 flex flex-col items-center justify-center text-slate-400 dark:text-slate-600 gap-4 mt-8">
+        <span class="material-symbols-outlined text-4xl animate-spin text-blue-500">progress_activity</span>
+        <p class="font-medium tracking-wide">Cargando reporte mensual...</p>
+      </div>
+    }
+  </div>
+</div>

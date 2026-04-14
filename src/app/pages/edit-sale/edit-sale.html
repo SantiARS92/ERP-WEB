@@ -1,0 +1,160 @@
+<div class="h-[calc(100vh-theme(spacing.20))] overflow-y-auto bg-white">
+
+  <div class="max-w-4xl mx-auto py-8 px-8 pb-20 relative">
+
+    <!-- Compact Header -->
+    <div class="mb-8">
+      <div class="text-[13px] font-medium text-slate-500 mb-1 flex items-center gap-1.5">
+        <span class="hover:text-blue-600 cursor-pointer transition-colors" routerLink="/ventas">Ventas</span>
+        <span class="text-slate-400 text-[15px]">›</span>
+        <span class="text-slate-600">Editar Venta</span>
+      </div>
+      <h1 class="text-[28px] font-bold text-slate-900 leading-tight">Modificar Venta</h1>
+    </div>
+
+  <!-- Info Alert for Appointment -->
+  <div *ngIf="originalSale?.sourceType === 'APPOINTMENT'" class="mb-6 bg-blue-50 border border-blue-200 rounded-2xl p-4 flex gap-3 text-blue-700 items-start">
+    <span class="material-symbols-outlined text-blue-500">info</span>
+    <div class="text-[14px] font-medium">
+      Esta venta ha sido generada automáticamente desde una cita completada. Los detalles comerciales y la eliminación deben gestionarse desde la propia cita original.
+    </div>
+  </div>
+
+  <!-- Form Card -->
+  <div class="bg-white rounded-2xl border border-slate-200 p-8 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] max-w-2xl" [class.opacity-60]="originalSale?.sourceType === 'APPOINTMENT'" [class.pointer-events-none]="originalSale?.sourceType === 'APPOINTMENT'">
+    
+    <div class="space-y-6">
+      
+      <!-- Client -->
+      <div>
+        <label class="block text-[13px] font-bold text-slate-800 mb-2">Cliente *</label>
+        <div class="relative">
+          <select [(ngModel)]="sale.clientId" name="clientId" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow appearance-none cursor-pointer">
+            <option [ngValue]="undefined" disabled>Selecciona un cliente...</option>
+            <option *ngFor="let c of clients" [value]="c.id">{{ c.fullName }} ({{ c.phone }})</option>
+          </select>
+          <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+        </div>
+      </div>
+
+      <!-- Item Type Radio -->
+      <div>
+        <label class="block text-[13px] font-bold text-slate-800 mb-3">Tipo de Concepto *</label>
+        <div class="flex gap-6">
+          <label class="flex items-center gap-2 cursor-pointer text-[14px] font-bold text-slate-700">
+            <input type="radio" name="itemType" value="SERVICE" [(ngModel)]="sale.itemType" class="text-blue-600 focus:ring-blue-500 cursor-pointer">
+            <span>Servicio</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer text-[14px] font-bold text-slate-700">
+            <input type="radio" name="itemType" value="PRODUCT" [(ngModel)]="sale.itemType" class="text-blue-600 focus:ring-blue-500 cursor-pointer">
+            <span>Producto</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Dynamic Item Selection -->
+      <div *ngIf="sale.itemType === 'SERVICE'">
+        <label class="block text-[13px] font-bold text-slate-800 mb-2">Servicio Prestado *</label>
+        <div class="relative">
+          <select [(ngModel)]="sale.serviceId" name="serviceId" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow appearance-none cursor-pointer">
+            <option [ngValue]="undefined" disabled>Selecciona un servicio...</option>
+            <option *ngFor="let s of services" [value]="s.id">{{ s.name }} ({{ s.price }}€)</option>
+          </select>
+          <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+        </div>
+      </div>
+
+      <div *ngIf="sale.itemType === 'PRODUCT'">
+        <label class="block text-[13px] font-bold text-slate-800 mb-2">Producto del Inventario *</label>
+        <div class="relative">
+          <select [(ngModel)]="sale.inventoryProductId" name="inventoryProductId" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow appearance-none cursor-pointer bg-white">
+            <option [ngValue]="undefined" disabled>Selecciona un producto...</option>
+            <option *ngFor="let p of products" [value]="p.id">
+              {{ p.name }} (Stock: {{ p.stock }})
+            </option>
+          </select>
+          <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-6">
+        <!-- Unit Price -->
+        <div>
+          <label class="block text-[13px] font-bold text-slate-800 mb-2">
+            Precio Unitario (€)
+          </label>
+          <div class="relative">
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-medium">€</span>
+            <input type="number" [(ngModel)]="sale.unitPrice" name="unitPrice" step="0.01"
+                   class="w-full pl-8 pr-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
+          </div>
+          <p class="text-[10px] text-slate-400 mt-1 ml-1" *ngIf="sale.itemType==='SERVICE'">Si se deja vacío, se usará el precio del servicio.</p>
+        </div>
+        <!-- Quantity -->
+        <div>
+          <label class="block text-[13px] font-bold text-slate-800 mb-2">Cantidad *</label>
+          <input type="number" [(ngModel)]="sale.quantity" name="quantity" min="1" step="1"
+                 class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-6 pb-6 border-b border-slate-100">
+        <!-- Date -->
+        <div>
+          <label class="block text-[13px] font-bold text-slate-800 mb-2">Fecha</label>
+          <input type="date" [(ngModel)]="sale.saleDate" name="saleDate" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
+        </div>
+        <!-- Time -->
+        <div>
+          <label class="block text-[13px] font-bold text-slate-800 mb-2">Hora</label>
+          <input type="time" [(ngModel)]="sale.saleTime" name="saleTime" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
+        </div>
+      </div>
+
+      <!-- Payment Method -->
+      <div>
+        <label class="block text-[13px] font-bold text-slate-800 mb-2">Método de Pago</label>
+        <div class="relative">
+          <select [(ngModel)]="sale.paymentMethod" name="paymentMethod" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow appearance-none cursor-pointer">
+            <option value="CASH">Efectivo</option>
+            <option value="DEBIT_CARD">Tarjeta de Débito</option>
+            <option value="CREDIT_CARD">Tarjeta de Crédito</option>
+            <option value="BIZUM">Bizum</option>
+            <option value="BANK_TRANSFER">Transferencia</option>
+          </select>
+          <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div>
+        <label class="block text-[13px] font-bold text-slate-800 mb-2">Notas Administrativas</label>
+        <textarea rows="3" [(ngModel)]="sale.notes" name="notes" placeholder="Añade cualquier detalle aqui..." class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow resize-y"></textarea>
+      </div>
+
+      <!-- Actions Footer -->
+      <div class="flex items-center justify-between pt-2">
+        <button [disabled]="originalSale?.sourceType === 'APPOINTMENT'" (click)="deleteSale()" class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-red-500 hover:bg-red-50 font-medium text-[14px] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent">
+          <span class="material-symbols-outlined text-[18px]">delete</span>
+          Eliminar Venta
+        </button>
+
+        <div class="flex items-center gap-3">
+          <a [routerLink]="['/ventas']" class="px-6 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-[14px] transition-colors shadow-sm cursor-pointer pointer-events-auto">
+            Cancelar
+          </a>
+          <button [disabled]="originalSale?.sourceType === 'APPOINTMENT' || isSubmitting" (click)="saveSale()" class="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 disabled:opacity-75 disabled:cursor-not-allowed text-white font-bold text-[14px] transition-colors shadow-sm cursor-pointer">
+            <span class="material-symbols-outlined text-[18px]">save</span>
+            Guardar Cambios
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="mt-8 text-center text-[12px] text-slate-400 font-medium">
+    Todas las fechas y totales se recalcularán tras realizar la modificación.
+  </div>
+  </div>
+</div>

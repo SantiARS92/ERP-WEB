@@ -1,0 +1,105 @@
+<div class="h-full flex flex-col items-center bg-transparent transition-colors">
+  <div class="w-full max-w-[1200px] flex flex-col h-full items-start px-4 md:px-8">
+
+    <!-- Header -->
+    <header class="py-8 w-full flex flex-col">
+      <div class="text-[13px] font-medium text-gray-500 mb-1.5 flex items-center gap-1.5">
+        <a class="hover:text-blue-600 cursor-pointer transition-colors" routerLink="/">Inicio</a>
+        <span class="text-gray-400 text-[15px]">›</span>
+        <span class="text-gray-600 font-bold">Informes y Reportes</span>
+      </div>
+      <h1 class="text-3xl font-extrabold text-slate-900  tracking-tight pb-1">Informes y Reportes</h1>
+      <p class="text-slate-500 font-medium">Accede a reportes financieros detallados, análisis de rendimiento y documentos exportables.</p>
+    </header>
+
+    <main class="flex-1 w-full pb-10">
+      
+      <!-- Nav Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-8 w-full">
+        
+        <!-- Mensual Simple -->
+        <a routerLink="/informes/mensual-simple" class="group flex items-center justify-between p-6 bg-white  rounded-2xl border border-slate-100  shadow-sm hover:shadow-md transition-all hover:border-blue-100  cursor-pointer">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-blue-50  text-blue-500 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105">
+              <span class="material-symbols-outlined text-[24px]">description</span>
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-slate-800  mb-0.5 group-hover:text-blue-600  transition-colors">Informe Mensual Simple</h3>
+              <p class="text-[13px] text-slate-500 font-medium">Resumen detallado del rendimiento de tu centro de belleza</p>
+            </div>
+          </div>
+          <span class="material-symbols-outlined text-slate-300  group-hover:text-blue-500 group-hover:translate-x-1 transition-all">chevron_right</span>
+        </a>
+
+        <!-- Mensual Detallado -->
+        <a routerLink="/informes/mensual-detallado" class="group flex items-center justify-between p-6 bg-white  rounded-2xl border border-slate-100  shadow-sm hover:shadow-md transition-all hover:border-purple-100  cursor-pointer">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-purple-50  text-purple-500 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105">
+              <span class="material-symbols-outlined text-[24px]">analytics</span>
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-slate-800  mb-0.5 group-hover:text-purple-600  transition-colors">Informe Mensual Detallado</h3>
+              <p class="text-[13px] text-slate-500 font-medium">Desglose financiero con cálculos de IVA y beneficio neto</p>
+            </div>
+          </div>
+          <span class="material-symbols-outlined text-slate-300  group-hover:text-purple-500 group-hover:translate-x-1 transition-all">chevron_right</span>
+        </a>
+
+        <!-- Trimestral Detallado -->
+        <a routerLink="/informes/trimestral" class="group flex items-center justify-between p-6 bg-white  rounded-2xl border border-slate-100  shadow-sm hover:shadow-md transition-all hover:border-emerald-100  cursor-pointer">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-emerald-50  text-emerald-500 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105">
+              <span class="material-symbols-outlined text-[24px]">event_note</span>
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-slate-800  mb-0.5 group-hover:text-emerald-600  transition-colors">Informe Trimestral Detallado</h3>
+              <p class="text-[13px] text-slate-500 font-medium">Resumen del trimestre con desglose de IVA mensual</p>
+            </div>
+          </div>
+          <span class="material-symbols-outlined text-slate-300  group-hover:text-emerald-500 group-hover:translate-x-1 transition-all">chevron_right</span>
+        </a>
+
+        <!-- Anual Consolidado -->
+        <a routerLink="/informes/anual" class="group flex items-center justify-between p-6 bg-white  rounded-2xl border border-slate-100  shadow-sm hover:shadow-md transition-all hover:border-orange-100  cursor-pointer">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-orange-50  text-orange-500 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105">
+              <span class="material-symbols-outlined text-[24px]">bar_chart</span>
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-slate-800  mb-0.5 group-hover:text-orange-600  transition-colors">Informe Anual Consolidado</h3>
+              <p class="text-[13px] text-slate-500 font-medium">Resumen financiero anual y balance de impuestos</p>
+            </div>
+          </div>
+          <span class="material-symbols-outlined text-slate-300  group-hover:text-orange-500 group-hover:translate-x-1 transition-all">chevron_right</span>
+        </a>
+
+        <!-- Ranking de Servicios -->
+        <a routerLink="/informes/ranking-servicios" class="group flex items-center justify-between p-6 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all hover:border-pink-100 cursor-pointer">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-pink-50 text-pink-500 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105">
+              <span class="material-symbols-outlined text-[24px]">workspace_premium</span>
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-slate-800 mb-0.5 group-hover:text-pink-600 transition-colors">Ranking Completo de Servicios</h3>
+              <p class="text-[13px] text-slate-500 font-medium">Listado detallado de los servicios más solicitados</p>
+            </div>
+          </div>
+          <span class="material-symbols-outlined text-slate-300 group-hover:text-pink-500 group-hover:translate-x-1 transition-all">chevron_right</span>
+        </a>
+
+      </div>
+
+      <!-- Helper Notice -->
+      <div class="flex items-start gap-4 p-5 bg-blue-50/50  border border-blue-100  rounded-2xl w-full text-blue-800 ">
+        <span class="material-symbols-outlined shrink-0 text-blue-500">info</span>
+        <div>
+          <h4 class="font-bold text-[14px] mb-1">Sobre los informes financieros</h4>
+          <p class="text-[13px] font-medium opacity-90 leading-relaxed">
+            Todos los informes están basados en los datos de ventas, gastos y citas registradas en el sistema. Los cálculos de impuestos son aproximados y deben ser revisados por un gestor profesional antes de su presentación oficial.
+          </p>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>

@@ -115,4 +115,19 @@ export class EditClient implements OnInit {
   cancel() {
     this.router.navigate(['/clientes']);
   }
+
+  deleteClient() {
+    if (!this.clientId) return;
+    if (confirm('¿Está seguro de eliminar permanentemente este cliente? Esta acción no se puede deshacer.')) {
+      this.clientApi.deleteClient(this.clientId).subscribe({
+        next: () => {
+          this.router.navigate(['/clientes']);
+        },
+        error: (err) => {
+          console.error('Error deleting client', err);
+          alert('Ocurrió un error al eliminar el cliente.');
+        }
+      });
+    }
+  }
 }

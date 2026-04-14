@@ -1,0 +1,480 @@
+<div class="h-[calc(100vh-theme(spacing.20))] overflow-y-auto bg-white">
+  <div class="max-w-7xl mx-auto py-8 px-8 pb-20">
+
+    <!-- Info Alert -->
+    <div class="mb-8 bg-blue-50 border border-blue-100 rounded-2xl p-4 flex gap-3 text-blue-700 items-start">
+      <span class="material-symbols-outlined text-blue-600 mt-0.5" style="font-variation-settings: 'FILL' 1;">info</span>
+      <div class="text-[14px] font-medium pt-0.5">
+        <span class="font-bold block mb-0.5">Sincronización Web Pública</span>
+        Los cambios realizados aquí se reflejarán automáticamente en tu página de reservas pública en tiempo real.
+      </div>
+    </div>
+
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+      <div>
+        <div class="text-[13px] font-medium text-slate-500 mb-1 flex items-center gap-1.5">
+          <span class="hover:text-blue-600 cursor-pointer transition-colors" routerLink="/">Inicio</span>
+          <span class="text-slate-400 text-[15px]">›</span>
+          <span class="text-slate-600">Configuración</span>
+        </div>
+        <h1 class="text-[28px] font-bold text-slate-900 leading-tight">Configuración del Negocio</h1>
+        <p class="text-[14px] text-slate-500 mt-0.5">Administra el perfil de tu salón, horarios de apertura y configuración del equipo.</p>
+      </div>
+      <div class="flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-50 text-orange-600 animate-pulse" *ngIf="isSubmitting">
+        <span class="material-symbols-outlined text-[18px]">sync</span>
+        <span class="text-[12px] font-bold uppercase tracking-wider">Guardando...</span>
+      </div>
+    </div>
+
+    <!-- Accordion Sections -->
+    <div class="space-y-4">
+
+      <!-- 1. Perfil del Negocio -->
+      @if (authService.hasRole([UserRole.ADMIN])) {
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)] transition-all duration-300">
+          <!-- Accordion Header -->
+          <button (click)="toggleSection('perfil')" class="w-full flex items-center justify-between px-6 py-5 bg-white hover:bg-slate-50/50 transition-colors">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600" *ngIf="expandedSection !== 'perfil'">
+                <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">storefront</span>
+              </div>
+              <h2 class="text-[16px] font-bold text-slate-800">Perfil del Negocio</h2>
+            </div>
+            <span class="material-symbols-outlined text-slate-400 transition-transform duration-300"
+                  [class.rotate-180]="expandedSection === 'perfil'">expand_more</span>
+          </button>
+
+          <!-- Accordion Body -->
+          <div *ngIf="expandedSection === 'perfil'" class="px-6 pb-8 border-t border-slate-100 pt-6 animate-in slide-in-from-top-2 duration-300">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div class="md:col-span-2 space-y-5">
+                <div class="grid grid-cols-2 gap-5">
+                  <div>
+                    <label class="block text-[13px] font-bold text-slate-800 mb-2">Nombre del Negocio</label>
+                    <input type="text" [(ngModel)]="settings.businessName" (ngModelChange)="onFieldChange()" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[14px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
+                  </div>
+                  <div>
+                    <label class="block text-[13px] font-bold text-slate-800 mb-2">Número de Teléfono</label>
+                    <input type="text" [(ngModel)]="settings.phone" (ngModelChange)="onFieldChange()" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[14px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-[13px] font-bold text-slate-800 mb-2">Correo Electrónico de Contacto</label>
+                  <input type="email" [(ngModel)]="settings.contactEmail" (ngModelChange)="onFieldChange()" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[14px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
+                </div>
+                <div>
+                  <label class="block text-[13px] font-bold text-slate-800 mb-2">Dirección Física</label>
+                  <input type="text" [(ngModel)]="settings.address" (ngModelChange)="onFieldChange()" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[14px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
+                </div>
+              </div>
+              <!-- Logo Upload Box -->
+              <div>
+                <label class="block text-[13px] font-bold text-slate-800 mb-2">Logotipo (URL)</label>
+                <div class="space-y-3">
+                  <input type="text" [(ngModel)]="settings.businessLogo" (ngModelChange)="onFieldChange()" placeholder="http://url-de-la-imagen.png" class="w-full px-4 py-2 rounded-xl border border-slate-200 text-[12px] text-slate-600 focus:outline-none focus:border-blue-400">
+                  <div class="border-2 border-dashed border-slate-200 rounded-2xl h-[178px] flex flex-col items-center justify-center bg-slate-50/50 overflow-hidden relative group">
+                    <img *ngIf="settings.businessLogo" [src]="settings.businessLogo" class="w-full h-full object-contain absolute inset-0">
+                    <div *ngIf="!settings.businessLogo" class="flex flex-col items-center">
+                      <span class="material-symbols-outlined text-[24px] text-slate-300 mb-2">image</span>
+                      <span class="text-[11px] text-slate-400">Vista previa del logo</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- 2. Horario de Apertura -->
+      <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)] transition-all duration-300">
+        <button (click)="toggleSection('horario')" class="w-full flex items-center justify-between px-6 py-5 bg-white hover:bg-slate-50/50 transition-colors">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-orange-600" *ngIf="expandedSection !== 'horario'">
+              <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">schedule</span>
+            </div>
+            <h2 class="text-[16px] font-bold text-slate-800">Horario de Apertura</h2>
+          </div>
+          <span class="material-symbols-outlined text-slate-400 transition-transform duration-300"
+                [class.rotate-180]="expandedSection === 'horario'">expand_more</span>
+        </button>
+
+        <div *ngIf="expandedSection === 'horario'" class="px-6 pb-8 border-t border-slate-100 pt-6 animate-in slide-in-from-top-2 duration-300">
+          
+          <div class="flex items-center justify-between mb-6">
+             <h3 class="text-[15px] font-bold text-slate-800">Horario de Apertura Semanal</h3>
+             <span class="material-symbols-outlined text-slate-400">schedule</span>
+          </div>
+
+          <!-- Schedule Headers -->
+          <div class="grid grid-cols-[120px_100px_1fr] gap-4 mb-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-2">
+            <div>Día</div>
+            <div>Estado</div>
+            <div>Horas</div>
+          </div>
+
+          <div class="space-y-4">
+            <div *ngFor="let day of orderedDays" class="grid grid-cols-[120px_100px_1fr] items-center gap-4 py-2 border-b border-slate-50 last:border-0 hover:bg-slate-50/50 rounded-lg px-2 transition-colors">
+              <span class="text-[14px] font-semibold text-slate-700">{{ dayNamesMap[day] }}</span>
+              <!-- CSS Toggle Button -->
+              <div>
+                <input type="checkbox" [checked]="getOpeningHourForDay(day).enabled" (change)="toggleDay(getOpeningHourForDay(day))" class="ios-toggle" />
+              </div>
+              <div class="flex items-center gap-3">
+                <ng-container *ngIf="getOpeningHourForDay(day).enabled; else closedDay">
+                  <div class="relative">
+                    <input type="time" [(ngModel)]="getOpeningHourForDay(day).openingTime" class="pl-4 pr-10 py-2 rounded-xl border border-slate-200 text-[14px] text-slate-600 font-medium focus:outline-none focus:border-blue-400 w-32 appearance-none">
+                    <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px] pointer-events-none">schedule</span>
+                  </div>
+                  <span class="text-slate-300 font-medium">-</span>
+                  <div class="relative">
+                    <input type="time" [(ngModel)]="getOpeningHourForDay(day).closingTime" class="pl-4 pr-10 py-2 rounded-xl border border-slate-200 text-[14px] text-slate-600 font-medium focus:outline-none focus:border-blue-400 w-32 appearance-none">
+                    <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px] pointer-events-none">schedule</span>
+                  </div>
+                </ng-container>
+                <ng-template #closedDay>
+                  <span class="text-[14px] text-slate-400 font-medium italic">Cerrado</span>
+                </ng-template>
+              </div>
+            </div>
+          </div>
+
+          <!-- Holidays Section -->
+          <div class="mt-10 pt-8 border-t border-slate-100">
+            <h3 class="text-[15px] font-bold text-slate-800 mb-6">Días Festivos y Cierres Especiales</h3>
+            
+            <div class="flex flex-col md:flex-row gap-8">
+              <!-- Dummy Calendar (Visual presentation matching mockup) -->
+              <div class="w-full md:w-[320px] bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                <div class="flex justify-between items-center mb-6">
+                  <span class="material-symbols-outlined text-slate-400 cursor-pointer hover:text-slate-600">chevron_left</span>
+                  <span class="font-bold text-[14px] text-slate-800">Octubre 2023</span>
+                  <span class="material-symbols-outlined text-slate-400 cursor-pointer hover:text-slate-600">chevron_right</span>
+                </div>
+                <div class="grid grid-cols-7 gap-1 text-center text-[11px] font-bold text-slate-400 mb-2">
+                  <div>Lu</div><div>Ma</div><div>Mi</div><div>Ju</div><div>Vi</div><div>Sa</div><div>Do</div>
+                </div>
+                <div class="grid grid-cols-7 gap-y-2 gap-x-1 text-center text-[13px] font-medium text-slate-600">
+                  <div class="py-1.5 opacity-0"></div><div class="py-1.5 opacity-0"></div><div class="py-1.5 opacity-0"></div>
+                  <div class="py-1.5 opacity-0"></div><div class="py-1.5 opacity-0"></div>
+                  <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">1</div><div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">2</div>
+                  <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">3</div><div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">4</div>
+                  <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">5</div><div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">6</div>
+                  <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">7</div><div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">8</div>
+                  <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">9</div>
+                  
+                  <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">10</div>
+                  <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">11</div>
+                  <div class="py-1.5 bg-red-100 text-red-600 font-bold rounded-full cursor-pointer">12</div>
+                  <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">13</div>
+                  <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">14</div>
+                  <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">15</div>
+                  <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">16</div>
+                  <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">17</div>
+                  <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">18</div>
+                  <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">19</div>
+                  <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">20</div>
+                  <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">21</div>
+                  <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">22</div>
+                  <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">23</div>
+                  <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">24</div>
+                  
+                  <div class="py-1.5 bg-red-100 text-red-600 font-bold rounded-full cursor-pointer">25</div>
+                  <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">26</div>
+                  <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">27</div>
+                  <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">28</div>
+                  <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">29</div>
+                  <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">30</div>
+                  <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">31</div>
+                </div>
+              </div>
+
+              <div class="flex-1 space-y-5">
+                <p class="text-[13px] text-slate-500 leading-relaxed">Haz clic en las fechas del calendario para marcar días festivos o cierres excepcionales. Estos días se mostrarán como no disponibles en tu página de reservas pública.</p>
+                <div>
+                  <div class="flex items-center justify-between mb-3">
+                    <h4 class="text-[14px] font-bold text-slate-800">Próximos cierres:</h4>
+                    <button (click)="addClosure()" class="text-blue-500 hover:text-blue-600 text-[12px] font-bold flex items-center gap-1">
+                      <span class="material-symbols-outlined text-[16px]">add</span> Añadir Fecha
+                    </button>
+                  </div>
+                  <div class="space-y-3">
+                    <div *ngFor="let c of settings.specialClosures; let i = index" class="border border-red-100 bg-red-50/50 rounded-xl px-4 py-3 flex items-center gap-4">
+                      <div class="flex items-center gap-3 flex-1">
+                        <span class="material-symbols-outlined text-red-400 text-[18px]">event_busy</span>
+                        <input type="date" [(ngModel)]="c.closureDate" class="bg-transparent border-b border-red-200 text-[13px] font-semibold text-red-600 focus:outline-none focus:border-red-400 w-32">
+                        <input type="text" [(ngModel)]="c.reason" placeholder="Motivo (opcional)" class="bg-transparent border-b border-red-200 text-[13px] text-red-500 focus:outline-none focus:border-red-400 flex-1">
+                      </div>
+                      <button (click)="removeClosure(i)" class="text-red-400 hover:text-red-600 transition-colors">
+                        <span class="material-symbols-outlined text-[18px]">close</span>
+                      </button>
+                    </div>
+                    <div *ngIf="settings.specialClosures.length === 0" class="text-center py-6 border border-dashed border-slate-200 rounded-xl text-slate-400 text-[13px]">
+                      No hay cierres especiales programados.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 3. Reglas de Reserva -->
+      @if (authService.hasRole([UserRole.ADMIN])) {
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)] transition-all duration-300">
+          <button (click)="toggleSection('reglas')" class="w-full flex items-center justify-between px-6 py-5 bg-white hover:bg-slate-50/50 transition-colors">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600" *ngIf="expandedSection !== 'reglas'">
+                <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">tune</span>
+              </div>
+              <h2 class="text-[16px] font-bold text-slate-800">Reglas de Reserva</h2>
+            </div>
+            <span class="material-symbols-outlined text-slate-400 transition-transform duration-300"
+                  [class.rotate-180]="expandedSection === 'reglas'">expand_more</span>
+          </button>
+
+          <div *ngIf="expandedSection === 'reglas'" class="px-6 pb-8 border-t border-slate-100 pt-6 animate-in slide-in-from-top-2 duration-300">
+            
+            <div class="bg-slate-50/60 border border-slate-100 rounded-2xl p-5 mb-8 flex items-center justify-between">
+              <div>
+                <h3 class="text-[14px] font-bold text-slate-800 mb-1">Habilitar Reserva Online</h3>
+                <p class="text-[13px] text-slate-500">Permitir a los clientes reservar citas directamente a través de tu sitio web.</p>
+              </div>
+              <input type="checkbox" [(ngModel)]="settings.onlineBookingEnabled" class="ios-toggle" />
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8" [class.opacity-50]="!settings.onlineBookingEnabled" [class.pointer-events-none]="!settings.onlineBookingEnabled">
+              <div>
+                <label class="block text-[13px] font-bold text-slate-800 mb-2">Duración predeterminada de cita (min)</label>
+                <div class="relative">
+                  <input type="number" [(ngModel)]="settings.defaultAppointmentDurationMinutes" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[14px] text-slate-800 focus:outline-none focus:border-blue-400">
+                </div>
+              </div>
+              <div>
+                <label class="block text-[13px] font-bold text-slate-800 mb-2">Antelación mínima para reservar (min)</label>
+                <div class="relative mb-2">
+                  <input type="number" [(ngModel)]="settings.minimumAdvanceMinutes" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[14px] text-slate-800 focus:outline-none focus:border-blue-400">
+                </div>
+                <p class="text-[11px] text-slate-400 font-medium">Minutos de antelación mínimos para una cita.</p>
+              </div>
+              <div>
+                <label class="block text-[13px] font-bold text-slate-800 mb-2">Antelación máxima de reserva (días)</label>
+                <div class="relative">
+                  <input type="number" [(ngModel)]="settings.maximumAdvanceDays" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[14px] text-slate-800 focus:outline-none focus:border-blue-400">
+                </div>
+              </div>
+              <div>
+                <label class="block text-[13px] font-bold text-slate-800 mb-2">Límite para cancelación gratuita (horas)</label>
+                <div class="relative">
+                  <input type="number" [(ngModel)]="settings.freeCancellationHours" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[14px] text-slate-800 focus:outline-none focus:border-blue-400">
+                </div>
+              </div>
+            </div>
+
+            <!-- Policy textarea -->
+            <div [class.opacity-50]="!settings.onlineBookingEnabled" [class.pointer-events-none]="!settings.onlineBookingEnabled">
+               <label class="block text-[13px] font-bold text-slate-800">Política de Cancelación y Términos</label>
+               <p class="text-[12px] text-slate-500 mb-3 mt-0.5">Este texto se mostrará a los clientes antes de confirmar su reserva.</p>
+               <textarea [(ngModel)]="settings.cancellationPolicy" rows="4" placeholder="Escribe aquí tu política..." class="w-full p-4 rounded-xl border border-slate-200 text-[14px] text-slate-700 focus:outline-none focus:ring-2 focus:border-blue-400 transition-shadow resize-y mb-2"></textarea>
+               
+               <div class="flex justify-between items-center mb-6">
+                 <span class="text-[11px] text-slate-400 font-medium">Markdown soportado</span>
+                 <button type="button" class="text-[12px] font-bold text-blue-500 hover:text-blue-600">Insertar plantilla estándar</button>
+               </div>
+
+               <!-- Preview Box -->
+               <div class="bg-emerald-50/50 border border-emerald-100 rounded-xl p-5">
+                 <span class="text-[13px] font-bold text-emerald-800 mb-3 block">Puntos clave visibles:</span>
+                 <ul class="space-y-2.5">
+                   <li class="flex gap-2 items-start text-[13px] text-emerald-700">
+                      <span class="material-symbols-outlined text-[16px] mt-0.5" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                      Se requiere tarjeta de crédito para reservar.
+                   </li>
+                   <li class="flex gap-2 items-start text-[13px] text-emerald-700">
+                      <span class="material-symbols-outlined text-[16px] mt-0.5" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                      Cancelación gratuita hasta 24h antes.
+                   </li>
+                   <li class="flex gap-2 items-start text-[13px] text-emerald-700">
+                      <span class="material-symbols-outlined text-[16px] mt-0.5" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                      Cargo del 50% por no presentarse (No-show).
+                   </li>
+                 </ul>
+               </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- 4. Gestión del Equipo -->
+      @if (authService.hasRole([UserRole.ADMIN])) {
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)] transition-all duration-300">
+          <button (click)="toggleSection('equipo')" class="w-full flex items-center justify-between px-6 py-5 bg-white hover:bg-slate-50/50 transition-colors">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600" *ngIf="expandedSection !== 'equipo'">
+                <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">group</span>
+              </div>
+              <h2 class="text-[16px] font-bold text-slate-800">Gestión del Equipo</h2>
+            </div>
+            <div class="flex items-center gap-4">
+              <div *ngIf="expandedSection === 'equipo'" (click)="$event.stopPropagation(); openProfessionalModal()" class="text-blue-600 flex items-center gap-1 font-bold text-[13px] hover:text-blue-700 cursor-pointer">
+                <span class="material-symbols-outlined text-[16px]">add</span> Añadir Profesional
+              </div>
+              <span class="material-symbols-outlined text-slate-400 transition-transform duration-300"
+                    [class.rotate-180]="expandedSection === 'equipo'">expand_more</span>
+            </div>
+          </button>
+
+          <div *ngIf="expandedSection === 'equipo'" class="px-6 pb-6 border-t border-slate-100 pt-6 animate-in slide-in-from-top-2 duration-300">
+            
+            <div class="space-y-3">
+              <div *ngFor="let member of professionals" class="flex items-center justify-between border border-slate-200 rounded-xl p-4 hover:border-slate-300 transition-colors group" [class.opacity-50]="!member.active">
+                <div class="flex items-center gap-4">
+                  <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center font-bold text-[14px] text-slate-600">
+                    {{ member.fullName.substring(0, 2).toUpperCase() }}
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <h4 class="text-[15px] font-bold text-slate-800">{{ member.fullName }}</h4>
+                      <span *ngIf="!member.active" class="px-1.5 py-0.5 rounded bg-slate-100 text-[10px] font-bold text-slate-500">INACTIVO</span>
+                    </div>
+                    <p class="text-[12px] text-slate-400 font-medium mt-0.5">{{ member.specialty }}</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button (click)="openProfessionalModal(member)" class="px-4 py-2 rounded-lg text-slate-500 font-semibold text-[13px] hover:bg-slate-50 hover:text-slate-800 transition-colors opacity-0 group-hover:opacity-100">
+                    Editar
+                  </button>
+                  <button (click)="toggleProfessionalStatus(member)" class="px-4 py-2 rounded-lg font-semibold text-[13px] hover:bg-slate-50 transition-colors opacity-0 group-hover:opacity-100" [class.text-red-500]="member.active" [class.text-emerald-500]="!member.active">
+                    {{ member.active ? 'Desactivar' : 'Activar' }}
+                  </button>
+                </div>
+              </div>
+              <div *ngIf="professionals.length === 0" class="text-center py-8 text-slate-400 text-[14px]">
+                No hay profesionales registrados.
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- 5. Edición de Interfaz (NUEVO) -->
+      <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)] transition-all duration-300">
+        <button (click)="toggleSection('interfaz')" class="w-full flex items-center justify-between px-6 py-5 bg-white hover:bg-slate-50/50 transition-colors">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600" *ngIf="expandedSection !== 'interfaz'">
+              <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">palette</span>
+            </div>
+            <h2 class="text-[16px] font-bold text-slate-800">Edición de Interfaz</h2>
+          </div>
+          <span class="material-symbols-outlined text-slate-400 transition-transform duration-300"
+                [class.rotate-180]="expandedSection === 'interfaz'">expand_more</span>
+        </button>
+
+        <div *ngIf="expandedSection === 'interfaz'" class="px-6 pb-8 border-t border-slate-100 pt-6 animate-in slide-in-from-top-2 duration-300">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Theme Selection -->
+            <div class="space-y-4">
+              <label class="block text-[13px] font-bold text-slate-700 ml-1">Modo Visual</label>
+              <div class="grid grid-cols-2 gap-3">
+                <button type="button" (click)="setTheme('light')" 
+                        [class.border-blue-500]="themeService.themeMode() === 'light'"
+                        [class.bg-blue-50]="themeService.themeMode() === 'light'"
+                        class="flex flex-col items-center gap-3 p-4 rounded-xl border-2 border-slate-100 hover:border-blue-200 transition-all group">
+                  <span class="material-symbols-outlined text-[28px]" [class.text-blue-500]="themeService.themeMode() === 'light'">light_mode</span>
+                  <span class="text-[13px] font-bold text-slate-600" [class.text-blue-600]="themeService.themeMode() === 'light'">Claro</span>
+                </button>
+                <button type="button" (click)="setTheme('dark')"
+                        [class.border-blue-500]="themeService.themeMode() === 'dark'"
+                        [class.bg-blue-50]="themeService.themeMode() === 'dark'"
+                        class="flex flex-col items-center gap-3 p-4 rounded-xl border-2 border-slate-100 hover:border-blue-200 transition-all group">
+                  <span class="material-symbols-outlined text-[28px]" [class.text-blue-500]="themeService.themeMode() === 'dark'">dark_mode</span>
+                  <span class="text-[13px] font-bold text-slate-600" [class.text-blue-600]="themeService.themeMode() === 'dark'">Oscuro</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Color Selection -->
+            <div class="space-y-4">
+              <label class="block text-[13px] font-bold text-slate-700 ml-1">Color de Énfasis</label>
+              <div class="grid grid-cols-3 gap-3">
+                <button type="button" *ngFor="let color of availableColors" 
+                        (click)="setPrimaryColor(color.name)"
+                        class="group flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all"
+                        [style.borderColor]="themeService.primaryColor() === color.name ? color.hex : '#f1f5f9'"
+                        [style.backgroundColor]="themeService.primaryColor() === color.name ? color.hex + '10' : 'transparent'">
+                  <div class="w-6 h-6 rounded-full shadow-sm transition-transform group-hover:scale-110" [style.backgroundColor]="color.hex"></div>
+                  <span class="text-[11px] font-bold text-slate-500">{{ color.label }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Professional Modal -->
+  <div *ngIf="isProfessionalModalOpen" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+      <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-white">
+        <h3 class="text-[18px] font-bold text-slate-800">{{ editingProfessional.id ? 'Editar' : 'Añadir' }} Profesional</h3>
+        <button (click)="closeProfessionalModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="p-6 space-y-5">
+        <div>
+          <label class="block text-[13px] font-bold text-slate-800 mb-2">Nombre Completo</label>
+          <input type="text" [(ngModel)]="editingProfessional.fullName" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[14px] focus:outline-none focus:border-blue-400" placeholder="Ej. Ana García">
+        </div>
+        <div>
+          <label class="block text-[13px] font-bold text-slate-800 mb-2">Especialidad</label>
+          <input type="text" [(ngModel)]="editingProfessional.specialty" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[14px] focus:outline-none focus:border-blue-400" placeholder="Ej. Esteticista Senior">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-[13px] font-bold text-slate-800 mb-2">Teléfono</label>
+            <input type="text" [(ngModel)]="editingProfessional.phone" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[14px] focus:outline-none focus:border-blue-400">
+          </div>
+          <div>
+            <label class="block text-[13px] font-bold text-slate-800 mb-2">Email</label>
+            <input type="email" [(ngModel)]="editingProfessional.email" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[14px] focus:outline-none focus:border-blue-400">
+          </div>
+        </div>
+        <div>
+          <label class="block text-[13px] font-bold text-slate-800 mb-2">Clave de Acceso (JWT)</label>
+          <input type="password" [(ngModel)]="editingProfessional.accessPassword" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[14px] focus:outline-none focus:border-blue-400" 
+                 [placeholder]="editingProfessional.id ? 'Dejar en blanco para mantener actual' : 'Mínimo 6 caracteres'">
+          <p class="text-[11px] text-slate-400 mt-1.5" *ngIf="editingProfessional.id">Solo rellene si desea cambiar la contraseña de acceso del profesional.</p>
+        </div>
+        <div class="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl">
+          <input type="checkbox" [(ngModel)]="editingProfessional.active" class="ios-toggle">
+          <div>
+            <span class="text-[13px] font-bold text-slate-800 block">Profesional Activo</span>
+            <span class="text-[11px] text-slate-500">¿Aparece en la agenda operativa?</span>
+          </div>
+        </div>
+      </div>
+      <div class="px-6 py-5 bg-slate-50 border-t border-slate-100 flex items-center gap-4" [ngClass]="editingProfessional.id ? 'justify-between' : 'justify-end'">
+        <button *ngIf="editingProfessional.id" (click)="deleteProfessional()" class="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 font-bold text-[14px] transition-all">
+          <span class="material-symbols-outlined text-[20px]">delete</span>
+          Eliminar
+        </button>
+        <div class="flex items-center gap-3">
+          <button (click)="closeProfessionalModal()" class="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-semibold text-[14px] hover:bg-slate-50 transition-colors">
+            Cancelar
+          </button>
+          <button (click)="saveProfessional()" class="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-[14px] shadow-sm transition-colors">
+            {{ editingProfessional.id ? 'Actualizar' : 'Crear' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

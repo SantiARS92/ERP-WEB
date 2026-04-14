@@ -1,0 +1,310 @@
+<div class="h-[calc(100vh-theme(spacing.20))] overflow-y-auto bg-white">
+  <div class="max-w-7xl mx-auto py-8 px-8 pb-20">
+
+    <!-- View Mode: Recent Expenses & Registration -->
+    <div *ngIf="viewMode === 'recent'" class="animate-in fade-in slide-in-from-bottom-2 duration-500">
+
+      <!-- Page Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div>
+          <div class="text-[13px] font-medium text-slate-500 mb-1 flex items-center gap-1.5">
+            <span class="hover:text-blue-600 cursor-pointer transition-colors" routerLink="/">Inicio</span>
+            <span class="text-slate-400 text-[15px]">›</span>
+            <span class="text-slate-600">Gastos</span>
+          </div>
+          <h1 class="text-[28px] font-bold text-slate-900 leading-tight">Gestión de Gastos</h1>
+          <p class="text-[14px] text-slate-500 mt-0.5">Realice un seguimiento de los costes operativos y registre nuevos gastos del negocio.</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 items-start">
+        <!-- Left Column: Recent Table & Pagination -->
+        <div>
+          <!-- Recent Expenses Table Card -->
+          <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
+            <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/30">
+              <div>
+                <h2 class="font-bold text-slate-800 text-[16px]">Gastos Recientes</h2>
+                <p class="text-[12px] text-slate-400 font-medium">Últimos gastos registrados</p>
+              </div>
+              <button (click)="setViewMode('detailed')" class="text-blue-600 hover:text-blue-700 font-bold text-[13px] flex items-center gap-1 group transition-colors">
+                Ver Historial Completo
+                <span class="material-symbols-outlined text-[18px] group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
+              </button>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead>
+                  <tr class="bg-slate-50 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    <th class="px-6 py-3 text-left">FECHA</th>
+                    <th class="px-6 py-3 text-left">CONCEPTO</th>
+                    <th class="px-6 py-3 text-left">CATEGORÍA</th>
+                    <th class="px-6 py-3 text-right">IMPORTE</th>
+                    <th class="px-6 py-3 text-center w-16">ACCIONES</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <tr *ngIf="recentExpenses.length === 0">
+                    <td colspan="5" class="px-6 py-12 text-center text-slate-500">
+                      <div class="flex flex-col items-center justify-center">
+                        <span class="material-symbols-outlined text-4xl mb-2 text-slate-300">receipt_long</span>
+                        <span class="font-medium">No hay gastos recientes.</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr *ngFor="let expense of recentExpenses" class="hover:bg-slate-50/50 transition-colors group">
+                    <td class="px-6 py-4">
+                      <span class="font-bold text-slate-700 text-[14px]">{{ expense.expenseDate }}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                      <div class="flex flex-col">
+                        <span class="font-bold text-slate-800 text-[14px]">{{ expense.concept }}</span>
+                        <span *ngIf="expense.quantity > 1" class="text-[11px] text-slate-400 font-medium">x{{ expense.quantity }} unidades</span>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4">
+                      <span class="px-2.5 py-1 rounded-full text-[11px] font-bold border"
+                            [ngClass]="getCategoryClasses(expense.category)">
+                        {{ getCategoryLabel(expense.category) }}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 text-right font-bold text-slate-900 text-[15px]">
+                      {{ expense.amount | number:'1.2-2' }}€
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                      <div class="flex justify-center">
+                        <a [routerLink]="['/gastos/editar', expense.id]" class="w-8 h-8 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 flex items-center justify-center transition-colors" title="Editar gasto">
+                          <span class="material-symbols-outlined text-[18px]">edit</span>
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Recent Pagination (Detached) -->
+          <app-pagination 
+            [totalElements]="totalElementsRecent" 
+            [pageSize]="pageSizeRecent" 
+            [currentPage]="currentPageRecent" 
+            [itemsLabel]="'gastos'"
+            (pageChange)="goToPageRecent($event)">
+          </app-pagination>
+        </div>
+
+        <!-- Right Column: Registration Form -->
+        <div>
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_4px_20px_-4px_rgba(0,0,0,0.07)]">
+          <div class="px-6 py-5 border-b border-slate-100 flex items-center gap-3 bg-slate-50/30">
+            <div>
+              <h2 class="font-bold text-slate-800 text-[16px]">Registrar Nuevo Gasto</h2>
+              <p class="text-[12px] text-slate-400 font-medium">Introduzca los detalles a continuación para registrar una transacción.</p>
+            </div>
+          </div>
+
+          <form class="p-6 space-y-5" (ngSubmit)="registerExpense()">
+
+            <div class="space-y-1.5">
+              <label class="text-[13px] font-bold text-slate-600 ml-1">Fecha</label>
+              <div class="relative">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">calendar_today</span>
+                <input type="date" [(ngModel)]="newExpense.expenseDate" name="expenseDate" required
+                       class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow text-[14px]">
+              </div>
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="text-[13px] font-bold text-slate-600 ml-1">Concepto *</label>
+              <div class="relative">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">description</span>
+                <input type="text" [(ngModel)]="newExpense.concept" name="concept" (input)="onConceptInput()" placeholder="Ej: Champú L'Oreal Prof" required autocomplete="off"
+                       class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow text-[14px]">
+                
+                <div *ngIf="conceptSuggestions.length > 0" class="absolute top-full left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl z-50 mt-1 max-h-48 overflow-y-auto overflow-x-hidden transition-all">
+                  <button type="button" *ngFor="let suggestion of conceptSuggestions" (click)="selectSuggestion(suggestion)"
+                          class="w-full text-left px-4 py-2.5 text-[13px] text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors border-b border-slate-50 last:border-0 font-medium font-sans">
+                    {{ suggestion }}
+                  </button>
+                </div>
+              </div>
+              <p *ngIf="newExpense.category === 'SUPPLIES' && !conceptSelectedFromSuggestions && newExpense.concept" class="text-[11px] text-orange-600 mt-1 font-medium italic animate-pulse">
+                 Debe seleccionar uno de los productos sugeridos.
+              </p>
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="text-[13px] font-bold text-slate-600 ml-1">Categoría</label>
+              <div class="relative">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">label</span>
+                <select [(ngModel)]="newExpense.category" name="category" required
+                        class="w-full pl-10 pr-10 py-2.5 appearance-none rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow text-[14px] bg-white">
+                  <option *ngFor="let cat of categories" [value]="cat.value">{{ cat.label }}</option>
+                </select>
+                <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[20px]">expand_more</span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-1.5">
+                <label class="text-[13px] font-bold text-slate-600 ml-1">Cantidad</label>
+                <input type="number" [(ngModel)]="newExpense.quantity" name="quantity" min="1" step="1"
+                       class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow text-[14px]">
+              </div>
+              <div class="space-y-1.5">
+                <label class="text-[13px] font-bold text-slate-600 ml-1">Importe *</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-[14px]">€</span>
+                  <input type="number" [(ngModel)]="newExpense.amount" name="amount" placeholder="0.00" step="0.01" min="0.01" required
+                         class="w-full pl-8 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow text-[14px]">
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="text-[13px] font-bold text-slate-600 ml-1">Notas <span class="font-normal text-slate-400">(Opcional)</span></label>
+              <textarea [(ngModel)]="newExpense.notes" name="notes" placeholder="Añada detalles adicionales aquí..."
+                        class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow text-[14px] min-h-[80px]"></textarea>
+            </div>
+
+            <button type="submit" [disabled]="isSubmitting"
+                    class="w-full mt-4 flex items-center justify-center gap-2 py-3.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-75 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg shadow-blue-200 transition-all hover:-translate-y-0.5 active:translate-y-0">
+              <span class="material-symbols-outlined text-[20px]" *ngIf="!isSubmitting">check</span>
+              <span class="material-symbols-outlined text-[20px] animate-spin" *ngIf="isSubmitting">progress_activity</span>
+              {{ isSubmitting ? 'Guardando...' : 'Guardar Gasto' }}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-12 text-center text-[13px] text-slate-400 font-medium">
+    Los datos mostrados son solo para fines de control comercial interno.
+  </div>
+
+    <!-- View Mode: Detailed History -->
+    <div *ngIf="viewMode === 'detailed'" class="animate-in fade-in slide-in-from-bottom-2 duration-500">
+
+      <!-- Page Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div>
+          <button (click)="setViewMode('recent')" class="text-[13px] font-semibold text-slate-400 hover:text-blue-600 mb-2 flex items-center gap-1 transition-colors group">
+            <span class="material-symbols-outlined text-[18px] group-hover:-translate-x-0.5 transition-transform">arrow_back</span>
+            Volver
+          </button>
+          <h1 class="text-[28px] font-bold text-slate-900 leading-tight">Historial Completo de Gastos</h1>
+          <p class="text-[14px] text-slate-500 mt-0.5">Realice un seguimiento de todos los costes operativos históricos.</p>
+        </div>
+        <button (click)="exportPdf()" class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-[14px] transition-colors shadow-sm whitespace-nowrap">
+          <span class="material-symbols-outlined text-[20px]">file_download</span>
+          Exportar Reporte
+        </button>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
+
+        <!-- Filter Bar -->
+        <div class="px-6 py-5 border-b border-slate-100 flex flex-col xl:flex-row justify-between xl:items-center gap-4 bg-slate-50/30">
+
+          <div class="flex p-1 bg-slate-100 rounded-xl w-fit">
+            <button (click)="setQuickFilter('month')" [class]="quickFilter === 'month' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'" class="px-4 py-2 text-[13px] font-bold rounded-lg transition-all">Mensual</button>
+            <button (click)="setQuickFilter('quarter')" [class]="quickFilter === 'quarter' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'" class="px-4 py-2 text-[13px] font-bold rounded-lg transition-all">Trimestral</button>
+            <button (click)="setQuickFilter('year')" [class]="quickFilter === 'year' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'" class="px-4 py-2 text-[13px] font-bold rounded-lg transition-all">Anual</button>
+          </div>
+
+          <div class="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
+            <!-- Category Filter -->
+            <div class="relative">
+              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">folder</span>
+              <select [(ngModel)]="filterCategory" (change)="onSearchChange()" name="filterCategory"
+                      class="pl-9 pr-8 h-11 appearance-none rounded-xl border border-slate-200 text-[13px] font-semibold text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 bg-white">
+                <option value="">Todas las categorías</option>
+                <option *ngFor="let cat of categories" [value]="cat.value">{{ cat.label }}</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[18px]">expand_more</span>
+            </div>
+
+            <!-- Custom Date Range -->
+            <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 h-11">
+              <span class="material-symbols-outlined text-slate-400 text-[18px]">calendar_month</span>
+              <input type="date" [(ngModel)]="fromDate" (change)="onSearchChange()" class="text-[13px] font-semibold text-slate-600 border-none outline-none focus:ring-0 p-0 bg-transparent min-w-[110px]" title="Desde" />
+              <span class="text-slate-300">-</span>
+              <input type="date" [(ngModel)]="toDate" (change)="onSearchChange()" class="text-[13px] font-semibold text-slate-600 border-none outline-none focus:ring-0 p-0 bg-transparent min-w-[110px]" title="Hasta" />
+            </div>
+
+            <div class="relative flex-1 sm:flex-none sm:w-64">
+              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
+              <input type="text" [(ngModel)]="search" (input)="onSearchChange()" placeholder="Buscar por concepto..."
+                     class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow text-[14px]">
+            </div>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto min-h-[300px]">
+          <table class="w-full relative">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                <th class="px-6 py-3 text-left">FECHA</th>
+                <th class="px-6 py-3 text-left">CONCEPTO</th>
+                <th class="px-6 py-3 text-left">CATEGORÍA</th>
+                <th class="px-6 py-3 text-right">IMPORTE</th>
+                <th class="px-6 py-3 text-center w-16">ACCIONES</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 relative">
+              <tr *ngIf="detailedExpenses.length === 0">
+                <td colspan="5" class="px-6 py-12 text-center text-slate-500">
+                  <div class="flex flex-col items-center justify-center">
+                    <span class="material-symbols-outlined text-4xl mb-2 text-slate-300">receipt_long</span>
+                    <span class="font-medium">No se encontraron gastos para estos filtros.</span>
+                  </div>
+                </td>
+              </tr>
+              <tr *ngFor="let expense of detailedExpenses" class="hover:bg-slate-50/50 transition-colors group">
+                <td class="px-6 py-4">
+                  <span class="font-bold text-slate-700 text-[14px]">{{ expense.expenseDate }}</span>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="flex flex-col">
+                    <span class="font-bold text-slate-800 text-[14px]">{{ expense.concept }}</span>
+                    <span *ngIf="expense.notes" class="text-[11px] text-slate-400 font-medium truncate max-w-[220px]">{{ expense.notes }}</span>
+                  </div>
+                </td>
+                <td class="px-6 py-4">
+                  <span class="px-2.5 py-1 rounded-full text-[11px] font-bold border"
+                        [ngClass]="getCategoryClasses(expense.category)">
+                    {{ getCategoryLabel(expense.category) }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 text-right font-bold text-slate-900 text-[16px]">
+                  {{ expense.amount | number:'1.2-2' }}€
+                </td>
+                <td class="px-6 py-4 text-center">
+                  <div class="flex justify-center">
+                    <a [routerLink]="['/gastos/editar', expense.id]" class="w-8 h-8 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 flex items-center justify-center transition-colors" title="Editar gasto">
+                      <span class="material-symbols-outlined text-[18px]">edit</span>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Page Pagination (Detached Style) -->
+      <app-pagination 
+        [totalElements]="totalElements" 
+        [pageSize]="pageSize" 
+        [currentPage]="currentPage" 
+        [itemsLabel]="'gastos'"
+        (pageChange)="goToPage($event)">
+      </app-pagination>
+
+      <p class="text-[12px] text-center text-slate-400 font-medium mt-6 italic">Datos generados automáticamente basándose en los registros de facturación del periodo seleccionado.</p>
+    </div>
+  </div>
+</div>

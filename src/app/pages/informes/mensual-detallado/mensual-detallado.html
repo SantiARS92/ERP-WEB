@@ -1,0 +1,229 @@
+<div class="h-full flex flex-col items-center bg-slate-50/30 dark:bg-slate-950 transition-colors">
+  <div class="w-full max-w-[1200px] flex flex-col h-full items-start px-4 md:px-8 py-6">
+
+    <!-- Header area -->
+    <header class="w-full flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8">
+      <div>
+        <div class="text-[13px] font-medium text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1.5">
+          <a class="hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors" routerLink="/informes">Informes</a>
+          <span class="text-slate-400 text-[15px]">›</span>
+          <span class="text-slate-600 dark:text-slate-300 font-bold">Mensual Detallado</span>
+        </div>
+        <h1 class="text-[32px] font-extrabold text-slate-900 dark:text-white tracking-tight pb-1">Informe Mensual Detallado</h1>
+        <p class="text-slate-500 dark:text-slate-400 font-medium">Desglose financiero con cálculos de IVA y beneficio neto</p>
+      </div>
+      
+      <div class="flex items-center gap-3">
+        <!-- Dropdown Month & Year selector -->
+        <div class="flex items-center gap-2">
+          <div class="relative">
+            <select [disabled]="!reportData" [(ngModel)]="selectedMonth" (ngModelChange)="loadData()"
+                    class="appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 font-bold text-sm rounded-xl pl-4 pr-10 py-2.5 outline-none focus:ring-4 focus:ring-blue-500/10 cursor-pointer hover:border-slate-300 dark:hover:border-slate-700 shadow-sm disabled:opacity-50 transition-all">
+              @for (m of availableMonths; track m.value) {
+                <option [value]="m.value">{{ m.label }}</option>
+              }
+            </select>
+            <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none text-[20px]">expand_more</span>
+          </div>
+
+          <div class="relative">
+            <select [disabled]="!reportData" [(ngModel)]="selectedYear" (ngModelChange)="loadData()"
+                    class="appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 font-bold text-sm rounded-xl pl-4 pr-10 py-2.5 outline-none focus:ring-4 focus:ring-blue-500/10 cursor-pointer hover:border-slate-300 dark:hover:border-slate-700 shadow-sm disabled:opacity-50 transition-all">
+              @for (y of availableYears; track y) {
+                <option [value]="y">{{ y }}</option>
+              }
+            </select>
+            <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none text-[20px]">expand_more</span>
+          </div>
+        </div>
+        
+        <button [disabled]="isDownloadingPdf || !reportData" (click)="exportPdf()" 
+                [class]="downloadSuccess ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-blue-500 hover:bg-blue-600'"
+                class="text-white font-bold text-sm px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-2 disabled:opacity-50">
+          <span class="material-symbols-outlined text-[18px]" [class.animate-spin]="isDownloadingPdf">
+             {{ isDownloadingPdf ? 'hourglass_empty' : (downloadSuccess ? 'check_circle' : 'download') }}
+          </span>
+          {{ isDownloadingPdf ? 'Generando...' : (downloadSuccess ? '¡Completado!' : 'Exportar a PDF') }}
+        </button>
+      </div>
+    </header>
+
+    @if (hasError) {
+      <div class="w-full mb-4 flex items-center gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 rounded-2xl px-5 py-3">
+        <span class="material-symbols-outlined text-[20px] shrink-0">wifi_off</span>
+        <p class="text-[13px] font-semibold">Backend no disponible — mostrando <strong>datos de ejemplo</strong>. Al conectar el servidor, la información se actualizará automáticamente.</p>
+      </div>
+    }
+    @if (reportData) {
+      <main class="w-full space-y-6 pb-10">
+        
+        <!-- 3 Top Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          <!-- Card 1: Ingresos -->
+          <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between hover:shadow-md dark:hover:shadow-blue-500/5 transition-all h-40">
+            <div class="flex justify-between items-start">
+              <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-500 dark:text-blue-400 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+              </div>
+            </div>
+            <div>
+              <p class="text-[13px] font-bold text-slate-500 dark:text-slate-400 mb-1">Ingresos brutos</p>
+              <h2 class="text-[32px] font-black text-slate-900 dark:text-white leading-none tabular-nums">€{{ reportData.grossIncome | number:'1.2-2' }}</h2>
+            </div>
+          </div>
+
+          <!-- Card 2: Gastos -->
+          <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between hover:shadow-md dark:hover:shadow-blue-500/5 transition-all h-40">
+            <div class="flex justify-between items-start">
+              <div class="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-[20px]">credit_card</span>
+              </div>
+            </div>
+            <div>
+              <p class="text-[13px] font-bold text-slate-500 dark:text-slate-400 mb-1">Gastos brutos</p>
+              <h2 class="text-[32px] font-black text-slate-900 dark:text-white leading-none tabular-nums">€{{ reportData.grossExpenses | number:'1.2-2' }}</h2>
+            </div>
+          </div>
+
+          <!-- Card 3: Beneficio -->
+          <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between hover:shadow-md dark:hover:shadow-blue-500/5 transition-all h-40">
+            <div class="flex justify-between items-start">
+              <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-500 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-[20px]">savings</span>
+              </div>
+            </div>
+            <div>
+              <p class="text-[13px] font-bold text-slate-500 dark:text-slate-400 mb-1">Beneficio Operativo</p>
+              <h2 class="text-[32px] font-black text-slate-900 dark:text-white leading-none tabular-nums">€{{ reportData.operatingProfit | number:'1.2-2' }}</h2>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Second Row: Impuestos and Balance -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          <!-- Left: Calculo de Impuestos -->
+          <div class="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col transition-colors">
+            <div class="flex justify-between items-center mb-8">
+              <h3 class="text-[17px] font-bold text-slate-900 dark:text-white">Cálculo de Impuestos Estimados</h3>
+              <span class="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[11px] font-bold rounded-lg uppercase tracking-wider border border-blue-100 dark:border-blue-800/50">Mensual</span>
+            </div>
+
+            <div class="flex flex-col gap-6 w-full">
+              <!-- Step 1 -->
+              <div class="flex items-center justify-between group">
+                <div class="flex items-center gap-4">
+                  <div class="w-7 h-7 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold text-[13px] flex items-center justify-center shrink-0 group-hover:bg-blue-500 group-hover:text-white transition-colors">1</div>
+                  <span class="text-[14px] font-bold text-slate-600 dark:text-slate-300">Base Estimada Ingresos (No IVA)</span>
+                </div>
+                <span class="text-[15px] font-black text-slate-900 dark:text-white tabular-nums">€{{ reportData.estimatedIncomeBase | number:'1.2-2' }}</span>
+              </div>
+
+              <div class="w-full h-px bg-slate-100 dark:bg-slate-800"></div>
+
+              <!-- Step 2 -->
+              <div class="flex items-center justify-between group">
+                <div class="flex items-center gap-4">
+                  <div class="w-7 h-7 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold text-[13px] flex items-center justify-center shrink-0 group-hover:bg-blue-500 group-hover:text-white transition-colors">2</div>
+                  <span class="text-[14px] font-bold text-slate-600 dark:text-slate-300">IVA Repercutido (21%)</span>
+                </div>
+                <span class="text-[15px] font-black text-slate-900 dark:text-white tabular-nums">€{{ reportData.estimatedOutputVat | number:'1.2-2' }}</span>
+              </div>
+
+              <div class="w-full h-px bg-slate-100 dark:bg-slate-800"></div>
+              
+              <!-- Step 3 -->
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 group">
+                <div class="flex items-center gap-4">
+                  <div class="w-7 h-7 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold text-[13px] flex items-center justify-center shrink-0 group-hover:bg-blue-500 group-hover:text-white transition-colors">3</div>
+                  <span class="text-[14px] font-bold text-slate-600 dark:text-slate-300">Total IVA a Pagar <span class="text-[12px] font-medium text-slate-400 dark:text-slate-500 ml-1">(Repercutido - Soportado)</span></span>
+                </div>
+                <span class="text-[15px] font-bold text-red-500 dark:text-rose-400 sm:text-right tabular-nums">-€{{ reportData.estimatedVatPayable | number:'1.2-2' }}</span>
+              </div>
+
+              <div class="w-full h-px bg-slate-100 dark:bg-slate-800"></div>
+
+              <!-- Step 4 -->
+              <div class="flex items-center justify-between group">
+                <div class="flex items-center gap-4">
+                  <div class="w-7 h-7 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold text-[13px] flex items-center justify-center shrink-0 group-hover:bg-blue-500 group-hover:text-white transition-colors">4</div>
+                  <span class="text-[14px] font-bold text-slate-600 dark:text-slate-300">Retenciones IRPF (Estimado 15%)</span>
+                </div>
+                <span class="text-[15px] font-bold text-red-500 dark:text-rose-400 tabular-nums">-€{{ reportData.estimatedIrpfPayable | number:'1.2-2' }}</span>
+              </div>
+
+              <!-- Step 5 (Total) -->
+              <div class="flex items-center justify-between mt-4 p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 shadow-inner group hover:bg-slate-900 hover:text-white dark:hover:bg-blue-600 transition-all duration-300">
+                <div class="flex items-center gap-4">
+                  <div class="w-8 h-8 rounded-full bg-slate-900 dark:bg-slate-700 text-white font-black text-[14px] flex items-center justify-center shrink-0 shadow-sm group-hover:bg-white group-hover:text-blue-600 transition-colors">5</div>
+                  <span class="text-[15px] font-black text-slate-900 dark:text-white group-hover:text-white">Total a Pagar Estimado</span>
+                </div>
+                <span class="text-[20px] font-black text-slate-900 dark:text-white group-hover:text-white tabular-nums">€{{ reportData.estimatedTotalTaxes | number:'1.2-2' }}</span>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Right: Balance Mensual -->
+          <div class="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col items-center transition-colors">
+            <div class="w-full mb-10">
+              <h3 class="text-[17px] font-bold text-slate-900 dark:text-white">Balance Mensual Gráfico</h3>
+              <p class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ selectedMonth }}/{{ selectedYear }}</p>
+            </div>
+
+            <!-- Vertical Bars Area -->
+            <div class="flex-1 flex justify-center items-end gap-10 pb-4 w-full max-w-[220px] h-[300px]">
+              
+              <!-- Barra Ingresos -->
+              <div class="flex flex-col items-center gap-3 h-full justify-end w-16 sm:w-20 group">
+                <div class="w-full bg-blue-500 rounded-t-lg shadow-[0_0_15px_rgba(59,130,246,0.2)] relative overflow-hidden transition-all duration-700 cursor-pointer group-hover:bg-blue-600 group-hover:shadow-[0_0_20px_rgba(59,130,246,0.3)]"
+                     [style.height]="getBarHeightPercentage(reportData.grossIncome, reportData.grossIncome)">
+                  <div class="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-white/20 to-transparent"></div>
+                  <div class="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                </div>
+                <div class="text-center w-full">
+                  <p class="font-black text-[14px] text-slate-800 dark:text-slate-200 tabular-nums">€{{ (reportData.grossIncome/1000) | number:'1.1-1' }}k</p>
+                  <p class="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Ingresos</p>
+                </div>
+              </div>
+
+              <!-- Barra Gastos -->
+               <div class="flex flex-col items-center gap-3 h-full justify-end w-16 sm:w-20 group">
+                <div class="w-full bg-orange-400 rounded-t-lg shadow-[0_0_15px_rgba(251,146,60,0.2)] relative overflow-hidden transition-all duration-700 cursor-pointer group-hover:bg-orange-500 group-hover:shadow-[0_0_20px_rgba(251,146,60,0.3)]"
+                     [style.height]="getBarHeightPercentage(reportData.grossExpenses, reportData.grossIncome)">
+                  <div class="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-white/20 to-transparent"></div>
+                  <div class="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                </div>
+                <div class="text-center w-full">
+                  <p class="font-black text-[14px] text-slate-800 dark:text-slate-200 tabular-nums">€{{ (reportData.grossExpenses/1000) | number:'1.1-1' }}k</p>
+                  <p class="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Gastos</p>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Bottom Metric -->
+            <div class="mt-8 text-center bg-slate-50 dark:bg-slate-800 py-4 px-8 rounded-full border border-slate-100 dark:border-slate-800 shadow-inner w-full font-bold group hover:shadow-md transition-all">
+              <span class="text-slate-500 dark:text-slate-400">Ratio de Rentabilidad:</span> 
+              <span class="text-emerald-500 dark:text-emerald-400 ml-2 text-lg">{{ reportData.profitabilityRatio | number:'1.1-1' }}%</span>
+            </div>
+
+          </div>
+
+        </div>
+
+        <div class="text-[11px] font-bold text-slate-400 dark:text-slate-600 flex items-center justify-center gap-2 pt-6 uppercase tracking-wider">
+          <span class="material-symbols-outlined text-[16px]">info</span>
+          Los cálculos de impuestos son aproximados y deben ser revisados por tu gestoría profesional.
+        </div>
+      </main>
+    } @else {
+      <div class="w-full h-64 flex flex-col items-center justify-center text-slate-400 dark:text-slate-600 gap-4 mt-8">
+        <span class="material-symbols-outlined text-4xl animate-spin text-blue-500">progress_activity</span>
+        <p class="font-medium tracking-wide">Cargando reporte de impuestos detallado...</p>
+      </div>
+    }
+  </div>
+</div>

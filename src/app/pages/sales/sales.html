@@ -1,0 +1,383 @@
+<div class="h-[calc(100vh-theme(spacing.20))] overflow-y-auto bg-white">
+  <div class="max-w-7xl mx-auto py-8 px-8 pb-20">
+
+    <!-- View Mode: Recent Sales & Registration -->
+    <div *ngIf="viewMode === 'recent'" class="animate-in fade-in slide-in-from-bottom-2 duration-500">
+      
+      <!-- Page Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div>
+          <div class="text-[13px] font-medium text-slate-500 mb-1 flex items-center gap-1.5">
+            <span class="hover:text-blue-600 cursor-pointer transition-colors" routerLink="/">Inicio</span>
+            <span class="text-slate-400 text-[15px]">›</span>
+            <span class="text-slate-600">Ventas</span>
+          </div>
+          <h1 class="text-[28px] font-bold text-slate-900 leading-tight">Registro e Historial de Ventas</h1>
+          <p class="text-[14px] text-slate-500 mt-0.5">Rastrea transacciones diarias y gestiona ingresos.</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 items-start">
+        <!-- Left Column: Recent Table & Pagination -->
+        <div>
+          <!-- Recent Sales Table Card -->
+          <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
+            <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/30">
+              <div>
+                <h2 class="font-bold text-slate-800 text-[16px]">Ventas Recientes</h2>
+                <p class="text-[12px] text-slate-400 font-medium">Transacciones de los últimos días</p>
+              </div>
+              <button (click)="setViewMode('detailed')" class="text-blue-600 hover:text-blue-700 font-bold text-[13px] flex items-center gap-1 group transition-colors">
+                Ver Todo
+                <span class="material-symbols-outlined text-[18px] group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
+              </button>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead>
+                  <tr class="bg-slate-50 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    <th class="px-6 py-3 text-left">FECHA Y HORA</th>
+                    <th class="px-6 py-3 text-left">PRODUCTO / SERVICIO</th>
+                    <th class="px-6 py-3 text-left">MÉTODO</th>
+                    <th class="px-6 py-3 text-right">TOTAL</th>
+                    <th class="px-6 py-3 text-center w-20">ACCIONES</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <tr *ngIf="recentSales.length === 0">
+                    <td colspan="5" class="px-6 py-8 text-center text-slate-500">No hay ventas recientes.</td>
+                  </tr>
+                  <tr *ngFor="let sale of recentSales" class="hover:bg-slate-50/50 transition-colors group">
+                    <td class="px-6 py-4">
+                      <div class="flex flex-col">
+                        <span class="font-bold text-slate-700 text-[14px]">{{ sale.saleDate }}</span>
+                        <span class="text-[11px] text-slate-400 font-medium">{{ sale.saleTime }}</span>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4">
+                      <div class="flex flex-col">
+                        <div class="flex items-center gap-2">
+                          <span class="font-bold text-slate-800 text-[14px]">{{ sale.itemName }}</span>
+                          <span *ngIf="sale.sourceType === 'APPOINTMENT'" class="material-symbols-outlined text-[14px] text-blue-500" title="Venta desde cita">event</span>
+                        </div>
+                        <span class="px-2 py-0.5 rounded-md text-[10px] font-bold w-fit mt-1"
+                              [ngClass]="sale.itemType === 'SERVICE' ? 'bg-indigo-50 text-indigo-600' : 'bg-orange-50 text-orange-600'">
+                          {{ getItemTypeName(sale.itemType) }} x{{ sale.quantity }}
+                        </span>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4">
+                      <div class="flex items-center gap-2 px-3 py-1 rounded-full w-fit text-[11px] font-bold border" 
+                          [ngClass]="{
+                            'bg-emerald-50 text-emerald-600 border-emerald-100': sale.paymentMethod === 'CASH',
+                            'bg-blue-50 text-blue-600 border-blue-100': sale.paymentMethod === 'DEBIT_CARD' || sale.paymentMethod === 'CREDIT_CARD',
+                            'bg-purple-50 text-purple-600 border-purple-100': sale.paymentMethod === 'BIZUM',
+                            'bg-slate-50 text-slate-600 border-slate-200': sale.paymentMethod === 'BANK_TRANSFER' || !sale.paymentMethod
+                          }">
+                        {{ getPaymentMethodName(sale.paymentMethod) }}
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 text-right font-bold text-slate-900 text-[15px]">
+                      ${{ sale.totalAmount | number:'1.2-2' }}
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                      <div class="flex justify-center">
+                        <a [routerLink]="['/ventas/editar', sale.id]" class="w-8 h-8 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 flex items-center justify-center transition-colors cursor-pointer" title="Modificar Venta">
+                          <span class="material-symbols-outlined text-[18px]">edit</span>
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Recent Pagination (Detached) -->
+          <app-pagination 
+            [totalElements]="totalElementsRecent" 
+            [pageSize]="pageSizeRecent" 
+            [currentPage]="currentPageRecent" 
+            [itemsLabel]="'ventas'"
+            (pageChange)="goToPageRecent($event)">
+          </app-pagination>
+        </div>
+
+        <!-- Right Column: Registration Form -->
+        <div>
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_4px_20px_-4px_rgba(0,0,0,0.07)]">
+          <div class="px-6 py-5 border-b border-slate-100 flex items-center gap-3 bg-slate-50/30">
+            <div>
+              <h2 class="font-bold text-slate-800 text-[16px]">Registrar Nueva Venta</h2>
+              <p class="text-[12px] text-slate-400 font-medium">Venta de servicio o producto suelto.</p>
+            </div>
+          </div>
+
+          <form class="p-6 space-y-5" (ngSubmit)="registerSale()">
+
+            <div class="space-y-1.5">
+              <label class="text-[13px] font-bold text-slate-600 ml-1">Cliente *</label>
+              <div class="relative">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">person</span>
+                <select [(ngModel)]="newSale.clientId" name="clientId" required
+                        class="w-full pl-10 pr-10 py-2.5 appearance-none rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow text-[14px] bg-white">
+                  <option [ngValue]="undefined" disabled>Selecciona un cliente...</option>
+                  <option *ngFor="let c of clients" [value]="c.id">{{ c.fullName }} ({{ c.phone }})</option>
+                </select>
+                <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[20px]">expand_more</span>
+              </div>
+            </div>
+            
+            <div class="space-y-1.5 flex gap-4">
+              <label class="flex items-center gap-2 cursor-pointer text-[14px] font-bold text-slate-700">
+                <input type="radio" name="itemType" value="SERVICE" [(ngModel)]="newSale.itemType" class="text-blue-600 focus:ring-blue-500 cursor-pointer">
+                <span>Servicio</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer text-[14px] font-bold text-slate-700">
+                <input type="radio" name="itemType" value="PRODUCT" [(ngModel)]="newSale.itemType" class="text-blue-600 focus:ring-blue-500 cursor-pointer">
+                <span>Producto</span>
+              </label>
+            </div>
+
+            <div class="space-y-1.5" *ngIf="newSale.itemType === 'SERVICE'">
+              <label class="text-[13px] font-bold text-slate-600 ml-1">Servicio *</label>
+              <div class="relative">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">spa</span>
+                <select [(ngModel)]="newSale.serviceId" name="serviceId" required
+                        class="w-full pl-10 pr-10 py-2.5 appearance-none rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow text-[14px] bg-white">
+                  <option [ngValue]="undefined" disabled>Selecciona un servicio...</option>
+                  <option *ngFor="let s of services" [value]="s.id">{{ s.name }} ({{ s.price }}€)</option>
+                </select>
+                <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[20px]">expand_more</span>
+              </div>
+            </div>
+
+            <div class="space-y-1.5" *ngIf="newSale.itemType === 'PRODUCT'">
+              <label class="text-[13px] font-bold text-slate-600 ml-1">Producto del Inventario *</label>
+              <div class="relative">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">inventory_2</span>
+                <select [(ngModel)]="newSale.inventoryProductId" name="inventoryProductId" required
+                        class="w-full pl-10 pr-10 py-2.5 appearance-none rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow text-[14px] bg-white">
+                  <option [ngValue]="undefined" disabled>Selecciona un producto...</option>
+                  <option *ngFor="let p of products" [value]="p.id">
+                    {{ p.name }} (Stock: {{ p.stock }})
+                  </option>
+                </select>
+                <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[20px]">expand_more</span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-1.5">
+                <label class="text-[13px] font-bold text-slate-600 ml-1">
+                   Precio Unitario (€)
+                </label>
+                <div class="relative">
+                  <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-medium">€</span>
+                  <input type="number" [(ngModel)]="newSale.unitPrice" name="unitPrice" placeholder="0.00" step="0.01" 
+                        class="w-full pl-8 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow text-[14px]">
+                </div>
+                <p class="text-[10px] text-slate-400 mt-1 ml-1" *ngIf="newSale.itemType==='SERVICE'">Si se deja vacío, se usará el precio del servicio.</p>
+              </div>
+
+              <div class="space-y-1.5">
+                <label class="text-[13px] font-bold text-slate-600 ml-1">Cantidad *</label>
+                <input type="number" [(ngModel)]="newSale.quantity" name="quantity" min="1" step="1" required
+                       class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow text-[14px]">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-1.5">
+                <label class="text-[13px] font-bold text-slate-600 ml-1">Fecha</label>
+                <div class="relative">
+                  <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">calendar_today</span>
+                  <input type="date" [(ngModel)]="newSale.saleDate" name="saleDate" required
+                         class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow text-[14px]">
+                </div>
+              </div>
+              <div class="space-y-1.5">
+                <label class="text-[13px] font-bold text-slate-600 ml-1">Hora</label>
+                <div class="relative">
+                  <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">schedule</span>
+                  <input type="time" [(ngModel)]="newSale.saleTime" name="saleTime" required
+                         class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow text-[14px]">
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="text-[13px] font-bold text-slate-600 ml-1">Método de Pago</label>
+              <div class="relative">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">payments</span>
+                <select [(ngModel)]="newSale.paymentMethod" name="paymentMethod" required
+                        class="w-full pl-10 pr-10 py-2.5 appearance-none rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow text-[14px] bg-white">
+                  <option value="CASH">Efectivo</option>
+                  <option value="DEBIT_CARD">Tarjeta de Débito</option>
+                  <option value="CREDIT_CARD">Tarjeta de Crédito</option>
+                  <option value="BIZUM">Bizum</option>
+                  <option value="BANK_TRANSFER">Transferencia</option>
+                </select>
+                <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[20px]">expand_more</span>
+              </div>
+            </div>
+
+            <div class="space-y-1.5">
+              <div class="flex justify-between items-center ml-1">
+                <label class="text-[13px] font-bold text-slate-600">Notas</label>
+              </div>
+              <textarea [(ngModel)]="newSale.notes" name="notes" placeholder="Añade cualquier detalle aqui..."
+                        class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow text-[14px] min-h-[80px]"></textarea>
+            </div>
+
+            <button type="submit" [disabled]="isSubmitting" class="w-full mt-4 flex items-center justify-center gap-2 py-3.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-75 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg shadow-blue-200 transition-all hover:-translate-y-0.5 active:translate-y-0">
+              <span class="material-symbols-outlined text-[20px]" *ngIf="!isSubmitting">check</span>
+              <span class="material-symbols-outlined text-[20px] animate-spin" *ngIf="isSubmitting">progress_activity</span>
+              {{ isSubmitting ? 'Registrando...' : 'Registrar Venta' }}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <!-- View Mode: Detailed History -->
+    <div *ngIf="viewMode === 'detailed'" class="animate-in fade-in slide-in-from-bottom-2 duration-500">
+      
+      <!-- Page Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div>
+          <button (click)="setViewMode('recent')" class="text-[13px] font-semibold text-slate-400 hover:text-blue-600 mb-2 flex items-center gap-1 transition-colors group">
+            <span class="material-symbols-outlined text-[18px] group-hover:-translate-x-0.5 transition-transform">arrow_back</span>
+            Volver
+          </button>
+          <h1 class="text-[28px] font-bold text-slate-900 leading-tight">Historial Detallado de Ventas</h1>
+          <p class="text-[14px] text-slate-500 mt-0.5">Explora todas las ventas pasadas mediante filtros y exporta reportes PDFs.</p>
+        </div>
+        <button (click)="exportPdf()" class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-[14px] transition-colors shadow-sm whitespace-nowrap">
+          <span class="material-symbols-outlined text-[20px]">file_download</span>
+          Exportar a PDF
+        </button>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
+        
+        <!-- Filter Bar -->
+        <div class="px-6 py-5 border-b border-slate-100 flex flex-col xl:flex-row justify-between xl:items-center gap-4 bg-slate-50/30">
+          
+          <div class="flex p-1 bg-slate-100 rounded-xl w-fit">
+            <button (click)="setQuickFilter('month')" [class]="quickFilter === 'month' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'" class="px-4 py-2 text-[13px] font-bold rounded-lg transition-all">Mes Actual</button>
+            <button (click)="setQuickFilter('quarter')" [class]="quickFilter === 'quarter' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'" class="px-4 py-2 text-[13px] font-bold rounded-lg transition-all">Trimestre</button>
+            <button (click)="setQuickFilter('year')" [class]="quickFilter === 'year' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'" class="px-4 py-2 text-[13px] font-bold rounded-lg transition-all">Anual</button>
+          </div>
+          
+          <div class="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
+            <!-- Custom Date Range -->
+            <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 h-11">
+              <span class="material-symbols-outlined text-slate-400 text-[18px]">calendar_month</span>
+              <input type="date" [(ngModel)]="fromDate" (change)="onSearchChange()" class="text-[13px] font-semibold text-slate-600 border-none outline-none focus:ring-0 p-0 bg-transparent min-w-[110px]" title="Desde" />
+              <span class="text-slate-300">-</span>
+              <input type="date" [(ngModel)]="toDate" (change)="onSearchChange()" class="text-[13px] font-semibold text-slate-600 border-none outline-none focus:ring-0 p-0 bg-transparent min-w-[110px]" title="Hasta" />
+            </div>
+
+            <div class="relative flex-1 sm:flex-none sm:w-80">
+              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
+              <input type="text" [(ngModel)]="search" (input)="onSearchChange()" placeholder="Buscar por cliente o producto/servicio..." 
+                     class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow text-[14px]">
+            </div>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto min-h-[300px]">
+          <table class="w-full relative">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                <th class="px-6 py-3 text-left">FECHA Y HORA</th>
+                <th class="px-6 py-3 text-left">CLIENTE</th>
+                <th class="px-6 py-3 text-left">SERVICIO / PRODUCTO</th>
+                <th class="px-6 py-3 text-left">MÉTODO PAGO</th>
+                <th class="px-6 py-3 text-right">TOTAL</th>
+                <th class="px-6 py-3 text-center w-20">ACCIONES</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 relative">
+              <tr *ngIf="detailedSales.length === 0">
+                <td colspan="5" class="px-6 py-12 text-center text-slate-500">
+                  <div class="flex flex-col items-center justify-center">
+                    <span class="material-symbols-outlined text-4xl mb-2 text-slate-300">receipt_long</span>
+                    <span class="font-medium">No se encontraron ventas para estos filtros.</span>
+                  </div>
+                </td>
+              </tr>
+              <tr *ngFor="let sale of detailedSales" class="hover:bg-slate-50/50 transition-colors group">
+                <td class="px-6 py-4">
+                  <div class="flex flex-col">
+                    <span class="font-bold text-slate-700 text-[14px]">{{ sale.saleDate }}</span>
+                    <span class="text-[11px] text-slate-400 font-medium">{{ sale.saleTime }}</span>
+                  </div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-[11px] border border-blue-100 shadow-sm uppercase">
+                      {{ sale.clientName | slice:0:2 }}
+                    </div>
+                    <span class="font-bold text-slate-700 text-[14px]">{{ sale.clientName }}</span>
+                  </div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="flex flex-col">
+                    <div class="flex items-center gap-1.5">
+                      <span class="font-bold text-slate-800 text-[14px]">{{ sale.itemName }}</span>
+                      <span *ngIf="sale.sourceType === 'APPOINTMENT'" class="material-symbols-outlined text-[13px] text-blue-500" title="Venta de Cita">event</span>
+                    </div>
+                    <span class="px-2 py-0.5 rounded-md text-[10px] font-bold w-fit mt-1"
+                          [ngClass]="sale.itemType === 'SERVICE' ? 'bg-indigo-50 text-indigo-500' : 'bg-orange-50 text-orange-500'">
+                      {{ getItemTypeName(sale.itemType) }} x{{ sale.quantity }} @ {{ sale.unitPrice }}€
+                    </span>
+                  </div>
+                </td>
+                <td class="px-6 py-4">
+                   <div class="flex items-center gap-2 px-3 py-1 rounded-full w-fit text-[11px] font-bold border" 
+                         [ngClass]="{
+                           'bg-emerald-50 text-emerald-600 border-emerald-100': sale.paymentMethod === 'CASH',
+                           'bg-blue-50 text-blue-600 border-blue-100': sale.paymentMethod === 'DEBIT_CARD' || sale.paymentMethod === 'CREDIT_CARD',
+                           'bg-purple-50 text-purple-600 border-purple-100': sale.paymentMethod === 'BIZUM',
+                           'bg-slate-50 text-slate-600 border-slate-200': sale.paymentMethod === 'BANK_TRANSFER' || !sale.paymentMethod
+                         }">
+                      {{ getPaymentMethodName(sale.paymentMethod) }}
+                    </div>
+                </td>
+                <td class="px-6 py-4 text-right font-bold text-slate-900 text-[16px]">
+                  {{ sale.totalAmount | currency:'EUR' }}
+                </td>
+                <td class="px-6 py-4 text-center">
+                  <div class="flex justify-center">
+                    <a [routerLink]="['/ventas/editar', sale.id]" class="w-8 h-8 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 flex items-center justify-center transition-colors cursor-pointer" title="Modificar Venta">
+                      <span class="material-symbols-outlined text-[18px]">edit</span>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Page Pagination (Detached Style) -->
+      <app-pagination 
+        [totalElements]="totalElements" 
+        [pageSize]="pageSize" 
+        [currentPage]="currentPage" 
+        [itemsLabel]="'ventas'"
+        (pageChange)="goToPage($event)">
+      </app-pagination>
+    </div>
+
+  </div>
+
+  <div class="mt-12 text-center text-[13px] text-slate-400 font-medium">
+    Los datos mostrados son solo para fines de control comercial interno.
+  </div>
+  
+</div>

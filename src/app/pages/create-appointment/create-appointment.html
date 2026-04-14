@@ -1,4 +1,4 @@
-<div class="h-[calc(100vh-theme(spacing.20))] bg-white overflow-y-auto" (click)="closeAllDropdowns()">
+<div class="h-[calc(100vh-theme(spacing.20))] bg-slate-50 overflow-y-auto" (click)="closeAllDropdowns()">
 
   <div class="max-w-[760px] mx-auto py-8 px-8">
 
@@ -105,10 +105,11 @@
           <div>
             <label class="block text-[13px] font-bold text-slate-700 mb-2">Profesional <span class="text-slate-400 font-normal ml-1">(Opcional)</span></label>
             <div class="relative">
-              <select name="professional" [(ngModel)]="appointment.professionalName" class="w-full appearance-none px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 text-[15px] cursor-pointer bg-white text-slate-800 font-medium">
-                <option value="David K.">David K.</option>
-                <option value="Laura M.">Laura M.</option>
-                <option value="Ana R.">Ana R.</option>
+              <select name="professional" [(ngModel)]="appointment.professionalName" class="w-full appearance-none px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 text-[15px] cursor-pointer bg-white text-slate-800 font-medium transition-colors">
+                <option value="">Seleccionar (Opcional)</option>
+                @for (p of professionals; track p.id) {
+                  <option [value]="p.fullName">{{ p.fullName }}</option>
+                }
               </select>
               <span class="material-symbols-outlined absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[20px]">expand_more</span>
             </div>
@@ -116,7 +117,7 @@
         </div>
 
         <!-- Section 3: Schedule -->
-        <div class="p-8 pb-10 bg-slate-50/30 rounded-b-2xl">
+        <div class="p-8 pb-10 bg-slate-50 rounded-b-2xl border-t border-slate-100">
           <h2 class="text-[18px] font-bold text-slate-800 flex items-center gap-3 mb-6">
             <span class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
               <span class="material-symbols-outlined text-[18px]">schedule</span>
@@ -236,7 +237,7 @@
         </div>
 
         <!-- Footer Actions -->
-        <div class="p-6 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-b-2xl border-t border-slate-100">
+        <div class="p-6 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-b-2xl border-t border-slate-100">
           
           <div class="text-[12px] text-slate-500 flex items-center gap-1.5 font-medium max-w-sm">
             <span class="material-symbols-outlined text-[16px] shrink-0">info</span>

@@ -2,13 +2,14 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Service, ServicePage } from '../models/service.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ServiceApiService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:8080/api/services';
+  private apiUrl = `${environment.apiUrl}/api/services`;
 
   getServices(filters: any = {}): Observable<ServicePage> {
     // Clean up empty filters

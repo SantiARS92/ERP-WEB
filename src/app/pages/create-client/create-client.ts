@@ -70,7 +70,7 @@ export class CreateClient {
         },
         error: (err) => {
           console.error('❌ Detailed error creating client:', err);
-          this.errorMessage = 'No se pudo guardar el cliente. Revisa si el backend (8080) tiene habilitado CORS o si los datos son válidos.';
+          this.errorMessage = 'No se pudo guardar el cliente. Revisa si el backend (8091) tiene habilitado CORS o si los datos son válidos.';
           this.cdr.detectChanges();
         }
       });

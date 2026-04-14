@@ -70,7 +70,7 @@ export class CreateService {
             errorMsg += 'Detalle: ' + JSON.stringify(err.error, null, 2);
           }
         } else if (err.status === 0) {
-          errorMsg += 'No se pudo conectar con el servidor. Verifique que la API en localhost:8080 esté encendida.';
+          errorMsg += 'No se pudo conectar con el servidor. Verifique que la API en localhost:8091 esté encendida.';
         } else {
           errorMsg += `Código: ${err.status}\nMensaje: ${err.message}`;
         }

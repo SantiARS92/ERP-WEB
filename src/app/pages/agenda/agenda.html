@@ -15,10 +15,12 @@
       </div>
 
       <!-- Action Button in line with title -->
-      <a routerLink="/agenda/crear" class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-semibold text-[14px] transition-colors shadow-[0_2px_10px_rgba(59,130,246,0.3)] cursor-pointer whitespace-nowrap mt-1">
-        <span class="material-symbols-outlined text-[20px]">add</span>
-        Nueva Cita
-      </a>
+      @if (authService.currentUser()?.role !== UserRole.GUEST) {
+        <a routerLink="/agenda/crear" class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-semibold text-[14px] transition-colors shadow-[0_2px_10px_rgba(59,130,246,0.3)] cursor-pointer whitespace-nowrap mt-1">
+          <span class="material-symbols-outlined text-[20px]">add</span>
+          Nueva Cita
+        </a>
+      }
     </div>
     
     <!-- Calendar Controls row (below title, consistent with calendar UX) -->
@@ -52,7 +54,7 @@
   <div class="flex-1 overflow-auto bg-white relative pb-20">
     
     <!-- Week Days Header -->
-    <div class="sticky top-0 z-10 grid border-b border-slate-200 bg-white/95 backdrop-blur-sm"
+    <div class="sticky top-0 z-10 grid border-b border-slate-200 bg-slate-50"
          [ngStyle]="{'grid-template-columns': viewMode === 'week' ? '80px repeat(7, 1fr)' : '80px 1fr'}">
       <div class="border-r border-slate-100"></div> <!-- Empty corner -->
       
@@ -240,7 +242,7 @@
               <div class="space-y-2">
                 <label class="block text-[13px] font-bold text-slate-700">Precio *</label>
                 <div class="relative">
-                  <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
+                  <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">€</span>
                   <input type="number" 
                          [(ngModel)]="selectedAppointment.price"
                          class="w-full pl-8 pr-4 py-3.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-slate-700 font-medium lg:text-[15px]">
@@ -250,9 +252,13 @@
 
             <div class="space-y-2">
               <label class="block text-[13px] font-bold text-slate-700">Profesional (Opcional)</label>
-              <input type="text" 
-                     [(ngModel)]="selectedAppointment.professionalName"
-                     class="w-full px-4 py-3.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-slate-700 font-medium lg:text-[15px]">
+              <select [(ngModel)]="selectedAppointment.professionalName"
+                      class="w-full px-4 py-3.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-slate-700 font-medium lg:text-[15px]">
+                <option value="">Seleccionar profesional</option>
+                @for (p of allProfessionals; track p.id) {
+                  <option [value]="p.fullName">{{ p.fullName }}</option>
+                }
+              </select>
             </div>
           </div>
 
@@ -344,27 +350,36 @@
 
         <!-- Modal Footer -->
         <div class="px-8 py-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-4">
-          <button (click)="deleteAppointment()"
-                  [disabled]="isSubmitting"
-                  class="flex items-center gap-2 px-6 py-3 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 font-bold text-[14px] transition-all disabled:opacity-50">
-            <span class="material-symbols-outlined text-[20px]">delete</span>
-            Eliminar
-          </button>
-          
-          <div class="flex items-center gap-3">
-            <button (click)="closeEditModal()" 
-                    class="px-6 py-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-bold text-[14px] transition-all">
-              Cancelar
-            </button>
-            <button (click)="updateAppointment()"
+          @if (authService.currentUser()?.role !== UserRole.GUEST) {
+            <button (click)="deleteAppointment()"
                     [disabled]="isSubmitting"
-                    class="px-8 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-[14px] transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50 flex items-center gap-2">
-              @if (isSubmitting) {
-                <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-              }
-              Actualizar Cita
+                    class="flex items-center gap-2 px-6 py-3 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 font-bold text-[14px] transition-all disabled:opacity-50">
+              <span class="material-symbols-outlined text-[20px]">delete</span>
+              Eliminar
             </button>
-          </div>
+            
+            <div class="flex items-center gap-3">
+              <button (click)="closeEditModal()" 
+                      class="px-6 py-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-bold text-[14px] transition-all">
+                Cancelar
+              </button>
+              <button (click)="updateAppointment()"
+                      [disabled]="isSubmitting"
+                      class="px-8 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-[14px] transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50 flex items-center gap-2">
+                @if (isSubmitting) {
+                  <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                }
+                Actualizar Cita
+              </button>
+            </div>
+          } @else {
+            <div class="w-full flex justify-end">
+              <button (click)="closeEditModal()" 
+                      class="px-6 py-3 rounded-xl bg-slate-900 text-white font-bold text-[14px] transition-all">
+                Cerrar
+              </button>
+            </div>
+          }
         </div>
 
       </div>
