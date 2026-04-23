@@ -83,7 +83,8 @@ export class Configuracion implements OnInit, OnDestroy {
     cancellationPolicy: '',
     openingHours: [],
     specialClosures: [],
-    businessLogo: ''
+    businessLogo: '',
+    cip: ''
   };
 
   professionals: Professional[] = [];

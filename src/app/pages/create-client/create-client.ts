@@ -16,7 +16,10 @@ export class CreateClient {
   client: Omit<Client, 'id'> = {
     fullName: '',
     phone: '',
-    email: ''
+    email: '',
+    admiteFacturas: false,
+    direccion: '',
+    cifNif: ''
   };
   isSubmitting = false;
   errorMessage: string | null = null;
@@ -49,7 +52,10 @@ export class CreateClient {
     const payload: Omit<Client, 'id'> = {
       fullName: this.client.fullName.trim(),
       phone: this.client.phone.trim(),
-      email: this.client.email?.trim() || null
+      email: this.client.email?.trim() || null,
+      admiteFacturas: this.client.admiteFacturas ?? false,
+      direccion: this.client.admiteFacturas ? (this.client.direccion?.trim() || null) : null,
+      cifNif: this.client.admiteFacturas ? (this.client.cifNif?.trim() || null) : null
     };
 
     console.log('📡 Sending POST to /api/clients', payload);

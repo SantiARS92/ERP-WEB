@@ -26,11 +26,8 @@ export class Sales implements OnInit {
   private clientApi = inject(ClientApiService);
   private cdr = inject(ChangeDetectorRef);
 
-  viewMode: 'recent' | 'detailed' = 'recent';
-  
   // Data
-  recentSales: SaleResponse[] = [];
-  detailedSales: SaleResponse[] = [];
+  sales: SaleResponse[] = [];
   services: Service[] = [];
   products: Product[] = [];
   clients: Client[] = [];
@@ -41,10 +38,6 @@ export class Sales implements OnInit {
   totalElements = 0;
   totalPages = 0;
 
-  // Pagination for Recent view
-  currentPageRecent = 0;
-  pageSizeRecent = 5;
-  totalElementsRecent = 0;
 
   // Filters for detailed
   search = '';
@@ -52,21 +45,9 @@ export class Sales implements OnInit {
   toDate = '';
   quickFilter: 'month' | 'quarter' | 'year' = 'month';
 
-  // Create Form State
-  newSale: SaleRequest = {
-    clientId: undefined,
-    itemType: 'SERVICE',
-    quantity: 1,
-    paymentMethod: 'CASH',
-    saleDate: new Date().toISOString().split('T')[0],
-    saleTime: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) + ':00',
-    notes: ''
-  };
 
-  isSubmitting = false;
 
   ngOnInit(): void {
-    this.loadRecentSales();
     this.loadServices();
     this.loadProducts();
     this.loadClients();
@@ -83,43 +64,7 @@ export class Sales implements OnInit {
     });
   }
 
-  setViewMode(mode: 'recent' | 'detailed') {
-    this.viewMode = mode;
-    if (mode === 'detailed') {
-      this.currentPage = 0;
-      this.loadDetailedSales();
-    } else {
-      this.loadRecentSales();
-    }
-    this.cdr.detectChanges();
-  }
 
-  loadRecentSales() {
-    const filters = {
-      page: this.currentPageRecent,
-      size: this.pageSizeRecent
-    };
-    this.saleApi.getSales(filters).subscribe({
-      next: (pageData: any) => {
-        if (pageData && typeof pageData === 'object') {
-          if (Array.isArray(pageData.content)) {
-            this.recentSales = pageData.content;
-            this.totalElementsRecent = pageData.totalElements ?? pageData.content.length;
-          } else if (Array.isArray(pageData)) {
-            this.recentSales = pageData;
-            this.totalElementsRecent = pageData.length;
-          }
-        }
-        this.cdr.detectChanges();
-      },
-      error: (err) => console.error('Error loading recent sales:', err)
-    });
-  }
-
-  goToPageRecent(p: number) {
-    this.currentPageRecent = p;
-    this.loadRecentSales();
-  }
 
   loadDetailedSales() {
     const filters = {
@@ -133,11 +78,11 @@ export class Sales implements OnInit {
       next: (pageData: any) => {
         if (pageData && typeof pageData === 'object') {
           if (Array.isArray(pageData.content)) {
-            this.detailedSales = pageData.content;
+            this.sales = pageData.content;
             this.totalElements = pageData.totalElements ?? pageData.content.length;
             this.totalPages = pageData.totalPages ?? Math.ceil(this.totalElements / this.pageSize);
           } else if (Array.isArray(pageData)) {
-            this.detailedSales = pageData;
+            this.sales = pageData;
             this.totalElements = pageData.length;
             this.totalPages = Math.ceil(pageData.length / this.pageSize);
           }
@@ -191,9 +136,7 @@ export class Sales implements OnInit {
     this.toDate = this.formatDate(end);
     this.currentPage = 0;
     
-    if (this.viewMode === 'detailed') {
-      this.loadDetailedSales();
-    }
+    this.loadDetailedSales();
   }
 
   private formatDate(date: Date): string {
@@ -222,78 +165,7 @@ export class Sales implements OnInit {
     }
   }
 
-  registerSale() {
-    if (!this.newSale.clientId) {
-      alert('Debe seleccionar un cliente.');
-      return;
-    }
-    if (this.newSale.itemType === 'SERVICE' && !this.newSale.serviceId) {
-      alert('Debe seleccionar un servicio.');
-      return;
-    }
-    if (this.newSale.itemType === 'PRODUCT' && !this.newSale.inventoryProductId) {
-      alert('Debe seleccionar un producto del inventario.');
-      return;
-    }
-    if (this.newSale.quantity <= 0) {
-      alert('La cantidad debe ser mayor a 0.');
-      return;
-    }
 
-    this.newSale.clientId = Number(this.newSale.clientId);
-    if (this.newSale.serviceId) this.newSale.serviceId = Number(this.newSale.serviceId);
-    if (this.newSale.unitPrice) this.newSale.unitPrice = Number(this.newSale.unitPrice);
-    this.newSale.quantity = Number(this.newSale.quantity);
-
-    // If it's a service and no unit price provided, backend assigns default service price.
-    // Ensure we delete optional empty fields so they don't block.
-    const payload = { ...this.newSale };
-    if (payload.itemType === 'SERVICE') {
-        delete payload.inventoryProductId;
-    } else {
-        delete payload.serviceId;
-    }
-
-    // append seconds to time if not present
-    if (payload.saleTime && payload.saleTime.length === 5) {
-      payload.saleTime += ':00';
-    }
-
-    this.isSubmitting = true;
-    this.cdr.detectChanges();
-
-    this.saleApi.createSale(payload).subscribe({
-      next: (res) => {
-        this.resetForm();
-        this.isSubmitting = false;
-        if (this.viewMode === 'recent') {
-          this.loadRecentSales();
-        } else {
-          this.loadDetailedSales();
-        }
-      },
-      error: (err) => {
-        console.error('Error creando venta:', err);
-        this.isSubmitting = false;
-        let errorMessage = 'Error al registrar la venta. ';
-        if(err.error) errorMessage += JSON.stringify(err.error);
-        alert(errorMessage);
-        this.cdr.detectChanges();
-      }
-    });
-  }
-
-  resetForm() {
-    this.newSale = {
-      itemType: 'SERVICE',
-      quantity: 1,
-      paymentMethod: 'CASH',
-      saleDate: new Date().toISOString().split('T')[0],
-      saleTime: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) + ':00',
-      notes: ''
-    };
-    this.cdr.detectChanges();
-  }
 
   exportPdf() {
     this.saleApi.exportSalesToPdf({ search: this.search, fromDate: this.fromDate, toDate: this.toDate }).subscribe({

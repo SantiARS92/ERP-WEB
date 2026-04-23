@@ -14,14 +14,6 @@
       </div>
       
       <div class="flex items-center gap-3">
-        <button (click)="exportPdf()" [disabled]="isDownloadingPdf"
-                class="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 font-bold text-sm rounded-xl hover:border-blue-500 hover:text-blue-500 transition-all shadow-sm active:scale-95 disabled:opacity-50">
-          <span class="material-symbols-outlined text-[20px]" [class.animate-spin]="isDownloadingPdf">
-            {{ isDownloadingPdf ? 'progress_activity' : 'picture_as_pdf' }}
-          </span>
-          {{ isDownloadingPdf ? 'Exportando...' : 'Exportar a PDF' }}
-        </button>
-
         <!-- Dropdown Month & Year selector -->
         <div class="flex items-center gap-2">
           <div class="relative">

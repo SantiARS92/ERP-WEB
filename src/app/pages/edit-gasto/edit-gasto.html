@@ -1,129 +1,241 @@
-<div class="h-[calc(100vh-theme(spacing.20))] overflow-y-auto bg-white">
+<div class="h-[calc(100vh-theme(spacing.20))] overflow-y-auto bg-slate-50/30">
+  <div class="max-w-[1240px] mx-auto py-10 px-8 pb-32">
 
-  <div class="max-w-4xl mx-auto py-8 px-8 pb-20 relative">
-
-    <!-- Header -->
-    <div class="mb-8">
-      <div class="text-[13px] font-medium text-slate-500 mb-1 flex items-center gap-1.5">
-        <span class="hover:text-blue-600 cursor-pointer transition-colors" routerLink="/gastos">Gastos</span>
-        <span class="text-slate-400 text-[15px]">›</span>
-        <span class="text-slate-600">Editar Gasto</span>
+    <!-- Header & Breadcrumb -->
+    <div class="mb-10">
+      <div class="text-[13px] font-semibold text-slate-400 mb-2 flex items-center gap-1.5 tracking-wide uppercase">
+        <span class="hover:text-blue-600 cursor-pointer transition-colors" routerLink="/gastos">Egresos</span>
+        <span class="text-slate-300 text-[18px] font-light">/</span>
+        <span class="text-slate-500">Editar Gasto</span>
       </div>
-      <h1 class="text-[28px] font-bold text-slate-900 leading-tight">Modificar Gasto</h1>
+      <h1 class="text-[32px] font-extrabold text-slate-900 leading-tight tracking-tight">Modificar Egreso</h1>
+      <p class="text-[15px] text-slate-500 mt-1 font-medium italic">Actualice la información de la transacción registrada.</p>
     </div>
 
-    <!-- Loading Skeleton -->
-    <div *ngIf="isLoading" class="bg-white rounded-2xl border border-slate-200 p-8 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] w-full animate-pulse space-y-6">
-      <div class="h-5 bg-slate-100 rounded-full w-1/3"></div>
-      <div class="h-12 bg-slate-100 rounded-xl w-full"></div>
-      <div class="h-5 bg-slate-100 rounded-full w-1/4"></div>
-      <div class="h-12 bg-slate-100 rounded-xl w-full"></div>
-      <div class="grid grid-cols-2 gap-6">
-        <div class="h-12 bg-slate-100 rounded-xl"></div>
-        <div class="h-12 bg-slate-100 rounded-xl"></div>
-      </div>
-    </div>
-
-    <!-- Form Card -->
-    <div *ngIf="!isLoading" class="bg-white rounded-2xl border border-slate-200 p-8 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] w-full">
-
-      <div class="space-y-6">
-
-        <!-- Concept -->
-        <div>
-          <label class="block text-[13px] font-bold text-slate-800 mb-2">Concepto *</label>
-          <div class="relative">
-            <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">description</span>
-            <input type="text" [(ngModel)]="expense.concept" name="concept" (input)="onConceptInput()" placeholder="Ej: Champú L'Oreal Prof" autocomplete="off"
-                   class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
+    <div class="flex flex-col lg:flex-row gap-10 items-start" *ngIf="!isLoading">
+      
+      <!-- Left Column: Form (2/3) -->
+      <div class="flex-1 w-full lg:max-w-[780px] space-y-8">
+        
+        <div class="bg-white rounded-[40px] border border-slate-200 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.03)] overflow-hidden">
+          <div class="p-10 space-y-10">
             
-            <!-- Suggestions Dropdown -->
-            <div *ngIf="conceptSuggestions.length > 0" class="absolute top-full left-0 w-full bg-white border border-slate-100 rounded-xl shadow-xl z-50 mt-1 max-h-48 overflow-y-auto overflow-x-hidden transition-all">
-              <button type="button" *ngFor="let suggestion of conceptSuggestions" (click)="selectSuggestion(suggestion)"
-                      class="w-full text-left px-4 py-2.5 text-[14px] text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors border-b border-slate-50 last:border-0 font-medium font-sans">
-                {{ suggestion }}
+            <div class="space-y-8">
+              
+              <!-- Category Selector -->
+              <div class="space-y-2.5">
+                <label class="text-[14px] font-bold text-slate-900 ml-1">Categoría del Gasto *</label>
+                <div class="relative group">
+                  <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors text-[22px]">label</span>
+                  <select [(ngModel)]="expense.category" name="category" required (change)="onCategoryChange()"
+                          class="w-full pl-12 pr-12 py-4 rounded-[20px] border border-slate-200 bg-white focus:outline-none focus:ring-4 focus:ring-blue-100/50 focus:border-blue-500 transition-all text-[15px] text-slate-900 appearance-none cursor-pointer font-medium shadow-sm">
+                    <option *ngFor="let cat of categories" [value]="cat.value">{{ cat.label }}</option>
+                  </select>
+                  <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-hover:text-slate-600 transition-colors">expand_more</span>
+                </div>
+              </div>
+
+              <!-- Inventory Link for SUPPLIES -->
+              <div class="space-y-8 p-8 rounded-[32px] bg-blue-50/40 border border-blue-100 animate-in fade-in slide-in-from-top-4 duration-500" *ngIf="expense.category === 'SUPPLIES'">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
+                        <span class="material-symbols-outlined">inventory_2</span>
+                    </div>
+                    <div>
+                        <h3 class="text-[16px] font-black text-blue-900">Vinculación de Inventario</h3>
+                        <p class="text-[12px] text-blue-600/70 font-bold">Actualice el producto o variante asociado.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <div class="space-y-2.5">
+                        <label class="text-[13px] font-extrabold text-blue-800 ml-1 uppercase tracking-wider">Producto *</label>
+                        <div class="relative group">
+                            <select [(ngModel)]="expense.inventoryProductId" name="inventoryProductId" required (change)="onProductChange()"
+                                    class="w-full px-6 py-4 rounded-[20px] border border-blue-200 bg-white focus:outline-none focus:ring-4 focus:ring-blue-100/50 focus:border-blue-400 transition-all text-[15px] text-slate-900 appearance-none cursor-pointer font-bold shadow-sm">
+                                <option [ngValue]="undefined" disabled>Selecciona producto del inventario...</option>
+                                <option *ngFor="let p of products" [value]="p.id">
+                                    {{ p.name }} {{ p.hasVariants ? '(Gestionado por variantes)' : '' }}
+                                </option>
+                            </select>
+                            <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-blue-400 pointer-events-none">expand_more</span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2.5 animate-in slide-in-from-top-2 duration-300" *ngIf="selectedProduct?.hasVariants">
+                        <label class="text-[13px] font-extrabold text-blue-800 ml-1 uppercase tracking-wider">Variante Específica *</label>
+                        <div class="relative group">
+                            <select [(ngModel)]="expense.inventoryProductVariantId" name="inventoryProductVariantId" required (change)="onVariantChange()"
+                                    class="w-full px-6 py-4 rounded-[20px] border-2 border-blue-100 bg-blue-50/50 focus:outline-none focus:ring-4 focus:ring-blue-200 focus:border-blue-400 transition-all text-[15px] text-slate-900 appearance-none cursor-pointer font-black shadow-sm">
+                                <option [ngValue]="undefined" disabled>Selecciona la variante exacta...</option>
+                                <option *ngFor="let v of selectedProduct?.variants" [value]="v.id">
+                                    {{ v.variantLabel }} (Stock actual: {{ v.stock }})
+                                </option>
+                            </select>
+                            <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-blue-500 pointer-events-none">expand_more</span>
+                        </div>
+                    </div>
+                </div>
+              </div>
+
+              <!-- Main Concept -->
+              <div class="space-y-2.5">
+                <label class="text-[14px] font-bold text-slate-900 ml-1">Concepto *</label>
+                <div class="relative group">
+                  <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors text-[22px]">description</span>
+                  <input type="text" [(ngModel)]="expense.concept" name="concept" 
+                         [placeholder]="expense.category === 'SUPPLIES' ? 'Auto-completado desde producto...' : 'Ej: Pago de alquiler, Material...'" 
+                         [readonly]="expense.category === 'SUPPLIES' && !!selectedProduct"
+                         required autocomplete="off"
+                         class="w-full pl-12 pr-6 py-4 rounded-[20px] border border-slate-200 bg-white focus:outline-none focus:ring-4 focus:ring-blue-100/50 focus:border-blue-500 transition-all text-[16px] font-bold text-slate-900 shadow-sm"
+                         [class.bg-slate-50]="expense.category === 'SUPPLIES' && !!selectedProduct">
+                </div>
+              </div>
+
+              <!-- Amount and Quantity -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
+                <div class="space-y-2.5">
+                  <label class="text-[14px] font-bold text-slate-900 ml-1">Cantidad / Unidades</label>
+                  <div class="relative group">
+                    <input type="number" [(ngModel)]="expense.quantity" name="quantity" (input)="calculateSummary()" min="1" step="1"
+                           class="w-full px-6 py-4 rounded-[20px] border border-slate-200 bg-white focus:outline-none focus:ring-4 focus:ring-blue-100/50 focus:border-blue-500 transition-all text-[16px] font-bold text-slate-900 shadow-sm text-center">
+                  </div>
+                </div>
+                <div class="space-y-2.5">
+                  <label class="text-[14px] font-bold text-slate-900 ml-1">Importe Unitario (€) *</label>
+                  <div class="relative group">
+                    <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 font-extrabold text-[15px]">€</span>
+                    <input type="number" [(ngModel)]="expense.amount" name="amount" (input)="calculateSummary()" placeholder="0.00" step="0.01" min="0.01" required
+                           class="w-full pl-10 pr-5 py-4 rounded-[20px] border border-slate-200 bg-white focus:outline-none focus:ring-4 focus:ring-blue-100/50 focus:border-blue-500 transition-all text-[16px] font-bold text-slate-900 shadow-sm">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Date Selection -->
+              <div class="space-y-2.5">
+                <label class="text-[14px] font-bold text-slate-900 ml-1">Fecha</label>
+                <div class="relative group">
+                  <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 transition-colors text-[22px]">calendar_today</span>
+                  <input type="date" [(ngModel)]="expense.expenseDate" name="expenseDate" required
+                         class="w-full pl-12 pr-6 py-4 rounded-[20px] border border-slate-200 bg-white focus:outline-none focus:ring-4 focus:ring-blue-100/50 focus:border-blue-500 transition-all text-[16px] font-bold text-slate-900 shadow-sm">
+                </div>
+              </div>
+
+              <!-- Notes -->
+              <div class="space-y-2.5 pt-2">
+                <label class="text-[14px] font-bold text-slate-900 ml-1">Notas <span class="font-normal text-slate-400 ml-1">(Opcional)</span></label>
+                <textarea [(ngModel)]="expense.notes" name="notes" placeholder="Detalles internos..." rows="4"
+                          class="w-full px-6 py-5 rounded-[24px] border border-slate-200 bg-white focus:outline-none focus:ring-4 focus:ring-blue-100/50 focus:border-blue-500 transition-all text-[15px] text-slate-900 resize-none shadow-sm"></textarea>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Premium Danger Zone -->
+        <div class="p-10 bg-red-50/40 rounded-[40px] border border-red-100 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
+          <div class="space-y-1.5 text-center md:text-left">
+            <h4 class="text-[16px] font-black text-red-900 tracking-tight">Zona de Eliminación</h4>
+            <p class="text-[14px] text-red-600/70 font-bold leading-tight">Esta acción borrará el registro y revertirá cualquier impacto en inventario.</p>
+          </div>
+          <button (click)="deleteExpense()" [disabled]="isSubmitting"
+                  class="flex items-center gap-3 px-8 py-4 rounded-[20px] bg-white border-2 border-red-100 text-red-500 hover:bg-red-600 hover:text-white hover:border-red-600 font-black text-[14px] transition-all cursor-pointer shadow-sm group">
+            <span class="material-symbols-outlined text-[20px] group-hover:rotate-12 transition-transform">delete</span>
+            ELIMINAR REGISTRO
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Right Column: Premium Summary Sidebar (1/3) -->
+      <div class="w-full lg:w-[400px] sticky top-10 space-y-8">
+        
+        <div class="bg-white rounded-[44px] border border-slate-200 shadow-[0_30px_60px_-20px_rgba(0,0,0,0.08)] overflow-hidden">
+          <div class="p-10 space-y-10">
+            <h2 class="text-[22px] font-extrabold text-slate-900 tracking-tight">Resumen de Cambios</h2>
+
+            <div class="space-y-8">
+              
+              <!-- Item Details -->
+              <div class="space-y-6">
+                <div class="space-y-2">
+                  <p class="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest">Categoría</p>
+                  <div class="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-slate-100 text-slate-700">
+                    <span class="material-symbols-outlined text-[20px]">
+                        {{ expense.category === 'SUPPLIES' ? 'inventory_2' : expense.category === 'SERVICES' ? 'spa' : 'payments' }}
+                    </span>
+                    <span class="text-[13px] font-black uppercase tracking-tight">
+                        {{ expense.category === 'SUPPLIES' ? 'Suministros' : expense.category === 'SERVICES' ? 'Servicios' : 'Otros' }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="space-y-2" *ngIf="expense.category === 'SUPPLIES' && selectedProduct">
+                  <p class="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest">Articulo Actual</p>
+                  <h3 class="text-[18px] font-black text-slate-800 leading-tight">{{ selectedProduct.name }}</h3>
+                  <p class="text-[14px] font-extrabold text-blue-600 flex items-center gap-1.5" *ngIf="selectedVariant">
+                    <span class="material-symbols-outlined text-[18px]">layers</span>
+                    Variante: {{ selectedVariant.variantLabel }}
+                  </p>
+                </div>
+              </div>
+
+              <div class="border-t border-slate-100 pt-8 space-y-5">
+                <div class="flex justify-between items-center">
+                  <span class="text-[15px] font-bold text-slate-400">Importe unitario</span>
+                  <span class="text-[17px] font-black text-slate-900">€{{ (expense.amount || 0) | number:'1.2-2' }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-[15px] font-bold text-slate-400">Cantidad</span>
+                  <span class="text-[17px] font-black text-slate-900">x{{ expense.quantity || 1 }}</span>
+                </div>
+              </div>
+
+              <!-- Grand Total -->
+              <div class="border-t-[3px] border-slate-900/5 pt-8">
+                <div class="flex flex-col gap-1">
+                  <span class="text-[14px] font-black text-slate-400 uppercase tracking-widest">Nuevo Total</span>
+                  <div class="flex items-baseline gap-1">
+                    <span class="text-[42px] font-black text-blue-600 leading-none">€{{ totalGasto | number:'1.2-2' }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Stock Impact Badge -->
+              <div class="bg-indigo-50 border border-indigo-100 rounded-[20px] p-5 flex flex-col gap-1" *ngIf="expense.category === 'SUPPLIES' && selectedProduct">
+                <span class="text-[11px] font-extrabold text-indigo-600 uppercase tracking-widest">Revisión de Stock</span>
+                <div class="flex items-center justify-between">
+                    <span class="text-[13px] font-bold text-indigo-700">Stock tras ajuste:</span>
+                    <span class="text-[15px] font-black text-indigo-900">{{ stockFinal }} uds.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Submit Buttons -->
+            <div class="space-y-4 pt-6">
+              <button [disabled]="isSubmitting" (click)='saveExpense()'
+                      class="w-full flex items-center justify-center gap-3 py-5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black text-[16px] rounded-[24px] shadow-2xl shadow-blue-300 transition-all hover:-translate-y-1 active:translate-y-0.5">
+                <span class="material-symbols-outlined text-[24px]" *ngIf="!isSubmitting">save</span>
+                <span class="material-symbols-outlined text-[24px] animate-spin" *ngIf="isSubmitting">progress_activity</span>
+                {{ isSubmitting ? 'GUARDANDO...' : 'GUARDAR CAMBIOS' }}
+              </button>
+              <button [routerLink]="['/gastos']" 
+                      class="w-full py-4 bg-white text-slate-400 hover:text-slate-600 font-extrabold text-[15px] rounded-[24px] transition-all tracking-wide">
+                DESCARTAR CAMBIOS
               </button>
             </div>
-          </div>
-          <p *ngIf="expense.category === 'SUPPLIES' && !conceptSelectedFromSuggestions && expense.concept" class="text-[11px] text-orange-600 mt-1 font-medium italic animate-pulse">
-            Debe seleccionar uno de los productos sugeridos.
-          </p>
-        </div>
 
-        <!-- Category -->
-        <div>
-          <label class="block text-[13px] font-bold text-slate-800 mb-2">Categoría</label>
-          <div class="relative">
-            <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">label</span>
-            <select [(ngModel)]="expense.category" name="category"
-                    class="w-full pl-11 pr-10 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow appearance-none cursor-pointer bg-white">
-              <option *ngFor="let cat of categories" [value]="cat.value">{{ cat.label }}</option>
-            </select>
-            <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
-          </div>
-        </div>
-
-        <!-- Amount & Quantity -->
-        <div class="grid grid-cols-2 gap-6">
-          <div>
-            <label class="block text-[13px] font-bold text-slate-800 mb-2">Importe (€) *</label>
-            <div class="relative">
-              <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-[15px]">€</span>
-              <input type="number" [(ngModel)]="expense.amount" name="amount" step="0.01" min="0.01"
-                     class="w-full pl-9 pr-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
-            </div>
-          </div>
-          <div>
-            <label class="block text-[13px] font-bold text-slate-800 mb-2">Cantidad *</label>
-            <input type="number" [(ngModel)]="expense.quantity" name="quantity" min="1" step="1"
-                   class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
-          </div>
-        </div>
-
-        <!-- Date -->
-        <div class="pb-6 border-b border-slate-100">
-          <label class="block text-[13px] font-bold text-slate-800 mb-2">Fecha</label>
-          <div class="relative">
-            <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">calendar_today</span>
-            <input type="date" [(ngModel)]="expense.expenseDate" name="expenseDate"
-                   class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
-          </div>
-        </div>
-
-        <!-- Notes -->
-        <div>
-          <label class="block text-[13px] font-bold text-slate-800 mb-2">Notas <span class="font-normal text-slate-400">(Opcional)</span></label>
-          <textarea rows="3" [(ngModel)]="expense.notes" name="notes" placeholder="Añade cualquier detalle aquí..."
-                    class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow resize-y"></textarea>
-        </div>
-
-        <!-- Actions Footer -->
-        <div class="flex items-center justify-between pt-2">
-          <button (click)="deleteExpense()"
-                  class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-red-500 hover:bg-red-50 font-medium text-[14px] transition-colors cursor-pointer">
-            <span class="material-symbols-outlined text-[18px]">delete</span>
-            Eliminar Gasto
-          </button>
-
-          <div class="flex items-center gap-3">
-            <a routerLink="/gastos"
-               class="px-6 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-[14px] transition-colors shadow-sm cursor-pointer">
-              Cancelar
-            </a>
-            <button [disabled]="isSubmitting" (click)="saveExpense()"
-                    class="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 disabled:opacity-75 disabled:cursor-not-allowed text-white font-bold text-[14px] transition-colors shadow-sm cursor-pointer">
-              <span class="material-symbols-outlined text-[18px]" *ngIf="!isSubmitting">save</span>
-              <span class="material-symbols-outlined text-[18px] animate-spin" *ngIf="isSubmitting">progress_activity</span>
-              {{ isSubmitting ? 'Guardando...' : 'Guardar Cambios' }}
-            </button>
           </div>
         </div>
 
       </div>
     </div>
 
-    <div class="mt-8 text-center text-[12px] text-slate-400 font-medium">
-      Los cambios se aplicarán inmediatamente tras guardar.
+    <!-- Loading State -->
+    <div class="flex flex-col items-center justify-center py-20 animate-pulse" *ngIf="isLoading">
+       <div class="w-16 h-16 rounded-full border-4 border-blue-100 border-t-blue-600 animate-spin mb-4"></div>
+       <p class="text-slate-400 font-bold uppercase tracking-widest text-[13px]">Cargando información del egreso...</p>
     </div>
+
   </div>
 </div>

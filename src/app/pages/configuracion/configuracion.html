@@ -59,9 +59,15 @@
                     <input type="text" [(ngModel)]="settings.phone" (ngModelChange)="onFieldChange()" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[14px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
                   </div>
                 </div>
-                <div>
-                  <label class="block text-[13px] font-bold text-slate-800 mb-2">Correo Electrónico de Contacto</label>
-                  <input type="email" [(ngModel)]="settings.contactEmail" (ngModelChange)="onFieldChange()" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[14px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
+                <div class="grid grid-cols-2 gap-5">
+                  <div>
+                    <label class="block text-[13px] font-bold text-slate-800 mb-2">Código de Identificación Personal (CIP)</label>
+                    <input type="text" [(ngModel)]="settings.cip" (ngModelChange)="onFieldChange()" placeholder="Ej. 12345678A" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[14px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
+                  </div>
+                  <div>
+                    <label class="block text-[13px] font-bold text-slate-800 mb-2">Correo Electrónico de Contacto</label>
+                    <input type="email" [(ngModel)]="settings.contactEmail" (ngModelChange)="onFieldChange()" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[14px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
+                  </div>
                 </div>
                 <div>
                   <label class="block text-[13px] font-bold text-slate-800 mb-2">Dirección Física</label>

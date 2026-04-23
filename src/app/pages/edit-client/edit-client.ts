@@ -16,7 +16,11 @@ export class EditClient implements OnInit {
   client: Omit<Client, 'id'> = {
     fullName: '',
     phone: '',
-    email: ''
+    email: '',
+    admiteFacturas: false,
+    direccion: '',
+    cifNif: '',
+    identificador: null
   };
   clientId: number | null = null;
   isLoading = true;
@@ -47,7 +51,11 @@ export class EditClient implements OnInit {
         this.client = {
           fullName: client.fullName,
           phone: client.phone,
-          email: client.email ?? ''
+          email: client.email ?? '',
+          admiteFacturas: client.admiteFacturas ?? false,
+          direccion: client.direccion ?? '',
+          cifNif: client.cifNif ?? '',
+          identificador: client.identificador ?? null
         };
         this.isLoading = false;
         this.cdr.detectChanges();
@@ -63,8 +71,8 @@ export class EditClient implements OnInit {
 
   onSubmit() {
     console.log('🚀 Update triggered', this.client);
-    if (!this.client.fullName.trim() || !this.clientId) {
-      console.warn('⚠️ Validation failed: name and ID are required');
+    if (!this.client.fullName.trim() || !this.client.phone.trim() || !this.clientId) {
+      console.warn('⚠️ Validation failed: name, phone and ID are required');
       return;
     }
 
@@ -85,7 +93,10 @@ export class EditClient implements OnInit {
     const payload: Omit<Client, 'id'> = {
       fullName: this.client.fullName.trim(),
       phone: this.client.phone.trim(),
-      email: this.client.email?.trim() || null
+      email: this.client.email?.trim() || null,
+      admiteFacturas: this.client.admiteFacturas ?? false,
+      direccion: this.client.admiteFacturas ? (this.client.direccion?.trim() || null) : null,
+      cifNif: this.client.admiteFacturas ? (this.client.cifNif?.trim() || null) : null
     };
 
     console.log('📡 Sending PUT to /api/clients/' + this.clientId, payload);

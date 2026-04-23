@@ -41,10 +41,6 @@ export class InformeRankingServicios implements OnInit {
   hasError = false;
   currentPage: number = 0;
   maxCitas: number = 0;
-
-  isDownloadingPdf = false;
-  downloadSuccess = false;
-
   private reportApi = inject(ReportApiService);
   constructor(private cdr: ChangeDetectorRef) {}
 
@@ -91,36 +87,4 @@ export class InformeRankingServicios implements OnInit {
     return shades[index % shades.length];
   }
 
-  exportPdf() {
-    if (this.isDownloadingPdf) return;
-    
-    this.isDownloadingPdf = true;
-    this.cdr.detectChanges();
-
-    this.reportApi.getRankingPdf('SERVICE', this.selectedYear, this.selectedMonth).subscribe({
-      next: (blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Ranking_Servicios_${this.selectedMonth}_${this.selectedYear}.pdf`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-        
-        this.isDownloadingPdf = false;
-        this.downloadSuccess = true;
-        this.cdr.detectChanges();
-        
-        setTimeout(() => {
-          this.downloadSuccess = false;
-          this.cdr.detectChanges();
-        }, 3000);
-      },
-      error: (err) => {
-        console.error('Error downloading PDF', err);
-        alert('Error al descargar el PDF. Inténtelo de nuevo.');
-        this.isDownloadingPdf = false;
-        this.cdr.detectChanges();
-      }
-    });
-  }
 }

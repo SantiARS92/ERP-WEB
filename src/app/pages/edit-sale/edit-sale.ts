@@ -8,7 +8,7 @@ import { ServiceApiService } from '../../core/services/service-api.service';
 import { SaleRequest, SaleResponse } from '../../core/models/sale.model';
 import { Client } from '../../core/models/client.model';
 import { Service } from '../../core/models/service.model';
-import { Product } from '../../core/models/product.model';
+import { Product, InventoryVariant } from '../../core/models/product.model';
 import { ProductApiService } from '../../core/services/product-api.service';
 
 @Component({
@@ -31,6 +31,13 @@ export class EditSale implements OnInit {
   clients: Client[] = [];
   services: Service[] = [];
   products: Product[] = [];
+  selectedClient: Client | null = null;
+  selectedProduct: Product | null = null;
+  selectedService: Service | null = null;
+  selectedVariant: InventoryVariant | null = null;
+
+  totalEstimado = 0;
+  stockRestante = 0;
   isSubmitting = false;
 
   private saleApi = inject(SaleApiService);
@@ -60,15 +67,103 @@ export class EditSale implements OnInit {
             quantity: data.quantity,
             paymentMethod: data.paymentMethod,
             saleDate: data.saleDate,
-            saleTime: data.saleTime ? data.saleTime.substring(0, 5) : undefined,
-            notes: data.notes
+            notes: data.notes,
+            inventoryProductVariantId: data.inventoryProductVariantId
           };
+          
+          if (this.sale.inventoryProductId) {
+            this.onProductChange(true);
+          } else if (this.sale.serviceId) {
+            this.onServiceChange();
+          }
+          
+          this.onClientChange();
+          this.calculateSummary();
         },
         error: (err) => {
           if (err.status === 404) alert('Venta no encontrada');
           this.router.navigate(['/ventas']);
         }
       });
+    }
+  }
+
+  onProductChange(isInitialLoad = false) {
+    const productId = Number(this.sale.inventoryProductId);
+    if (!productId) {
+      this.selectedProduct = null;
+      this.selectedVariant = null;
+      this.sale.inventoryProductVariantId = null;
+      return;
+    }
+
+    const product = this.products.find(p => p.id === productId);
+    if (product) {
+      this.selectedProduct = product;
+      
+      if (!isInitialLoad) {
+        this.selectedVariant = null;
+        this.sale.inventoryProductVariantId = null;
+      }
+
+      if (product.hasVariants && (!product.variants || product.variants.length === 0)) {
+        this.productApi.getProductById(productId).subscribe({
+          next: (fullProduct) => {
+            product.variants = fullProduct.variants;
+            if (isInitialLoad && this.sale.inventoryProductVariantId) {
+                this.onVariantChange();
+            }
+          },
+          error: (err) => console.error('Error loading product details:', err)
+        });
+      } else if (isInitialLoad && this.sale.inventoryProductVariantId) {
+          this.onVariantChange();
+      }
+    }
+    this.calculateSummary();
+  }
+
+  onVariantChange() {
+    const variantId = Number(this.sale.inventoryProductVariantId);
+    if (this.selectedProduct && variantId) {
+      this.selectedVariant = this.selectedProduct.variants?.find(v => v.id === variantId) || null;
+      if (this.selectedVariant && this.selectedVariant.purchasePrice) {
+          this.sale.unitPrice = this.selectedVariant.purchasePrice;
+      } else if (this.selectedProduct.purchasePrice) {
+          this.sale.unitPrice = this.selectedProduct.purchasePrice;
+      }
+    } else {
+      this.selectedVariant = null;
+    }
+    this.calculateSummary();
+  }
+
+  onClientChange() {
+    this.selectedClient = this.clients.find(c => c.id === Number(this.sale.clientId)) || null;
+  }
+
+  onServiceChange() {
+    this.selectedService = this.services.find(s => s.id === Number(this.sale.serviceId)) || null;
+    this.calculateSummary();
+  }
+
+  calculateSummary() {
+    const qty = this.sale.quantity || 0;
+    let price = this.sale.unitPrice || 0;
+
+    if (!this.sale.unitPrice && this.sale.itemType === 'SERVICE' && this.selectedService) {
+        price = this.selectedService.price;
+    }
+
+    this.totalEstimado = qty * price;
+
+    if (this.sale.itemType === 'PRODUCT' && this.selectedProduct) {
+        const currentStock = this.selectedVariant ? this.selectedVariant.stock : this.selectedProduct.stock;
+        // In EDIT mode, we should account for the quantity already sold in the original sale
+        const originalQty = this.originalSale?.quantity || 0;
+        this.stockRestante = Math.max(0, (currentStock + originalQty) - qty);
+    } else {
+        this.stockRestante = 0;
     }
   }
 
@@ -83,20 +178,25 @@ export class EditSale implements OnInit {
     if (this.sale.itemType === 'PRODUCT' && !this.sale.inventoryProductId) { alert('Debe seleccionar un producto del inventario.'); return; }
     if (this.sale.quantity <= 0) { alert('La cantidad debe ser mayor a 0.'); return; }
 
-    this.sale.clientId = Number(this.sale.clientId);
-    if (this.sale.serviceId) this.sale.serviceId = Number(this.sale.serviceId);
-    if (this.sale.inventoryProductId) this.sale.inventoryProductId = Number(this.sale.inventoryProductId);
-    if (this.sale.unitPrice) this.sale.unitPrice = Number(this.sale.unitPrice);
-    this.sale.quantity = Number(this.sale.quantity);
+    const payload: any = { ...this.sale };
+    
+    // Convert numbers explicitly
+    payload.clientId = Number(payload.clientId);
+    payload.quantity = Number(payload.quantity);
+    if (payload.unitPrice) payload.unitPrice = Number(payload.unitPrice);
 
-    if (this.sale.saleTime && this.sale.saleTime.length === 5) {
-      this.sale.saleTime = this.sale.saleTime + ':00';
-    }
-
-    const payload = { ...this.sale };
     if (payload.itemType === 'SERVICE') {
+        payload.serviceId = Number(payload.serviceId);
         delete payload.inventoryProductId;
+        delete payload.inventoryProductVariantId;
     } else {
+        payload.inventoryProductId = Number(payload.inventoryProductId);
+        if (this.selectedProduct?.hasVariants) {
+          payload.inventoryProductVariantId = Number(payload.inventoryProductVariantId);
+        } else {
+          // Explicitly null or omit for simple products
+          payload.inventoryProductVariantId = null;
+        }
         delete payload.serviceId;
     }
 

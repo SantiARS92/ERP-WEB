@@ -71,6 +71,8 @@ export class Agenda implements OnInit {
     }, 60000);
   }
 
+  appointmentStyles: { [id: number]: any } = {};
+
   initCurrentWeek() {
     const today = this.selectedDate;
     const dayOfWeek = today.getDay(); // 0 (Sun) - 6 (Sat)
@@ -82,8 +84,12 @@ export class Agenda implements OnInit {
   }
 
   loadAllData() {
-    this.clientApi.getClients({ size: 100 }).subscribe((res: any) => this.allClients = res.content);
-    this.serviceApi.getServices({ size: 100, active: true }).subscribe((res: any) => this.allServices = res.content);
+    this.clientApi.getClients({ size: 1000 }).subscribe((res: any) => this.allClients = res.content);
+    this.serviceApi.getServices({ size: 1000, active: true }).subscribe((res: any) => {
+      this.allServices = res.content;
+      this.calculateAllStyles();
+      this.cdr.detectChanges();
+    });
     this.professionalApi.getProfessionals(true).subscribe(res => this.allProfessionals = res);
   }
 
@@ -123,6 +129,7 @@ export class Agenda implements OnInit {
     
     this.appointmentApi.getAppointments(startStr, endStr).subscribe((data: Appointment[]) => {
       this.appointments = data;
+      this.calculateAllStyles();
       this.cdr.detectChanges();
     });
   }
@@ -203,67 +210,84 @@ export class Agenda implements OnInit {
     return srv ? srv.durationMinutes : 60; // Default to 60 if not found
   }
 
-  getAppointmentStyle(app: Appointment): any {
-    const [startH, startM] = app.appointmentTime.split(':').map(Number);
-    const topPx = this.timeToPixels(startH, startM);
-    
-    const duration = this.getAppointmentDuration(app);
-    const heightPx = (duration / 60) * 100;
-    
-    const dayApps = this.getAppointmentsForDay(app.appointmentDate)
-                    .sort((a, b) => a.appointmentTime.localeCompare(b.appointmentTime));
-    
-    // Improved overlap clustering logic
-    const t1Start = startH * 60 + startM;
-    const t1End = t1Start + duration;
+  calculateAllStyles() {
+    this.appointmentStyles = {};
+    for (const day of this.days) {
+      const dayApps = this.getAppointmentsForDay(day.dateStr);
+      if (!dayApps.length) continue;
 
-    // Find all apps that overlap with this one
-    const overlapping = dayApps.filter(other => {
-      if (other.id === app.id) return false;
-      const [h2, m2] = other.appointmentTime.split(':').map(Number);
-      const t2Start = h2 * 60 + m2;
-      const t2End = t2Start + this.getAppointmentDuration(other);
-      
-      return t1Start < t2End && t2Start < t1End;
-    });
+      const appsWithTime = dayApps.map(app => {
+        const [h, m] = app.appointmentTime.split(':').map(Number);
+        const actualDuration = this.getAppointmentDuration(app);
+        const duration = Math.max(actualDuration, 45); // Enforce min height to prevent text squishing
+        const startMin = h * 60 + m;
+        const endMin = startMin + duration;
+        return { app, startH: h, startM: m, duration, startMin, endMin, colIdx: 0, actualDuration };
+      });
 
-    // If no overlaps, full width
-    if (overlapping.length === 0) {
-      return {
-        'top.px': topPx,
-        'height.px': heightPx,
-        'width.%': 90,
-        'left.%': 5
-      };
+      appsWithTime.sort((a, b) => {
+        if (a.startMin !== b.startMin) return a.startMin - b.startMin;
+        return b.duration - a.duration;
+      });
+
+      const clusters: (typeof appsWithTime)[] = [];
+      let currentCluster: typeof appsWithTime = [];
+      let clusterEnd = -1;
+
+      for (const item of appsWithTime) {
+        if (item.startMin >= clusterEnd) {
+          if (currentCluster.length > 0) clusters.push(currentCluster);
+          currentCluster = [item];
+          clusterEnd = item.endMin;
+        } else {
+          currentCluster.push(item);
+          clusterEnd = Math.max(clusterEnd, item.endMin);
+        }
+      }
+      if (currentCluster.length > 0) clusters.push(currentCluster);
+
+      for (const cluster of clusters) {
+        const columns: number[] = [];
+        
+        for (const item of cluster) {
+          let colIdx = columns.findIndex(endTime => endTime <= item.startMin);
+          if (colIdx === -1) {
+            colIdx = columns.length;
+            columns.push(item.endMin);
+          } else {
+            columns[colIdx] = item.endMin;
+          }
+          item.colIdx = colIdx;
+        }
+
+        const numCols = columns.length;
+        const widthPercent = 90 / numCols;
+
+        for (const item of cluster) {
+          if (item.app.id !== undefined) {
+            this.appointmentStyles[item.app.id] = {
+              'top.px': this.timeToPixels(item.startH, item.startM),
+              'height.px': (item.duration / 60) * 100,
+              'width.%': widthPercent,
+              'left.%': 5 + (item.colIdx * widthPercent)
+            };
+          }
+        }
+      }
     }
+  }
 
-    // Determine position using a "first available column" approach
-    // We need to know which "columns" are occupied by overlapping apps at this specific time
-    const columns: (number | undefined)[] = [];
-    
-    // Sort overlapping apps by ID or something stable so we all agree on order
-    const sortedActive = dayApps.filter(other => {
-      const [h2, m2] = other.appointmentTime.split(':').map(Number);
-      const t2Start = h2 * 60 + m2;
-      const t2End = t2Start + this.getAppointmentDuration(other);
-      return t1Start < t2End && t2Start < t1End;
-    }).sort((a, b) => {
-      const timeDiff = a.appointmentTime.localeCompare(b.appointmentTime);
-      if (timeDiff !== 0) return timeDiff;
-      return (a.id || 0) - (b.id || 0);
-    });
-
-    const totalColumns = sortedActive.length;
-    const myIndex = sortedActive.findIndex(a => a.id === app.id);
-
-    const width = 90 / totalColumns;
-    const left = 5 + (myIndex * width);
-
+  getAppointmentStyle(app: Appointment): any {
+    if (app.id && this.appointmentStyles[app.id]) {
+      return this.appointmentStyles[app.id];
+    }
+    const [startH, startM] = app.appointmentTime.split(':').map(Number);
+    const duration = Math.max(this.getAppointmentDuration(app), 45);
     return {
-      'top.px': topPx,
-      'height.px': heightPx,
-      'width.%': width,
-      'left.%': left
+      'top.px': this.timeToPixels(startH, startM),
+      'height.px': (duration / 60) * 100,
+      'width.%': 90,
+      'left.%': 5
     };
   }
 

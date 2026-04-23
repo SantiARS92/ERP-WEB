@@ -6,6 +6,8 @@ export interface ExpenseRequest {
   amount: number;
   quantity: number;
   expenseDate: string;
+  inventoryProductId?: number | null;
+  inventoryProductVariantId?: number | null;
   notes?: string;
 }
 
@@ -17,6 +19,10 @@ export interface ExpenseResponse {
   categoryLabel: string;
   quantity: number;
   amount: number;
+  inventoryProductId?: number | null;
+  inventoryProductVariantId?: number | null;
+  inventoryProductVariantLabel?: string;
+  inventoryProductVariantSku?: string;
   notes?: string;
   createdAt?: string;
   updatedAt?: string;

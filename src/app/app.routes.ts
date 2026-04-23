@@ -62,12 +62,14 @@ export const routes: Routes = [
         component: Sales,
         data: { roles: [UserRole.ADMIN, UserRole.PROFESSIONAL] }
       },
+      { path: 'ventas/crear', loadComponent: () => import('./pages/create-sale/create-sale').then(m => m.CreateSale), data: { roles: [UserRole.ADMIN, UserRole.PROFESSIONAL] } },
       { path: 'ventas/editar/:id', component: EditSale, data: { roles: [UserRole.ADMIN, UserRole.PROFESSIONAL] } },
       { 
         path: 'gastos', 
         component: Gastos,
         data: { roles: [UserRole.ADMIN, UserRole.PROFESSIONAL] }
       },
+      { path: 'gastos/crear', loadComponent: () => import('./pages/create-gasto/create-gasto').then(m => m.CreateGasto), data: { roles: [UserRole.ADMIN, UserRole.PROFESSIONAL] } },
       { path: 'gastos/editar/:id', component: EditGasto, data: { roles: [UserRole.ADMIN, UserRole.PROFESSIONAL] } },
       { 
         path: 'inventario', 

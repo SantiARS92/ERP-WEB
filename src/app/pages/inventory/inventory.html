@@ -1,168 +1,231 @@
-<div class="h-[calc(100vh-theme(spacing.20))] overflow-y-auto bg-white">
+<div class="h-[calc(100vh-theme(spacing.20))] overflow-y-auto bg-slate-50/50">
   <div class="max-w-7xl mx-auto py-8 px-8 pb-20">
 
-    <!-- Compact Page Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-      <div>
-        <div class="text-[13px] font-medium text-slate-500 mb-1 flex items-center gap-1.5">
-          <span class="hover:text-blue-600 cursor-pointer transition-colors" routerLink="/">Inicio</span>
-          <span class="text-slate-400 text-[15px]">›</span>
-          <span class="text-slate-600">Inventario</span>
-        </div>
-        <h1 class="text-[28px] font-bold text-slate-900 leading-tight">Gestión de Inventario</h1>
-        <p class="text-[14px] text-slate-500 mt-0.5">Controle sus productos disponibles, categorías y niveles de stock.</p>
-      </div>
-      <div class="flex items-center gap-3">
-        <button (click)="exportPdf()" class="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold text-[14px] transition-colors shadow-sm">
-          <span class="material-symbols-outlined text-[20px]">file_download</span>
-          Exportar
-        </button>
-        <a routerLink="/inventario/nuevo" class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-[14px] transition-colors shadow-sm whitespace-nowrap">
-          <span class="material-symbols-outlined text-[20px]">add</span>
-          Nuevo Producto
-        </a>
-      </div>
+    <!-- Page Header -->
+    <div class="mb-6">
+      <h1 class="text-[26px] font-bold text-slate-900 leading-tight">Gestión de Inventario</h1>
+      <p class="text-[14px] text-slate-500 mt-1">Gestiona productos simples y con variantes. Controla el stock de forma centralizada.</p>
     </div>
 
-    <!-- Search and Actions toolbar -->
-    <div class="flex items-center justify-between mb-8">
-      
-      <!-- Left side controls -->
-      <div class="flex items-center gap-4">
-        <!-- Search Input -->
-        <div class="relative w-80">
-          <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
-          <input type="text" [(ngModel)]="searchText" (input)="onSearch()" placeholder="Buscar productos..." class="w-full pl-11 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow text-[15px] text-slate-800 placeholder-slate-400">
-        </div>
+    <!-- Search & Action toolbar -->
+    <div class="flex items-center gap-3 mb-6">
+      <!-- Search -->
+      <div class="relative flex-1 max-w-xs">
+        <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
+        <input type="text" [(ngModel)]="searchText" (input)="onSearch()" placeholder="Buscar por nombre o SKU..."
+          class="w-full pl-11 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow text-[14px] text-slate-800 placeholder-slate-400">
+      </div>
 
-        <!-- Filter Button -->
-        <div class="relative">
-          <button (click)="toggleFilter()" [class.bg-blue-50]="isFilterOpen" [class.border-blue-200]="isFilterOpen" [class.text-blue-600]="isFilterOpen" class="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium text-[15px] transition-colors">
-            <span class="material-symbols-outlined text-[20px]">filter_alt</span>
-            Filtrar
-          </button>
+      <div class="flex-1"></div>
 
-          <!-- Filter Dropdown -->
-          @if (isFilterOpen) {
-          <div class="absolute top-full mt-2 left-0 w-[340px] bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-100 z-50 overflow-hidden">
-            
-            <!-- Header -->
+      <!-- Filter button -->
+      <div class="relative">
+        <button (click)="toggleFilter()"
+          [class.bg-blue-50]="isFilterOpen" [class.border-blue-300]="isFilterOpen" [class.text-blue-600]="isFilterOpen"
+          class="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 font-semibold text-[14px] transition-colors shadow-sm">
+          <span class="material-symbols-outlined text-[18px]">filter_alt</span>
+          Filtros
+          @if (selectedCategoryIds.length > 0) {
+            <span class="w-5 h-5 flex items-center justify-center rounded-full bg-blue-500 text-white text-[10px] font-bold">{{ selectedCategoryIds.length }}</span>
+          }
+        </button>
+
+        @if (isFilterOpen) {
+          <div class="absolute top-full mt-2 right-0 w-[280px] bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-100 z-50">
             <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
               <h3 class="font-bold text-slate-800 text-[15px]">Filtros</h3>
-              <button (click)="clearFilters()" class="text-[13px] text-blue-500 hover:text-blue-600 font-medium cursor-pointer">Limpiar todo</button>
+              <button (click)="clearFilters()" class="text-[13px] text-blue-500 hover:text-blue-600 font-medium">Limpiar</button>
             </div>
-
-            <!-- Body -->
-            <div class="p-5 space-y-6">
-              <!-- Category -->
-              <div>
-                <h4 class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">CATEGORÍA</h4>
-                <div class="grid grid-cols-2 gap-3 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
-                  @for (cat of categories; track cat.id) {
-                    <label class="flex items-center gap-3 p-2.5 rounded-xl border border-slate-200 hover:border-blue-400 cursor-pointer transition-colors group"
-                           [class.border-blue-400]="selectedCategoryIds.includes(cat.id!)"
-                           [class.bg-blue-50]="selectedCategoryIds.includes(cat.id!)">
-                      <input type="checkbox" 
-                             [checked]="selectedCategoryIds.includes(cat.id!)" 
-                             (change)="toggleCategoryFilter(cat.id!)"
-                             class="w-4 h-4 rounded text-blue-500 focus:ring-blue-500 border-slate-300">
-                      <span class="text-[13px] text-slate-700 font-medium group-hover:text-slate-900 transition-colors">{{ cat.name }}</span>
-                    </label>
-                  }
-                </div>
+            <div class="p-4">
+              <h4 class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">CATEGORÍA</h4>
+              <div class="space-y-2 max-h-[180px] overflow-y-auto">
+                @for (cat of categories; track cat.id) {
+                  <label class="flex items-center gap-2.5 p-2 rounded-lg hover:bg-slate-50 cursor-pointer">
+                    <input type="checkbox" [checked]="selectedCategoryIds.includes(cat.id!)" (change)="toggleCategoryFilter(cat.id!)"
+                      class="w-4 h-4 rounded text-blue-500 border-slate-300">
+                    <span class="text-[14px] text-slate-700 font-medium">{{ cat.name }}</span>
+                  </label>
+                }
               </div>
             </div>
-
-            <!-- Footer -->
-            <div class="flex items-center justify-end gap-3 px-5 py-4 border-t border-slate-100 bg-white">
-              <button (click)="toggleFilter()" class="px-4 py-2 text-[14px] font-medium text-slate-500 hover:text-slate-700 transition-colors">
-                Cancelar
-              </button>
-              <button (click)="applyFilters()" class="px-5 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-[14px] font-semibold transition-colors shadow-sm relative overflow-hidden group">
-                <span class="relative z-10">Aplicar Filtros</span>
-              </button>
+            <div class="flex items-center justify-end gap-3 px-5 py-3 border-t border-slate-100">
+              <button (click)="toggleFilter()" class="px-4 py-2 text-[14px] text-slate-500 hover:text-slate-700">Cancelar</button>
+              <button (click)="applyFilters()" class="px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-[14px] font-semibold shadow-sm">Aplicar</button>
             </div>
           </div>
-          }
-        </div>
+        }
       </div>
+
+      <!-- Export -->
+      <button (click)="exportPdf()"
+        class="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 font-semibold text-[14px] transition-colors shadow-sm">
+        <span class="material-symbols-outlined text-[18px]">file_upload</span>
+        Exportar
+      </button>
+
+      <!-- New Product -->
+      <button (click)="openNewModal()"
+        class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-[14px] transition-colors shadow-sm whitespace-nowrap">
+        <span class="material-symbols-outlined text-[18px]">add</span>
+        Nuevo Producto
+      </button>
     </div>
 
     <!-- Data Table -->
-    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
-      
-      <!-- Table Header -->
+    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
       <table class="w-full">
         <thead>
-          <tr class="bg-slate-50 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-            <th class="px-6 py-4 text-left">PRODUCTO</th>
-            <th class="px-6 py-4 text-left">CATEGORÍA</th>
-            <th class="px-6 py-4 text-left">SKU</th>
-            <th class="px-6 py-4 text-center">STOCK ACTUAL</th>
-            <th class="px-6 py-4 text-center">ESTADO</th>
-            <th class="px-6 py-4 text-center w-20">ACCIONES</th>
+          <tr class="border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+            <th class="px-5 py-3.5 text-left pl-12">PRODUCTO</th>
+            <th class="px-5 py-3.5 text-left">CATEGORÍA</th>
+            <th class="px-5 py-3.5 text-left">SKU</th>
+            <th class="px-5 py-3.5 text-left">STOCK</th>
+            <th class="px-5 py-3.5 text-left">ESTADO</th>
+            <th class="px-5 py-3.5 text-left">TIPO</th>
+            <th class="px-4 py-3.5 w-10"></th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-100">
-          <tr *ngFor="let product of products" class="hover:bg-slate-50/50 transition-colors group">
-            <td class="px-6 py-4">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
-                  <span class="material-symbols-outlined text-blue-400 text-xl">inventory_2</span>
+        <tbody>
+
+          @for (product of products; track trackProduct($index, product)) {
+            <!-- Main product row -->
+            <tr class="border-b border-slate-50 hover:bg-slate-50/60 transition-colors group">
+              <!-- Expand chevron + icon + name -->
+              <td class="px-5 py-4">
+                <div class="flex items-center gap-2">
+                  @if (product.hasVariants) {
+                    <button (click)="toggleExpand(product.id!)"
+                      class="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-slate-700 transition-transform duration-200"
+                      [class.rotate-180]="isExpanded(product.id!)">
+                      <span class="material-symbols-outlined text-[18px]">keyboard_arrow_down</span>
+                    </button>
+                  } @else {
+                    <div class="w-6 h-6"></div>
+                  }
+                  <!-- Product icon placeholder -->
+                  <div class="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 text-[18px]">
+                    <span class="material-symbols-outlined text-slate-400 text-[18px]">inventory_2</span>
+                  </div>
+                  <div>
+                    <div class="font-bold text-slate-800 text-[14px] leading-tight">{{ product.name }}</div>
+                  </div>
                 </div>
-                <div>
-                  <div class="font-bold text-slate-800 text-[15px]">{{ product.name }}</div>
-                  <div class="text-[11px] text-slate-400 mt-0.5">Creado: {{ product.createdAt | date:'shortDate' }}</div>
+              </td>
+
+              <td class="px-5 py-4 text-slate-600 text-[14px] font-medium">{{ product.categoryName || '—' }}</td>
+              <td class="px-5 py-4 font-mono text-[13px] text-slate-500">{{ product.hasVariants ? (product.sku || 'N/A') : (product.sku || 'N/A') }}</td>
+
+              <!-- Stock -->
+              <td class="px-5 py-4">
+                <div class="flex items-center gap-2">
+                  <span class="text-[15px] font-black text-slate-900 tabular-nums">
+                    {{ product.hasVariants ? variantsTotalStock(product) : product.stock }}
+                  </span>
+                  @if (product.hasVariants) {
+                    <span class="text-[12px] text-slate-400 font-medium">total</span>
+                  }
                 </div>
-              </div>
-            </td>
-            <td class="px-6 py-4 text-slate-600 font-medium text-[14px]">{{ product.categoryName }}</td>
-            <td class="px-6 py-4 text-slate-400 font-mono text-[13px]">{{ product.sku || 'N/A' }}</td>
-            <td class="px-6 py-4">
-              <span class="text-[14px] font-black text-slate-900 tabular-nums">€{{ product.purchasePrice | number:'1.2-2' }}</span>
-            </td>
-            <td class="px-6 py-4 text-center">
-              <span class="font-bold text-slate-800 text-[15px]">{{ product.stock }}</span>
-            </td>
-            <td class="px-6 py-4">
-              <div class="flex justify-center">
-                <span class="px-3 py-1 rounded-full text-[12px] font-bold border"
-                      [ngClass]="getStatusClasses(product.status)">
-                  {{ product.statusLabel }}
+              </td>
+
+              <!-- Estado -->
+              <td class="px-5 py-4">
+                <span class="px-3 py-1 rounded-full text-[12px] font-bold border" [ngClass]="getStatusClasses(product.status)">
+                  {{ computedStatusLabel(product) }}
                 </span>
-              </div>
-            </td>
-            <td class="px-6 py-4 text-center">
-              <div class="flex justify-center">
-                <a [routerLink]="['/inventario/editar', product.id]" class="w-8 h-8 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 flex items-center justify-center transition-colors">
-                  <span class="material-symbols-outlined text-[18px]">edit</span>
-                </a>
-              </div>
-            </td>
-          </tr>
-          <tr *ngIf="products.length === 0">
-            <td colspan="6" class="p-12 text-center">
-              <div class="flex flex-col items-center justify-center">
-                <span class="material-symbols-outlined text-4xl mb-2 text-slate-300">inventory_2</span>
-                <span class="font-medium text-slate-500">No se encontraron productos.</span>
-              </div>
-            </td>
-          </tr>
+              </td>
+
+              <!-- Tipo -->
+              <td class="px-5 py-4">
+                @if (product.hasVariants) {
+                  <button (click)="toggleExpand(product.id!)"
+                    class="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-[13px] font-semibold">
+                    <span class="material-symbols-outlined text-[15px]">workspaces</span>
+                    {{ product.variants?.length }} variantes
+                  </button>
+                } @else {
+                  <span class="inline-flex items-center gap-1.5 text-slate-500 text-[13px] font-medium">
+                    <span class="material-symbols-outlined text-[15px]">box</span>
+                    Simple
+                  </span>
+                }
+              </td>
+
+              <!-- Three-dot menu -->
+              <td class="px-4 py-4">
+                <button (click)="openEditModal(product)"
+                  class="w-8 h-8 rounded-full text-slate-300 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100">
+                  <span class="material-symbols-outlined text-[20px]">more_vert</span>
+                </button>
+              </td>
+            </tr>
+
+            <!-- Variant expanded sub-rows -->
+            @if (product.hasVariants && isExpanded(product.id!)) {
+              <!-- Sub-header -->
+              <tr class="bg-slate-50/80">
+                <td class="pl-20 pr-5 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Variante</td>
+                <td class="px-5 py-2"></td>
+                <td class="px-5 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">SKU</td>
+                <td class="px-5 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Stock</td>
+                <td class="px-5 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estado</td>
+                <td class="px-5 py-2" colspan="2"></td>
+              </tr>
+              @for (variant of product.variants; track trackVariant($index, variant)) {
+                <tr class="bg-slate-50/40 border-t border-slate-100/80 hover:bg-slate-50 transition-colors">
+                  <td class="pl-20 pr-5 py-3">
+                    <span class="text-[13px] font-semibold text-slate-700">{{ variant.variantLabel }}</span>
+                  </td>
+                  <td class="px-5 py-3"></td>
+                  <td class="px-5 py-3 font-mono text-[12px] text-slate-400">{{ variant.sku || '—' }}</td>
+                  <td class="px-5 py-3 text-[14px] font-bold text-slate-700">{{ variant.stock }}</td>
+                  <td class="px-5 py-3">
+                    <span class="flex items-center gap-1.5 text-[12px] font-bold" [ngClass]="{
+                        'text-emerald-600': statusFromVariant(variant) === 'IN_STOCK',
+                        'text-orange-500': statusFromVariant(variant) === 'LOW_STOCK',
+                        'text-red-500': statusFromVariant(variant) === 'OUT_OF_STOCK'
+                      }">
+                      <span class="w-2 h-2 rounded-full bg-current inline-block shrink-0"></span>
+                      {{ statusLabelFromVariant(variant) }}
+                    </span>
+                  </td>
+                  <td colspan="2"></td>
+                </tr>
+              }
+            }
+          }
+
+          @if (products.length === 0) {
+            <tr>
+              <td colspan="7" class="p-14 text-center">
+                <span class="material-symbols-outlined text-5xl text-slate-200 block mb-3">inventory_2</span>
+                <span class="text-slate-400 font-medium text-[14px]">No se encontraron productos.</span>
+              </td>
+            </tr>
+          }
+
         </tbody>
       </table>
     </div>
 
-    <!-- Standard Pagination -->
-    <app-pagination 
-      [totalElements]="totalElements" 
-      [pageSize]="pageSize" 
-      [currentPage]="currentPage" 
+    <!-- Pagination -->
+    <app-pagination
+      [totalElements]="totalElements"
+      [pageSize]="pageSize"
+      [currentPage]="currentPage"
       [itemsLabel]="'productos'"
       (pageChange)="changePage($event)">
     </app-pagination>
 
-    <div class="mt-12 text-center text-[13px] text-slate-400 font-medium">
-      Los datos mostrados son solo para fines de control comercial interno.
-    </div>
   </div>
 </div>
+
+<!-- Product Form Modal -->
+@if (isModalOpen) {
+  <app-inventory-form-modal
+    [product]="editingProduct"
+    [categories]="categories"
+    (save)="onSaveProduct($event)"
+    (delete)="onDeleteProduct($event)"
+    (close)="closeModal()">
+  </app-inventory-form-modal>
+}

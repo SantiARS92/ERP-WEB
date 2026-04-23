@@ -1,0 +1,120 @@
+<div class="bg-slate-50/50 rounded-xl border border-slate-200 p-5 p">
+  <!-- Attributes Selection -->
+  <div class="mb-5">
+    <div class="text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-3">Atributos del producto</div>
+
+    <div class="flex flex-wrap gap-2 mb-4">
+      @for (preset of PRESET_ATTRS; track preset) {
+        <button type="button"
+          (click)="addPreset(preset)"
+          class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-[13px] text-slate-600 hover:border-blue-400 hover:text-blue-600 transition-colors shadow-sm font-medium">
+          + {{ preset }}
+        </button>
+      }
+    </div>
+
+    <!-- Custom Attr Input -->
+    <div class="flex items-center gap-2 max-w-sm">
+      <input type="text" [(ngModel)]="newAttrName" placeholder="Otro atributo (ej. Color)"
+        (keyup.enter)="addCustomAttr()"
+        class="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-[13px] focus:outline-none focus:ring-1 focus:ring-blue-400">
+      <button type="button" (click)="addCustomAttr()" [disabled]="!newAttrName.trim()"
+        class="px-4 py-2 rounded-xl bg-slate-800 text-white text-[12px] font-bold disabled:opacity-50">
+        Añadir
+      </button>
+    </div>
+  </div>
+
+  <!-- Attr Values Config -->
+  <div class="space-y-4 mb-6">
+    @for (attr of attributes; track attr.name) {
+      <div class="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-5 bg-blue-500 rounded-full"></span>
+            <span class="font-bold text-slate-800 text-[14px]">{{ attr.name }}</span>
+          </div>
+          <button type="button" (click)="removeAttr(attr)" class="text-slate-400 hover:text-red-500 transition-colors">
+            <span class="material-symbols-outlined text-[18px]">delete</span>
+          </button>
+        </div>
+
+        <div class="flex flex-wrap gap-2 mb-3">
+          @for (val of attr.values; track val) {
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 text-[13px] font-semibold border border-blue-100">
+              {{ val }}
+              <button (click)="removeValue(attr, val)" class="hover:text-blue-800">
+                <span class="material-symbols-outlined text-[14px] leading-none">close</span>
+              </button>
+            </span>
+          }
+        </div>
+
+        <div class="flex items-center gap-2 max-w-xs">
+          <input type="text" [(ngModel)]="valueInputs[attr.name]" [placeholder]="'Valor para ' + attr.name"
+            (keyup.enter)="addValue(attr)"
+            class="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 text-[13px] focus:outline-none focus:ring-1 focus:ring-blue-300">
+          <button type="button" (click)="addValue(attr)" class="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-600 text-white">
+            <span class="material-symbols-outlined text-[18px]">add</span>
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Generate Button -->
+  @if (attributes.length > 0 && combinationCount > 0) {
+    <div class="bg-blue-600/5 border border-blue-200 rounded-xl p-5 mb-6 text-center">
+      <div class="text-[14px] text-blue-800 font-medium mb-3">
+        Se van a generar <span class="font-black underline">{{ combinationCount }}</span> combinaciones de variantes.
+      </div>
+      <button type="button" (click)="generateVariants()"
+        class="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-[13px] shadow-lg shadow-blue-200 transition-all active:scale-95">
+        Generar Variantes
+      </button>
+    </div>
+  }
+
+  <!-- Variants Table -->
+  @if (variantsGenerated && generatedVariants.length > 0) {
+    <div class="overflow-x-auto">
+      <table class="w-full text-[13px]">
+        <thead>
+          <tr class="text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+            <td class="py-2 pr-3">Variante</td>
+            <td class="py-2 pr-3">SKU</td>
+            <td class="py-2 pr-3">Stock Inicial</td>
+            <td class="py-2 pr-3">Mínimo</td>
+            <td class="py-2">€ Compra</td>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          @for (v of generatedVariants; track trackByIndex($index, $index)) {
+            <tr>
+              <td class="py-3 pr-3 font-semibold text-slate-700">{{ v.variantLabel }}</td>
+              <td class="py-3 pr-3">
+                <input type="text" [(ngModel)]="v.sku" (change)="onVariantChange()"
+                  class="w-28 px-2.5 py-1.5 rounded-lg border border-slate-200 font-mono text-[12px] focus:outline-none focus:ring-1 focus:ring-blue-300">
+              </td>
+              <td class="py-3 pr-3">
+                <input type="number" [(ngModel)]="v.stock" min="0" (change)="onVariantChange()"
+                  class="w-16 px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] text-center focus:outline-none focus:ring-1 focus:ring-blue-300">
+              </td>
+              <td class="py-3 pr-3">
+                <input type="number" [(ngModel)]="v.minimumStock" min="0" (change)="onVariantChange()"
+                  class="w-16 px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] text-center focus:outline-none focus:ring-1 focus:ring-blue-300">
+              </td>
+              <td class="py-3">
+                <div class="flex items-center gap-1 border border-slate-200 rounded-lg px-2 py-1.5 w-fit">
+                  <span class="text-slate-400 text-[12px]">€</span>
+                  <input type="number" [(ngModel)]="v.purchasePrice" min="0" step="0.01" (change)="onVariantChange()"
+                    class="w-14 text-[12px] focus:outline-none bg-transparent">
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

@@ -26,4 +26,5 @@ export interface BusinessSettings {
   openingHours: OpeningHour[];
   specialClosures: SpecialClosure[];
   businessLogo?: string; // Optional for now, as it's not in the main contract but requested by user
+  cip?: string;
 }

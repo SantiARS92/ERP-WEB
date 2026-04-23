@@ -10,6 +10,9 @@ export interface SaleResponse {
   clientName: string;
   itemType: SaleItemType;
   inventoryProductId: number | null;
+  inventoryProductVariantId?: number | null;
+  inventoryProductVariantLabel?: string;
+  inventoryProductVariantSku?: string;
   serviceId: number | null;
   itemName: string;
   unitPrice: number;
@@ -27,6 +30,7 @@ export interface SaleRequest {
   clientId?: number | null;
   itemType: SaleItemType;
   inventoryProductId?: number | null;
+  inventoryProductVariantId?: number | null;
   serviceId?: number | null;
   itemName?: string;
   unitPrice?: number;

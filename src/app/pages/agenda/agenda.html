@@ -115,13 +115,13 @@
                  (click)="openEditModal(app)">
               
               <!-- Client Name - Smaller font if multiple in slot -->
-              <div class="font-bold leading-tight mb-0.5 truncate"
+              <div class="font-bold leading-tight mb-0.5 truncate shrink-0"
                    [ngClass]="getAppointmentStyle(app)['width.%'] < 40 ? 'text-[11px]' : 'text-[13px]'">
                 {{ app.clientName }}
               </div>
               
               <!-- Badges - Hide labels if very narrow -->
-              <div class="flex flex-wrap gap-1 mb-1">
+              <div class="flex flex-wrap gap-1 mb-1 shrink-0">
                 @if (app.status === 'CANCELLED') {
                   <div class="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-200/50 text-slate-500 text-[9px] font-bold uppercase tracking-wider w-fit">
                     {{ getAppointmentStyle(app)['width.%'] < 30 ? 'C' : 'Cancelada' }}
@@ -141,11 +141,11 @@
               
               <!-- Service - Hide if very narrow -->
               @if (app.serviceName && getAppointmentStyle(app)['width.%'] >= 40) {
-                <div class="text-[11px] leading-tight opacity-80 truncate">{{ app.serviceName }}</div>
+                <div class="text-[11px] leading-tight opacity-80 truncate shrink-0">{{ app.serviceName }}</div>
               }
               
               <!-- Time - Always show but potentially smaller -->
-              <div class="flex items-center gap-1 mt-auto font-semibold opacity-70"
+              <div class="flex items-center gap-1 mt-auto font-semibold opacity-70 shrink-0"
                    [ngClass]="getAppointmentStyle(app)['width.%'] < 30 ? 'text-[9px]' : 'text-[11px]'">
                 <span class="material-symbols-outlined shrink-0" 
                       [ngStyle]="{'font-size': getAppointmentStyle(app)['width.%'] < 30 ? '10px' : '12px'}">schedule</span>

@@ -1,0 +1,193 @@
+<!-- Floating Action Button (FAB) -->
+<button 
+  (click)="openGuide()"
+  class="fixed bottom-8 right-8 w-14 h-14 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-[0_8px_30px_rgba(37,99,235,0.4)] hover:bg-blue-700 hover:scale-105 hover:shadow-[0_10px_40px_rgba(37,99,235,0.6)] transition-all duration-300 z-40 group focus:outline-none focus:ring-4 focus:ring-blue-300"
+  aria-label="Ayuda"
+>
+  <span class="material-symbols-outlined text-[28px] animate-pulse group-hover:animate-none">help</span>
+  
+  <!-- Tooltip tooltip -->
+  <div class="absolute -top-12 right-0 bg-slate-800 text-white text-xs px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap pointer-events-none">
+    Guía de uso
+    <div class="absolute -bottom-1 right-5 w-2 h-2 bg-slate-800 rotate-45"></div>
+  </div>
+</button>
+
+<!-- Overlay Modal / Drawer -->
+@if (isOpen) {
+  <div class="fixed inset-0 z-50 flex justify-end">
+    
+    <!-- Backdrop backdrop blur -->
+    <div 
+      class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
+      (click)="closeGuide()">
+    </div>
+
+    <!-- Info Drawer -->
+    <div 
+      class="relative w-full max-w-md h-full bg-white shadow-2xl flex flex-col animate-slide-in-right">
+      
+      <!-- Drawer Header -->
+      <div class="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/50">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center">
+            <span class="material-symbols-outlined text-[22px]">menu_book</span>
+          </div>
+          <div>
+            <h2 class="text-[18px] font-bold text-slate-800">Guía de Uso</h2>
+            <p class="text-[13px] text-slate-500">Aprende a usar la plataforma</p>
+          </div>
+        </div>
+        <button 
+          (click)="closeGuide()"
+          class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200 text-slate-500 transition-colors">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <!-- Drawer Content -->
+      <div class="flex-1 overflow-y-auto p-2">
+        <div class="flex gap-2">
+          
+          <!-- Sections Sidebar Menu (Pills) -->
+          <div class="w-1/3 flex flex-col gap-1 p-4 border-r border-slate-100">
+            <button (click)="setSection('dashboard')" [class.bg-blue-50]="activeSection === 'dashboard'" [class.text-blue-600]="activeSection === 'dashboard'" [class.font-semibold]="activeSection === 'dashboard'" class="text-left px-3 py-2 rounded-lg text-[13px] text-slate-600 hover:bg-slate-50 transition-colors">Inicio</button>
+            <button (click)="setSection('agenda')" [class.bg-blue-50]="activeSection === 'agenda'" [class.text-blue-600]="activeSection === 'agenda'" [class.font-semibold]="activeSection === 'agenda'" class="text-left px-3 py-2 rounded-lg text-[13px] text-slate-600 hover:bg-slate-50 transition-colors">Agenda</button>
+            <button (click)="setSection('clients')" [class.bg-blue-50]="activeSection === 'clients'" [class.text-blue-600]="activeSection === 'clients'" [class.font-semibold]="activeSection === 'clients'" class="text-left px-3 py-2 rounded-lg text-[13px] text-slate-600 hover:bg-slate-50 transition-colors">Clientes</button>
+            <button (click)="setSection('ventas')" [class.bg-blue-50]="activeSection === 'ventas'" [class.text-blue-600]="activeSection === 'ventas'" [class.font-semibold]="activeSection === 'ventas'" class="text-left px-3 py-2 rounded-lg text-[13px] text-slate-600 hover:bg-slate-50 transition-colors">Ventas</button>
+            <button (click)="setSection('gastos')" [class.bg-blue-50]="activeSection === 'gastos'" [class.text-blue-600]="activeSection === 'gastos'" [class.font-semibold]="activeSection === 'gastos'" class="text-left px-3 py-2 rounded-lg text-[13px] text-slate-600 hover:bg-slate-50 transition-colors">Gastos</button>
+            <button (click)="setSection('inventario')" [class.bg-blue-50]="activeSection === 'inventario'" [class.text-blue-600]="activeSection === 'inventario'" [class.font-semibold]="activeSection === 'inventario'" class="text-left px-3 py-2 rounded-lg text-[13px] text-slate-600 hover:bg-slate-50 transition-colors">Inventario</button>
+            <button (click)="setSection('informes')" [class.bg-blue-50]="activeSection === 'informes'" [class.text-blue-600]="activeSection === 'informes'" [class.font-semibold]="activeSection === 'informes'" class="text-left px-3 py-2 rounded-lg text-[13px] text-slate-600 hover:bg-slate-50 transition-colors">Informes</button>
+          </div>
+
+          <!-- Section Content Area -->
+          <div class="w-2/3 p-4">
+            
+            @if (activeSection === 'dashboard') {
+              <div class="animate-fade-in">
+                <div class="flex items-center gap-2 mb-3">
+                  <span class="material-symbols-outlined text-[18px] text-blue-500">dashboard</span>
+                  <h3 class="font-bold text-[15px] text-slate-800">Panel de Inicio</h3>
+                </div>
+                <p class="text-[13px] text-slate-600 mb-3 leading-relaxed">El dashboard ofrece una vista general rápida de tu negocio. Puedes ver métricas clave y acceder rápidamente a los módulos principales.</p>
+                <ul class="text-[13px] text-slate-600 space-y-2 list-none pl-1 border-l-2 border-slate-200">
+                  <li class="pl-2">Resumen de ingresos y gastos</li>
+                  <li class="pl-2">Próximas citas</li>
+                  <li class="pl-2">Atajos a añadir cliente, venta, cita, etc.</li>
+                </ul>
+              </div>
+            }
+
+            @if (activeSection === 'agenda') {
+              <div class="animate-fade-in">
+                <div class="flex items-center gap-2 mb-3">
+                  <span class="material-symbols-outlined text-[18px] text-blue-500">calendar_month</span>
+                  <h3 class="font-bold text-[15px] text-slate-800">Agenda</h3>
+                </div>
+                <p class="text-[13px] text-slate-600 mb-3 leading-relaxed">Gestiona tus citas diarias, semanales y mensuales.</p>
+                <ul class="text-[13px] text-slate-600 space-y-2 list-none">
+                  <li class="flex gap-2 items-start"><span class="text-blue-500 font-bold">•</span><span><strong>Añadir cita:</strong> Selecciona una fecha/hora y asocia un cliente y servicio.</span></li>
+                  <li class="flex gap-2 items-start"><span class="text-blue-500 font-bold">•</span><span><strong>Confirmar:</strong> Cambia el estado de una cita a confirmada, pendiente o cancelada.</span></li>
+                </ul>
+              </div>
+            }
+
+            @if (activeSection === 'clients') {
+              <div class="animate-fade-in">
+                <div class="flex items-center gap-2 mb-3">
+                  <span class="material-symbols-outlined text-[18px] text-blue-500">group</span>
+                  <h3 class="font-bold text-[15px] text-slate-800">Clientes</h3>
+                </div>
+                <p class="text-[13px] text-slate-600 mb-3 leading-relaxed">Mantén una base de datos actualizada de todos tus pacientes o clientes.</p>
+                <ul class="text-[13px] text-slate-600 space-y-2 list-none">
+                  <li class="flex gap-2 items-start"><span class="text-blue-500 font-bold">•</span><span><strong>Crear/Editar:</strong> Registra nombre, teléfono, e email.</span></li>
+                  <li class="flex gap-2 items-start"><span class="text-blue-500 font-bold">•</span><span><strong>Facturación:</strong> Activa "Admite Facturas" para registrar CIF/DNI y Dirección y asociar facturas fiscales.</span></li>
+                </ul>
+              </div>
+            }
+
+            @if (activeSection === 'ventas') {
+              <div class="animate-fade-in">
+                <div class="flex items-center gap-2 mb-3">
+                  <span class="material-symbols-outlined text-[18px] text-blue-500">point_of_sale</span>
+                  <h3 class="font-bold text-[15px] text-slate-800">Ventas (Ingresos)</h3>
+                </div>
+                <p class="text-[13px] text-slate-600 mb-3 leading-relaxed">Registra todos los ingresos por servicios o productos vendidos.</p>
+                <ul class="text-[13px] text-slate-600 space-y-2 list-none">
+                  <li class="flex gap-2 items-start"><span class="text-blue-500 font-bold">•</span><span><strong>Tipos:</strong> Registra venta de producto, servicio o un pack combinado.</span></li>
+                  <li class="flex gap-2 items-start"><span class="text-blue-500 font-bold">•</span><span><strong>Método de pago:</strong> Selecciona tarjeta, efectivo, transferencia o bizum.</span></li>
+                </ul>
+              </div>
+            }
+
+            @if (activeSection === 'gastos') {
+              <div class="animate-fade-in">
+                <div class="flex items-center gap-2 mb-3">
+                  <span class="material-symbols-outlined text-[18px] text-blue-500">receipt_long</span>
+                  <h3 class="font-bold text-[15px] text-slate-800">Gastos</h3>
+                </div>
+                <p class="text-[13px] text-slate-600 mb-3 leading-relaxed">Lleva el control de todas las salidas de dinero para calcular beneficios.</p>
+                <ul class="text-[13px] text-slate-600 space-y-2 list-none">
+                  <li class="flex gap-2 items-start"><span class="text-blue-500 font-bold">•</span><span><strong>Categorías:</strong> Suministros (agua, luz), Servicios o Mantenimiento.</span></li>
+                  <li class="flex gap-2 items-start"><span class="text-blue-500 font-bold">•</span><span><strong>Filtrado:</strong> Utiliza el selector lateral para agrupar gastos mensuales.</span></li>
+                </ul>
+              </div>
+            }
+
+            @if (activeSection === 'inventario') {
+              <div class="animate-fade-in">
+                <div class="flex items-center gap-2 mb-3">
+                  <span class="material-symbols-outlined text-[18px] text-blue-500">inventory_2</span>
+                  <h3 class="font-bold text-[15px] text-slate-800">Inventario</h3>
+                </div>
+                <p class="text-[13px] text-slate-600 mb-3 leading-relaxed">Gestión de productos y stock de la tienda o centro.</p>
+                <ul class="text-[13px] text-slate-600 space-y-2 list-none">
+                  <li class="flex gap-2 items-start"><span class="text-blue-500 font-bold">•</span><span><strong>Control de Stock:</strong> Registra las unidades disponibles y precios.</span></li>
+                  <li class="flex gap-2 items-start"><span class="text-blue-500 font-bold">•</span><span>Al venderse un producto en la sección Ventas, el stock se descontará automáticamente (si está vinculado).</span></li>
+                </ul>
+              </div>
+            }
+
+            @if (activeSection === 'informes') {
+              <div class="animate-fade-in">
+                <div class="flex items-center gap-2 mb-3">
+                  <span class="material-symbols-outlined text-[18px] text-blue-500">analytics</span>
+                  <h3 class="font-bold text-[15px] text-slate-800">Informes y Reportes</h3>
+                </div>
+                <p class="text-[13px] text-slate-600 mb-3 leading-relaxed">Generación de documentación para análisis y contabilidad.</p>
+                <ul class="text-[13px] text-slate-600 space-y-2 list-none">
+                  <li class="flex gap-2 items-start"><span class="text-blue-500 font-bold">•</span><span><strong>Mensual / Trimestral / Anual:</strong> Cruce de ingresos, gastos e IVA generado.</span></li>
+                  <li class="flex gap-2 items-start"><span class="text-blue-500 font-bold">•</span><span><strong>Exportar PDF:</strong> Haz clic en el botón superior para descargar tus resúmenes listos para enviar al gestor.</span></li>
+                </ul>
+              </div>
+            }
+
+          </div>
+        </div>
+      </div>
+      
+      <!-- Drawer Footer -->
+      <div class="p-4 border-t border-slate-100 bg-slate-50 flex justify-center">
+         <p class="text-[12px] text-slate-400">© 2026 AppPimes Gestión</p>
+      </div>
+
+    </div>
+  </div>
+}
+
+<style>
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+</style>
