@@ -12,10 +12,15 @@
 
 
 :root {
-  --primary-color: #3b82f6;
-  --primary-hover: #2563eb;
-  --primary-light: #eff6ff;
-  --primary-shadow: rgba(59, 130, 246, 0.2);
+  --primary-color: #0f172a; /* Midnight Blue / Slate-900 for a more premium look */
+  --primary-hover: #1e293b;
+  --primary-light: #f8fafc;
+  --primary-shadow: rgba(15, 23, 42, 0.08);
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Base styles for dark mode */

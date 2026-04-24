@@ -1,129 +1,236 @@
-<div class="h-[calc(100vh-theme(spacing.20))] overflow-y-auto bg-white">
-  <div class="max-w-4xl mx-auto py-8 px-8 pb-20 relative">
+<div class="h-[calc(100vh-theme(spacing.20))] overflow-y-auto bg-slate-50/20">
+  <div class="max-w-[1240px] mx-auto py-10 px-8 pb-32">
 
-    <!-- Compact Header -->
-    <div class="mb-8">
-      <div class="text-[13px] font-medium text-slate-500 mb-1 flex items-center gap-1.5">
-        <span class="hover:text-blue-600 cursor-pointer transition-colors" routerLink="/inventario">Inventario</span>
-        <span class="text-slate-400 text-[15px]">›</span>
-        <span class="text-slate-600">{{ isEditMode ? 'Editar Producto' : 'Nuevo Producto' }}</span>
+    <!-- Header & Breadcrumb -->
+    <div class="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div>
+        <div class="text-[13px] font-semibold text-slate-500 mb-2 flex items-center gap-2">
+          <span class="hover:text-blue-600 cursor-pointer transition-colors" routerLink="/inventario">Inventario</span>
+          <span class="text-slate-400 text-[14px]">></span>
+          <span class="text-slate-500">{{ isEditMode ? 'Editar Producto' : 'Nuevo Producto' }}</span>
+        </div>
+        <h1 class="text-[32px] font-bold text-slate-900 leading-none">
+          {{ isEditMode ? 'Gestión de Producto' : 'Registrar Nuevo Producto' }}
+        </h1>
       </div>
-      <h1 class="text-[28px] font-bold text-slate-900 leading-tight">
-        {{ isEditMode ? 'Modificar Producto' : 'Crear Nuevo Producto' }}
-      </h1>
+
+      <button *ngIf="isEditMode && authService.hasRole([UserRole.ADMIN])"
+              (click)="deleteProduct()"
+              class="flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-[13px] rounded-lg border border-red-100 transition-colors uppercase">
+        <span class="material-symbols-outlined text-[18px]">delete</span>
+        Eliminar
+      </button>
     </div>
 
-    <!-- Form Card -->
-    <div class="bg-white rounded-2xl border border-slate-200 p-8 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] max-w-2xl">
+    <div class="max-w-[800px]">
       
-      <form (ngSubmit)="saveProduct()" class="space-y-6">
-        
-        <!-- Product Name -->
-        <div>
-          <label class="block text-[13px] font-bold text-slate-800 mb-2">Nombre del Producto</label>
-          <input type="text" [(ngModel)]="product.name" name="name" required
-                 class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow transition-colors"
-                 placeholder="Ej: Sérum Antiedad">
-          <p class="text-[12px] text-slate-400 font-medium mt-2">El nombre debe ser único entre productos activos.</p>
-        </div>
+      <div class="bg-white rounded-[16px] border border-slate-200 overflow-hidden">
+        <div class="p-8 space-y-6">
+          
+          <div class="mb-4">
+            <h2 class="text-[16px] font-bold text-slate-900">Detalles del Inventario</h2>
+            <p class="text-[13px] text-slate-500">
+              {{ isEditMode ? 'Actualice los atributos, stock y variantes del producto.' : 'Añade un producto simple o con variantes de stock.' }}
+            </p>
+          </div>
 
-        <div class="grid grid-cols-2 gap-6">
-          <!-- Category -->
-          <div>
-            <label class="block text-[13px] font-bold text-slate-800 mb-2">Categoría</label>
+          <!-- Name -->
+          <div class="space-y-1.5">
+            <label class="text-[13px] font-bold text-slate-900">Nombre del Producto *</label>
             <div class="relative">
-              <select [(ngModel)]="product.categoryId" name="categoryId" required
-                      class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow appearance-none cursor-pointer bg-white">
-                <option value="0" disabled>Seleccionar categoría</option>
-                <option *ngFor="let cat of categories" [value]="cat.id">{{ cat.name }}</option>
-              </select>
-              <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">inventory_2</span>
+              <input type="text" [(ngModel)]="product.name" name="name" required placeholder="Ej: Champú Profesional, Camiseta Básica..."
+                     class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700">
             </div>
           </div>
-          
-          <!-- Status (Calculated by Backend, shown as read-only or informational in edit) -->
-          <div>
-            <label class="block text-[13px] font-bold text-slate-800 mb-2">Estado de Stock</label>
-            <div class="relative">
-              <div class="w-full px-4 py-3 rounded-xl border border-slate-100 bg-slate-50/50 text-[15px] text-slate-500 font-bold flex items-center justify-between">
-                <span>{{ product.statusLabel || (product.status === 'IN_STOCK' ? 'En Stock' : (product.status === 'LOW_STOCK' ? 'Bajo Stock' : 'Agotado')) }}</span>
-                <div class="w-2.5 h-2.5 rounded-full" 
-                     [ngClass]="product.status === 'IN_STOCK' ? 'bg-emerald-500' : (product.status === 'LOW_STOCK' ? 'bg-orange-500' : 'bg-red-500')"></div>
+
+          <!-- Category + SKU -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-1.5">
+              <label class="text-[13px] font-bold text-slate-900">Categoría *</label>
+              <div class="relative">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">category</span>
+                <select [(ngModel)]="product.categoryId" name="categoryId" required
+                        class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
+                  <option [value]="0" disabled>Selecciona categoría...</option>
+                  <option *ngFor="let cat of categories" [value]="cat.id">{{ cat.name }}</option>
+                </select>
+                <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
               </div>
             </div>
-            <p class="text-[11px] text-slate-400 mt-1.5 italic">El estado se calcula automáticamente según el stock.</p>
-          </div>
-        </div>
 
-        <!-- Description -->
-        <div>
-          <label class="block text-[13px] font-bold text-slate-800 mb-2">Descripción breve</label>
-          <textarea rows="3" [(ngModel)]="product.description" name="description"
-                    class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow resize-y"></textarea>
-        </div>
-
-        <div class="grid grid-cols-2 gap-6">
-          <!-- Current Stock -->
-          <div>
-            <label class="block text-[13px] font-bold text-slate-800 mb-2">Stock Actual</label>
-            <input type="number" [(ngModel)]="product.stock" name="stock" required
-                   class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
-          </div>
-
-          <!-- Minimum Stock -->
-          <div>
-            <label class="block text-[13px] font-bold text-slate-800 mb-2">Stock Mínimo</label>
-            <input type="number" [(ngModel)]="product.minimumStock" name="minimumStock" required
-                   class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-6 pb-6 border-b border-slate-100">
-          <!-- SKU -->
-          <div>
-            <label class="block text-[13px] font-bold text-slate-800 mb-2">SKU / Código (opcional)</label>
-            <input type="text" [(ngModel)]="product.sku" name="sku"
-                   class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 font-mono focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
-          </div>
-
-          <!-- Purchase Price -->
-          <div>
-            <label class="block text-[13px] font-bold text-slate-800 mb-2">Precio de Compra (€) (opcional)</label>
-            <div class="relative">
-              <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-medium">€</span>
-              <input type="number" [(ngModel)]="product.purchasePrice" name="purchasePrice" step="0.01"
-                     class="w-full pl-8 pr-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
+            <div class="space-y-1.5">
+              <label class="text-[13px] font-bold text-slate-900">SKU o código interno</label>
+              <div class="relative">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">qr_code</span>
+                <input type="text" [(ngModel)]="product.sku" name="sku" placeholder="Ej: SHP-001" [disabled]="!!product.hasVariants"
+                       class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 font-mono disabled:opacity-50 disabled:bg-slate-50">
+              </div>
             </div>
           </div>
+
+          <!-- Description -->
+          <div class="space-y-1.5">
+            <label class="text-[13px] font-bold text-slate-900">Descripción breve</label>
+            <textarea [(ngModel)]="product.description" name="description" placeholder="Descripción opcional del producto..." rows="3"
+                      class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 resize-none"></textarea>
+          </div>
+
+          <!-- Variant Toggle Panel -->
+          <div class="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-5 py-4 mt-2">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 bg-slate-200 rounded-xl flex items-center justify-center text-slate-500">
+                <span class="material-symbols-outlined text-[20px]">account_tree</span>
+              </div>
+              <div>
+                <h3 class="text-[14px] font-bold text-slate-800">Variantes de Producto</h3>
+                <p class="text-[12px] text-slate-500">Activa esto para gestionar diferentes tallas o colores.</p>
+              </div>
+            </div>
+            <label class="relative cursor-pointer">
+              <input type="checkbox" [(ngModel)]="product.hasVariants" name="hasVariants" (change)="onToggleVariants()" class="sr-only peer">
+              <div class="w-11 h-6 bg-slate-200 peer-checked:bg-blue-600 rounded-full transition-colors duration-200"></div>
+              <div class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 peer-checked:translate-x-5"></div>
+            </label>
+          </div>
+
+          <!-- Simple Product Stock Info -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4" *ngIf="!product.hasVariants">
+            <div class="space-y-1.5">
+              <label class="text-[13px] font-bold text-slate-900">Stock actual</label>
+              <input type="number" [(ngModel)]="product.stock" name="stock" 
+                     class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700">
+            </div>
+            <div class="space-y-1.5">
+              <label class="text-[13px] font-bold text-slate-900">Stock mínimo</label>
+              <input type="number" [(ngModel)]="product.minimumStock" name="minimumStock"
+                     class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700">
+            </div>
+            <div class="space-y-1.5">
+              <label class="text-[13px] font-bold text-slate-900">Estado</label>
+              <div class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-[14px] bg-slate-50 flex items-center gap-1.5 h-[42px] font-bold"
+                   [class]="statusLabel.cls">
+                <span class="text-[12px] text-slate-400 font-normal mr-1">(auto)</span>
+                {{ statusLabel.label }}
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-1.5" *ngIf="!product.hasVariants">
+            <label class="text-[13px] font-bold text-slate-900">Precio de compra (€)</label>
+            <div class="relative group w-full md:w-1/3">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-[14px]">€</span>
+              <input type="number" [(ngModel)]="product.purchasePrice" name="purchasePrice" step="0.01" placeholder="0.00"
+                     class="w-full pl-8 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700">
+            </div>
+          </div>
+
+          <!-- Variant Configuration (Child Component) -->
+          <div *ngIf="product.hasVariants" class="pt-2">
+            <app-variant-config [variants]="product.variants || []" (variantsChange)="onVariantsChange($event)"></app-variant-config>
+            
+            <!-- Summary of variants -->
+            <div class="mt-6 pt-6 border-t border-slate-100" *ngIf="product.variants && product.variants.length > 0">
+                <div class="flex items-center justify-between px-1 mb-4">
+                    <span class="text-[13px] font-bold text-slate-900">Resumen de Variantes ({{ product.variants.length }})</span>
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div *ngFor="let v of product.variants; trackBy: trackByIndex" 
+                         class="p-4 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div class="space-y-0.5">
+                            <span class="text-[14px] font-medium text-slate-900 block">{{ v.variantLabel }}</span>
+                            <span class="text-[12px] text-slate-500 font-mono">{{ v.sku || 'Sin SKU' }}</span>
+                        </div>
+                        <div class="flex flex-col items-end gap-1">
+                            <div class="flex items-center gap-2">
+                                <span class="text-[13px] font-bold text-slate-800">{{ v.stock }} unid.</span>
+                                <button (click)="openVariantEditor(v)" class="w-6 h-6 flex items-center justify-center rounded-md bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-colors" title="Editar Variante">
+                                    <span class="material-symbols-outlined text-[14px]">edit</span>
+                                </button>
+                            </div>
+                            <span class="text-[11px] font-semibold px-2 py-0.5 rounded border" 
+                                  [class]="getVariantStatus(v).cls.replace('text-', 'bg-').replace('500', '50') + ' ' + getVariantStatus(v).cls + ' border-' + getVariantStatus(v).cls.split('-')[1] + '-200'">
+                                {{ getVariantStatus(v).label }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+          </div>
+
         </div>
 
-        <!-- Actions Footer -->
-        <div class="flex items-center justify-between pt-2">
-          <button type="button" *ngIf="isEditMode && authService.hasRole([UserRole.ADMIN])" (click)="deleteProduct()"
-                  class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-red-500 hover:bg-red-50 font-medium text-[14px] transition-colors cursor-pointer">
-            <span class="material-symbols-outlined text-[18px]">delete</span>
-            Eliminar Producto
-          </button>
-          <div *ngIf="!isEditMode"></div>
+        <!-- Integrated Summary & Actions Section -->
+        <div class="bg-slate-50 border-t border-slate-200 p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="flex items-center gap-2" *ngIf="product.hasVariants">
+            <span class="text-[14px] font-semibold text-slate-600">Stock Integrado:</span>
+            <span class="text-[18px] font-bold text-blue-600">{{ totalVariantStock }} unid.</span>
+          </div>
+          <div *ngIf="!product.hasVariants"></div> <!-- Placeholder for flex -->
 
-          <div class="flex items-center gap-3">
-            <a routerLink="/inventario" class="px-6 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-[14px] transition-colors shadow-sm whitespace-nowrap">
+          <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            <button (click)="cancel()" 
+                    class="px-5 py-2.5 text-slate-600 hover:bg-slate-200 font-semibold text-[14px] rounded-xl transition-all text-center">
               Cancelar
-            </a>
-            <button type="submit" [disabled]="isSubmitting"
-                    class="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-[14px] transition-colors shadow-sm whitespace-nowrap disabled:opacity-75">
-              <span class="material-symbols-outlined text-[18px]" *ngIf="!isSubmitting">save</span>
-              <span class="material-symbols-outlined text-[18px] animate-spin" *ngIf="isSubmitting">progress_activity</span>
-              {{ isSubmitting ? 'Guardando...' : (isEditMode ? 'Guardar Cambios' : 'Crear Producto') }}
+            </button>
+            <button [disabled]="isSubmitting" (click)="saveProduct()"
+                    class="flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-[14px] rounded-xl transition-all shadow-sm min-w-[140px]">
+              <span class="material-symbols-outlined text-[18px]" *ngIf="isSubmitting">progress_activity</span>
+              {{ isSubmitting ? 'Guardando...' : (isEditMode ? 'Guardar Cambios' : 'Registrar Producto') }}
             </button>
           </div>
         </div>
 
-      </form>
+      </div>
     </div>
+  </div>
+</div>
 
-    <div class="mt-8 text-center text-[12px] text-slate-400 font-medium">
-      Al guardar, el sistema calculará automáticamente el estado del stock.
+<!-- Modal Editar Variante -->
+<div *ngIf="editingVariantDraft" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+  <!-- Backdrop -->
+  <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" (click)="closeVariantEditor()"></div>
+  
+  <!-- Content -->
+  <div class="relative bg-white rounded-2xl w-full max-w-[400px] shadow-xl overflow-hidden animate-fade-in-up">
+    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+      <h3 class="text-[15px] font-bold text-slate-900 truncate">Editar: {{ editingVariantDraft.variantLabel }}</h3>
+      <button (click)="closeVariantEditor()" class="text-slate-400 hover:text-slate-600 transition-colors">
+        <span class="material-symbols-outlined text-[20px]">close</span>
+      </button>
+    </div>
+    
+    <div class="p-6 space-y-4 bg-white">
+      <div class="space-y-1.5">
+        <label class="text-[12px] font-bold text-slate-500 uppercase tracking-wider">SKU</label>
+        <input type="text" [(ngModel)]="editingVariantDraft.sku"
+               class="w-full px-3 py-2 rounded-xl border border-slate-200 text-[13px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-mono">
+      </div>
+      
+      <div class="grid grid-cols-2 gap-4">
+        <div class="space-y-1.5">
+          <label class="text-[12px] font-bold text-slate-500 uppercase tracking-wider">Stock Actual</label>
+          <input type="number" [(ngModel)]="editingVariantDraft.stock"
+                 class="w-full px-3 py-2 rounded-xl border border-slate-200 text-[13px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-semibold text-center">
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-[12px] font-bold text-slate-500 uppercase tracking-wider">Mínimo</label>
+          <input type="number" [(ngModel)]="editingVariantDraft.minimumStock"
+                 class="w-full px-3 py-2 rounded-xl border border-slate-200 text-[13px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-semibold text-center">
+        </div>
+      </div>
+      
+      <div class="space-y-1.5">
+        <label class="text-[12px] font-bold text-slate-500 uppercase tracking-wider">P. Compra (€)</label>
+        <input type="number" step="0.01" [(ngModel)]="editingVariantDraft.purchasePrice"
+               class="w-full px-3 py-2 rounded-xl border border-slate-200 text-[13px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-semibold text-center">
+      </div>
+    </div>
+    
+    <div class="p-4 border-t border-slate-100 flex items-center justify-end gap-2 bg-slate-50/50">
+      <button (click)="closeVariantEditor()" class="px-4 py-2 text-[13px] font-bold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">Cancelar</button>
+      <button (click)="saveVariantEditor()" class="px-5 py-2 text-[13px] font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-md hover:shadow-lg transition-all active:scale-95">Guardar</button>
     </div>
   </div>
 </div>

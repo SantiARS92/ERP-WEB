@@ -1,13 +1,14 @@
 import { Component, OnInit, inject, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { ProductApiService } from '../../core/services/product-api.service';
 import { CategoryApiService } from '../../core/services/category-api.service';
 import { Product, ProductPage, InventoryVariant } from '../../core/models/product.model';
 import { Category } from '../../core/models/category.model';
 import { PaginationComponent } from '../../shared/components/pagination/pagination';
-import { InventoryFormModalComponent } from './components/inventory-form-modal/inventory-form-modal';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 // ─── Mock data shown when backend returns no products ─────────────────────────
 const MOCK_PRODUCTS: Product[] = [
@@ -51,7 +52,7 @@ const MOCK_PRODUCTS: Product[] = [
   selector: 'app-inventory',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.Default,
-  imports: [CommonModule, RouterModule, FormsModule, PaginationComponent, InventoryFormModalComponent],
+  imports: [CommonModule, RouterModule, FormsModule, PaginationComponent],
   templateUrl: './inventory.html',
   styles: ``,
 })
@@ -59,6 +60,7 @@ export class Inventory implements OnInit {
   private productApi   = inject(ProductApiService);
   private categoryApi  = inject(CategoryApiService);
   private cdr          = inject(ChangeDetectorRef);
+  private router       = inject(Router);
 
   products: Product[]  = [];
   categories: Category[] = [];
@@ -71,10 +73,6 @@ export class Inventory implements OnInit {
   totalElements = 0;
 
   isFilterOpen = false;
-
-  // ── Modal state ──────────────────────────────────
-  isModalOpen   = false;
-  editingProduct: Product | null = null;
 
   // ── Expand/collapse variant rows ─────────────────
   expandedIds = new Set<number>();
@@ -105,19 +103,44 @@ export class Inventory implements OnInit {
         if (data.content.length === 0 && this.currentPage === 0 && !this.searchText) {
           this.products = [...MOCK_PRODUCTS];
           this.totalElements = MOCK_PRODUCTS.length;
+          this.cdr.detectChanges();
         } else {
           this.products = data.content;
           this.totalElements = data.totalElements;
+          this.cdr.detectChanges();
+          // Pre-load variants so we have accurate counts and data for the list
+          this.preloadVariants(data.content);
         }
-        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Error loading products:', err);
-        // Fallback to mock data on error
         this.products = [...MOCK_PRODUCTS];
         this.totalElements = MOCK_PRODUCTS.length;
         this.cdr.detectChanges();
       }
+    });
+  }
+
+  private preloadVariants(products: Product[]) {
+    const variantProducts = products.filter(p => p.hasVariants && p.id !== undefined);
+    if (variantProducts.length === 0) return;
+
+    const requests = variantProducts.map(p =>
+      this.productApi.getProductById(p.id as number).pipe(catchError(() => of(p)))
+    );
+
+    forkJoin(requests).subscribe({
+      next: (fullProducts) => {
+        fullProducts.forEach(fp => {
+          const target = this.products.find(p => p.id === fp.id);
+          if (target) {
+            target.variants = fp.variants;
+            target.variantCount = fp.variants?.length ?? target.variantCount;
+          }
+        });
+        this.cdr.detectChanges();
+      },
+      error: () => {} // Silent fail, we still have basic data
     });
   }
 
@@ -145,79 +168,7 @@ export class Inventory implements OnInit {
 
   changePage(p: number) { this.currentPage = p; this.loadProducts(); }
 
-  // ── Modal helpers ─────────────────────────────────
-  openNewModal() {
-    this.editingProduct = null;
-    this.isModalOpen = true;
-  }
 
-  openEditModal(product: Product) {
-    if (!product.id) return;
-    
-    // Fetch full product to ensure we have all variants
-    this.productApi.getProductById(product.id).subscribe({
-      next: (fullProduct) => {
-        this.editingProduct = fullProduct;
-        this.isModalOpen = true;
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        console.error('Error loading product details:', err);
-        // Fallback to the list product if API fails
-        this.editingProduct = product;
-        this.isModalOpen = true;
-        this.cdr.detectChanges();
-      }
-    });
-  }
-
-  closeModal() {
-    this.isModalOpen = false;
-    this.editingProduct = null;
-  }
-
-  onSaveProduct(product: Product) {
-    if (product.id) {
-      // Update existing
-      this.productApi.updateProduct(product.id, product).subscribe({
-        next: () => {
-          this.loadProducts();
-          this.closeModal();
-        },
-        error: (err) => {
-          console.error('Error updating product:', err);
-          alert('Error al actualizar el producto.');
-        }
-      });
-    } else {
-      // Create new
-      this.productApi.createProduct(product).subscribe({
-        next: () => {
-          this.loadProducts();
-          this.closeModal();
-        },
-        error: (err) => {
-          console.error('Error creating product:', err);
-          alert('Error al registrar el producto.');
-        }
-      });
-    }
-  }
-
-  onDeleteProduct(id: number) {
-    if (confirm('¿Estás seguro de que quieres eliminar este producto?')) {
-      this.productApi.deleteProduct(id).subscribe({
-        next: () => {
-          this.loadProducts();
-          this.closeModal();
-        },
-        error: (err) => {
-          console.error('Error deleting product:', err);
-          alert('No se pudo eliminar el producto.');
-        }
-      });
-    }
-  }
 
   // ── Expand rows ───────────────────────────────────
   toggleExpand(id: number) {
@@ -271,9 +222,7 @@ export class Inventory implements OnInit {
     return 'Agotado';
   }
 
-  variantsTotalStock(p: Product): number {
-    return (p.variants ?? []).reduce((s, v) => s + v.stock, 0);
-  }
+
 
   exportPdf() {
     const categoryIdsStr = this.selectedCategoryIds.length > 0

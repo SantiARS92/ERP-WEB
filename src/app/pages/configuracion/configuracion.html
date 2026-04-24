@@ -21,9 +21,26 @@
         <h1 class="text-[28px] font-bold text-slate-900 leading-tight">Configuración del Negocio</h1>
         <p class="text-[14px] text-slate-500 mt-0.5">Administra el perfil de tu salón, horarios de apertura y configuración del equipo.</p>
       </div>
-      <div class="flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-50 text-orange-600 animate-pulse" *ngIf="isSubmitting">
-        <span class="material-symbols-outlined text-[18px]">sync</span>
-        <span class="text-[12px] font-bold uppercase tracking-wider">Guardando...</span>
+      <!-- Save status indicator -->
+      <div class="flex items-center h-9">
+        <!-- Saving -->
+        <div *ngIf="saveStatus === 'saving'"
+             class="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 transition-all">
+          <span class="material-symbols-outlined text-[18px] animate-spin">sync</span>
+          <span class="text-[12px] font-bold uppercase tracking-wider">Guardando...</span>
+        </div>
+        <!-- Saved -->
+        <div *ngIf="saveStatus === 'saved'"
+             class="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 transition-all animate-in fade-in duration-300">
+          <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+          <span class="text-[12px] font-bold uppercase tracking-wider">Guardado</span>
+        </div>
+        <!-- Error -->
+        <div *ngIf="saveStatus === 'error'"
+             class="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-50 text-red-600 border border-red-100 transition-all animate-in fade-in duration-300">
+          <span class="material-symbols-outlined text-[18px]">error</span>
+          <span class="text-[12px] font-bold uppercase tracking-wider">Error al guardar</span>
+        </div>
       </div>
     </div>
 
@@ -76,16 +93,35 @@
               </div>
               <!-- Logo Upload Box -->
               <div>
-                <label class="block text-[13px] font-bold text-slate-800 mb-2">Logotipo (URL)</label>
+                <label class="block text-[13px] font-bold text-slate-800 mb-2">Logotipo del Negocio</label>
                 <div class="space-y-3">
-                  <input type="text" [(ngModel)]="settings.businessLogo" (ngModelChange)="onFieldChange()" placeholder="http://url-de-la-imagen.png" class="w-full px-4 py-2 rounded-xl border border-slate-200 text-[12px] text-slate-600 focus:outline-none focus:border-blue-400">
-                  <div class="border-2 border-dashed border-slate-200 rounded-2xl h-[178px] flex flex-col items-center justify-center bg-slate-50/50 overflow-hidden relative group">
-                    <img *ngIf="settings.businessLogo" [src]="settings.businessLogo" class="w-full h-full object-contain absolute inset-0">
-                    <div *ngIf="!settings.businessLogo" class="flex flex-col items-center">
-                      <span class="material-symbols-outlined text-[24px] text-slate-300 mb-2">image</span>
-                      <span class="text-[11px] text-slate-400">Vista previa del logo</span>
+                  <!-- Upload Zone -->
+                  <label for="logo-upload"
+                         class="border-2 border-dashed border-slate-200 rounded-2xl h-[178px] flex flex-col items-center justify-center bg-slate-50/50 overflow-hidden relative cursor-pointer group hover:border-blue-400 hover:bg-blue-50/30 transition-colors">
+                    <!-- Hidden real input -->
+                    <input id="logo-upload" type="file" accept="image/*" class="sr-only" (change)="onLogoFileSelected($event)">
+                    <!-- Preview -->
+                    <img *ngIf="settings.businessLogo" [src]="settings.businessLogo" class="w-full h-full object-contain absolute inset-0 p-3">
+                    <!-- Empty state -->
+                    <div *ngIf="!settings.businessLogo" class="flex flex-col items-center pointer-events-none">
+                      <span class="material-symbols-outlined text-[32px] text-slate-300 mb-2 group-hover:text-blue-400 transition-colors">cloud_upload</span>
+                      <span class="text-[12px] font-semibold text-slate-400 group-hover:text-blue-500">Haz clic para subir imagen</span>
+                      <span class="text-[11px] text-slate-400 mt-0.5">PNG, JPG, SVG hasta 2MB</span>
                     </div>
-                  </div>
+                    <!-- Overlay on hover when there's a logo -->
+                    <div *ngIf="settings.businessLogo" class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <span class="text-white text-[12px] font-bold flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[18px]">edit</span>
+                        Cambiar imagen
+                      </span>
+                    </div>
+                  </label>
+                  <!-- Remove button -->
+                  <button type="button" *ngIf="settings.businessLogo" (click)="removeLogo()"
+                          class="w-full py-1.5 text-[12px] font-semibold text-red-500 hover:text-red-700 hover:bg-red-50 rounded-xl transition-colors flex items-center justify-center gap-1.5">
+                    <span class="material-symbols-outlined text-[15px]">delete</span>
+                    Eliminar logotipo
+                  </button>
                 </div>
               </div>
             </div>

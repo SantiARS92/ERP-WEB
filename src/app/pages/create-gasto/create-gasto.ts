@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { ExpenseApiService } from '../../core/services/expense-api.service';
 import { ProductApiService } from '../../core/services/product-api.service';
+import { NotificationService } from '../../core/services/notification.service';
 import { ExpenseRequest, ExpenseCategory } from '../../core/models/expense.model';
 import { Product, InventoryVariant } from '../../core/models/product.model';
 
@@ -19,6 +20,7 @@ export class CreateGasto implements OnInit {
   private productApi = inject(ProductApiService);
   private cdr = inject(ChangeDetectorRef);
   private router = inject(Router);
+  private notification = inject(NotificationService);
 
   products: Product[] = [];
   selectedProduct: Product | null = null;
@@ -115,7 +117,12 @@ export class CreateGasto implements OnInit {
   calculateSummary() {
     const qty = Number(this.newExpense.quantity || 1);
     const amount = Number(this.newExpense.amount || 0);
-    this.totalGasto = qty * amount;
+    
+    if (this.newExpense.category === 'SUPPLIES' && this.newExpense.inventoryProductId) {
+      this.totalGasto = qty * amount;
+    } else {
+      this.totalGasto = amount;
+    }
 
     if (this.newExpense.category === 'SUPPLIES' && (this.selectedProduct || this.selectedVariant)) {
       const currentStock = this.selectedVariant ? this.selectedVariant.stock : (this.selectedProduct?.stock || 0);
@@ -128,11 +135,11 @@ export class CreateGasto implements OnInit {
   registerExpense() {
     if (this.newExpense.category === 'SUPPLIES') {
       if (!this.newExpense.inventoryProductId) {
-        alert('Para suministros, debe seleccionar un producto del inventario.');
+        this.notification.warning('Para suministros, debe seleccionar un producto del inventario.');
         return;
       }
       if (this.selectedProduct?.hasVariants && !this.newExpense.inventoryProductVariantId) {
-        alert('Debe seleccionar una variante del producto.');
+        this.notification.warning('Debe seleccionar una variante del producto.');
         return;
       }
       
@@ -147,7 +154,7 @@ export class CreateGasto implements OnInit {
     }
 
     if (!this.newExpense.amount || this.newExpense.amount <= 0) {
-      alert('El importe debe ser mayor a 0.');
+      this.notification.warning('El importe debe ser mayor a 0.');
       return;
     }
 
@@ -176,13 +183,13 @@ export class CreateGasto implements OnInit {
 
     this.expenseApi.createExpense(payload).subscribe({
       next: () => {
+        this.notification.success('Gasto registrado correctamente.', '¡Éxito!');
         this.router.navigate(['/gastos']);
       },
       error: (err) => {
         console.error('Error creando gasto:', err);
         this.isSubmitting = false;
-        const errorMsg = err.error?.message || (typeof err.error === 'string' ? err.error : JSON.stringify(err.error)) || 'Error al registrar el gasto.';
-        alert(errorMsg);
+        // La notificación genérica del error.interceptor podría estar saltando, pero mostramos esto si llega
         this.cdr.detectChanges();
       }
     });

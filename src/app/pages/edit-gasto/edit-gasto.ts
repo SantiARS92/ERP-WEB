@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { ExpenseApiService } from '../../core/services/expense-api.service';
 import { ProductApiService } from '../../core/services/product-api.service';
+import { NotificationService } from '../../core/services/notification.service';
 import { ExpenseRequest, ExpenseResponse, ExpenseCategory } from '../../core/models/expense.model';
 import { Product, InventoryVariant } from '../../core/models/product.model';
 
@@ -44,6 +45,7 @@ export class EditGasto implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private cdr = inject(ChangeDetectorRef);
+  private notification = inject(NotificationService);
 
   readonly categories: { value: ExpenseCategory; label: string }[] = [
     { value: 'SUPPLIES', label: 'Suministros' },
@@ -81,10 +83,15 @@ export class EditGasto implements OnInit {
               return;
             }
             this.originalExpense = data;
+            let unitOrTotalAmount = data.amount || 0;
+            if (data.category === 'SUPPLIES' && (data.inventoryProductId || data.inventoryProductVariantId)) {
+              unitOrTotalAmount = (data.amount || 0) / (data.quantity || 1);
+            }
+
             this.expense = {
               concept:     data.concept || '',
               category:    data.category || 'SUPPLIES',
-              amount:      data.amount || 0,
+              amount:      unitOrTotalAmount,
               quantity:    data.quantity || 1,
               expenseDate: data.expenseDate || new Date().toISOString().split('T')[0],
               notes:       data.notes ?? '',
@@ -105,7 +112,7 @@ export class EditGasto implements OnInit {
             this.isLoading = false; // Stop loading even on error before redirect
             this.cdr.detectChanges();
             
-            if (err.status === 404) alert('Gasto no encontrado.');
+            if (err.status === 404) this.notification.error('Gasto no encontrado.', 'No existe');
             this.router.navigate(['/gastos']);
           }
         });
@@ -214,7 +221,12 @@ export class EditGasto implements OnInit {
   calculateSummary() {
     const qty = Number(this.expense.quantity || 1);
     const amount = Number(this.expense.amount || 0);
-    this.totalGasto = qty * amount;
+
+    if (this.expense.category === 'SUPPLIES' && this.expense.inventoryProductId) {
+      this.totalGasto = qty * amount;
+    } else {
+      this.totalGasto = amount;
+    }
 
     if (this.expense.category === 'SUPPLIES' && (this.selectedProduct || this.selectedVariant)) {
       const currentStock = this.selectedVariant ? this.selectedVariant.stock : (this.selectedProduct?.stock || 0);
@@ -234,10 +246,10 @@ export class EditGasto implements OnInit {
           this.expense.concept = concept;
        }
     } else {
-      if (!this.expense.concept?.trim()) { alert('Debe introducir un concepto.');      return; }
+      if (!this.expense.concept?.trim()) { this.notification.warning('Debe introducir un concepto.'); return; }
     }
-    if (!this.expense.amount || this.expense.amount <= 0) { alert('El importe debe ser mayor a 0.'); return; }
-    if (!this.expense.quantity || this.expense.quantity <= 0) { alert('La cantidad debe ser mayor a 0.'); return; }
+    if (!this.expense.amount || this.expense.amount <= 0) { this.notification.warning('El importe debe ser mayor a 0.'); return; }
+    if (!this.expense.quantity || this.expense.quantity <= 0) { this.notification.warning('La cantidad debe ser mayor a 0.'); return; }
 
     const payload: any = {
       ...this.expense,
@@ -261,12 +273,13 @@ export class EditGasto implements OnInit {
 
     this.isSubmitting = true;
     this.expenseApi.updateExpense(this.expenseId, payload).subscribe({
-      next: () => this.router.navigate(['/gastos']),
+      next: () => {
+        this.notification.success('Gasto guardado correctamente.', '¡Actualizado!');
+        this.router.navigate(['/gastos']);
+      },
       error: (err) => {
         this.isSubmitting = false;
         console.error('Error updating expense:', err);
-        const errorMsg = err.error?.message || (typeof err.error === 'string' ? err.error : JSON.stringify(err.error)) || 'Hubo un error al guardar los cambios.';
-        alert(errorMsg);
         this.cdr.detectChanges();
       }
     });
@@ -275,8 +288,11 @@ export class EditGasto implements OnInit {
   deleteExpense() {
     if (confirm('¿Está seguro de eliminar permanentemente este gasto?')) {
       this.expenseApi.deleteExpense(this.expenseId).subscribe({
-        next: () => this.router.navigate(['/gastos']),
-        error: () => alert('Ocurrió un error al eliminar el gasto.')
+        next: () => {
+          this.notification.success('Gasto eliminado.', 'Eliminado');
+          this.router.navigate(['/gastos']);
+        },
+        error: () => this.notification.error('Ocurrió un error al eliminar el gasto.')
       });
     }
   }

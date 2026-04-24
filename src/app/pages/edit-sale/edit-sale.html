@@ -1,293 +1,191 @@
-<div class="h-[calc(100vh-theme(spacing.20))] overflow-y-auto bg-slate-50/30">
+<div class="h-[calc(100vh-theme(spacing.20))] overflow-y-auto bg-slate-50/20">
   <div class="max-w-[1240px] mx-auto py-10 px-8 pb-32">
 
     <!-- Header & Breadcrumb -->
-    <div class="mb-10">
-      <div class="text-[13px] font-semibold text-slate-400 mb-2 flex items-center gap-1.5 tracking-wide uppercase">
-        <span class="hover:text-blue-600 cursor-pointer transition-colors" routerLink="/ventas">Ventas</span>
-        <span class="text-slate-300 text-[18px] font-light">/</span>
-        <span class="text-slate-500">Editar Venta</span>
+    <div class="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div>
+        <div class="text-[13px] font-semibold text-slate-500 mb-2 flex items-center gap-2">
+          <span class="hover:text-blue-600 cursor-pointer transition-colors" routerLink="/ventas">Ventas</span>
+          <span class="text-slate-400 text-[14px]">></span>
+          <span class="text-slate-500">Editar Venta</span>
+        </div>
+        <h1 class="text-[32px] font-bold text-slate-900 leading-none">Modificar Registro</h1>
       </div>
-      <h1 class="text-[32px] font-extrabold text-slate-900 leading-tight tracking-tight">Modificar Registro</h1>
-      <p class="text-[15px] text-slate-500 mt-1 font-medium italic">Actualice los parámetros de la transacción ya registrada.</p>
+      <button (click)="deleteSale()" [disabled]="isSubmitting"
+              class="flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-[13px] rounded-lg border border-red-100 transition-colors uppercase">
+        <span class="material-symbols-outlined text-[18px]">delete</span>
+        Eliminar
+      </button>
     </div>
 
-    <!-- Compact Info Alert for Appointment -->
-    <div *ngIf="originalSale?.sourceType === 'APPOINTMENT'" class="mb-10 bg-blue-50/80 border border-blue-200 rounded-[32px] p-8 flex gap-5 text-blue-700 items-start shadow-sm shadow-blue-50 transition-all">
-      <div class="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center shrink-0">
-        <span class="material-symbols-outlined text-blue-600 text-[26px]">info</span>
-      </div>
-      <div class="space-y-1.5">
-        <p class="text-[16px] font-black tracking-tight">Venta vinculada a cita</p>
-        <p class="text-[14px] font-medium text-blue-600/80 leading-relaxed max-w-3xl">
-          Este registro proviene de una cita completada. Por coherencia de datos, la gestión comercial avanzada debe realizarse desde el módulo de agenda original.
-        </p>
+    <!-- Appointment Alert -->
+    <div *ngIf="originalSale?.sourceType === 'APPOINTMENT'" class="mb-6 p-4 rounded-xl bg-blue-50 border border-blue-100 flex gap-3 text-blue-700 max-w-[800px]">
+      <span class="material-symbols-outlined text-[20px] pt-0.5">info</span>
+      <div class="text-[13px]">
+        <p class="font-bold mb-1">Venta vinculada a cita</p>
+        <p class="opacity-90">Este registro proviene de una cita. Por coherencia, los cambios importantes deben hacerse desde la agenda.</p>
       </div>
     </div>
 
-    <div class="flex flex-col lg:flex-row gap-8 items-start" [class.opacity-60]="originalSale?.sourceType === 'APPOINTMENT'" [class.pointer-events-none]="originalSale?.sourceType === 'APPOINTMENT'">
+    <div class="max-w-[800px]">
       
-      <!-- Left Column: Form -->
-      <div class="flex-1 w-full lg:max-w-4xl space-y-6">
-        
-        <div class="bg-white rounded-[40px] border border-slate-200 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.03)] overflow-hidden">
-          <div class="p-10 space-y-10">
-            
-            <!-- Type Toggle -->
-            <div class="flex items-center gap-6 pb-6 border-b border-slate-100">
-               <label class="flex items-center gap-2 cursor-pointer group">
-                  <input type="radio" name="itemType" value="SERVICE" [(ngModel)]="sale.itemType" (change)="calculateSummary()" class="hidden">
-                  <div class="w-5 h-5 rounded-full border-2 border-slate-300 flex items-center justify-center transition-all" [class.border-blue-600]="sale.itemType === 'SERVICE'">
-                    <div class="w-2.5 h-2.5 rounded-full bg-blue-600 transition-all scale-0" [class.scale-100]="sale.itemType === 'SERVICE'"></div>
-                  </div>
-                  <span class="material-symbols-outlined text-[20px] text-slate-400 group-hover:text-slate-600 transition-colors" [class.text-blue-600]="sale.itemType === 'SERVICE'">spa</span>
-                  <span class="text-[15px] font-bold text-slate-600 group-hover:text-slate-800 transition-colors" [class.text-slate-900]="sale.itemType === 'SERVICE'">Servicio</span>
-               </label>
+      <div class="bg-white rounded-[16px] border border-slate-200 overflow-hidden" 
+           [class.opacity-60]="originalSale?.sourceType === 'APPOINTMENT'" 
+           [class.pointer-events-none]="originalSale?.sourceType === 'APPOINTMENT'">
+        <div class="p-8 space-y-6">
+          
+          <div class="mb-4">
+            <h2 class="text-[16px] font-bold text-slate-900">Detalles de la Venta</h2>
+            <p class="text-[13px] text-slate-500">Actualice los parámetros de la transacción ya registrada.</p>
+          </div>
 
-               <label class="flex items-center gap-2 cursor-pointer group">
-                  <input type="radio" name="itemType" value="PRODUCT" [(ngModel)]="sale.itemType" (change)="calculateSummary()" class="hidden">
-                  <div class="w-5 h-5 rounded-full border-2 border-slate-300 flex items-center justify-center transition-all" [class.border-blue-600]="sale.itemType === 'PRODUCT'">
-                    <div class="w-2.5 h-2.5 rounded-full bg-blue-600 transition-all scale-0" [class.scale-100]="sale.itemType === 'PRODUCT'"></div>
-                  </div>
-                  <span class="material-symbols-outlined text-[20px] text-slate-400 group-hover:text-slate-600 transition-colors" [class.text-blue-600]="sale.itemType === 'PRODUCT'">inventory_2</span>
-                  <span class="text-[15px] font-bold text-slate-600 group-hover:text-slate-800 transition-colors" [class.text-slate-900]="sale.itemType === 'PRODUCT'">Producto</span>
-               </label>
-            </div>
-
-            <!-- Dynamic Fields -->
-            <div class="space-y-8 animate-in fade-in duration-500">
-              
-              <!-- Client Selector -->
-              <div class="space-y-2.5">
-                <label class="text-[14px] font-bold text-slate-900 ml-1">Cliente *</label>
-                <div class="relative group">
-                  <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors text-[22px]">person</span>
-                  <select [(ngModel)]="sale.clientId" name="clientId" (change)="onClientChange()" required
-                          class="w-full pl-12 pr-12 py-4 rounded-[20px] border border-slate-200 bg-white focus:outline-none focus:ring-4 focus:ring-blue-100/50 focus:border-blue-500 transition-all text-[15px] text-slate-900 appearance-none cursor-pointer font-medium shadow-sm">
-                    <option [ngValue]="undefined" disabled>Seleccione el destinatario...</option>
-                    <option *ngFor="let c of clients" [value]="c.id">{{ c.fullName }} — {{ c.phone }}</option>
-                  </select>
-                  <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-hover:text-slate-600 transition-colors">expand_more</span>
-                </div>
-              </div>
-
-              <!-- Product Flow -->
-              <div class="space-y-8" *ngIf="sale.itemType === 'PRODUCT'">
-                <div class="space-y-2.5">
-                  <label class="text-[14px] font-bold text-slate-900 ml-1">Producto *</label>
-                  <div class="relative group">
-                    <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors text-[22px]">inventory_2</span>
-                    <select [(ngModel)]="sale.inventoryProductId" name="inventoryProductId" (change)="onProductChange()" required
-                            class="w-full pl-12 pr-12 py-4 rounded-[20px] border border-slate-200 bg-white focus:outline-none focus:ring-4 focus:ring-blue-100/50 focus:border-blue-500 transition-all text-[15px] text-slate-900 appearance-none cursor-pointer font-medium shadow-sm">
-                      <option [ngValue]="undefined" disabled>Selecciona el producto del inventario...</option>
-                      <option *ngFor="let p of products" [value]="p.id">
-                        {{ p.name }} {{ p.hasVariants ? '(' + (p.variants?.length || p.variantCount || 0) + ' variantes)' : '' }}
-                      </option>
-                    </select>
-                    <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-hover:text-slate-600 transition-colors">expand_more</span>
-                  </div>
-                </div>
-
-                <!-- Variant Selection -->
-                <div class="space-y-3 animate-in slide-in-from-top-4 duration-500" *ngIf="selectedProduct?.hasVariants">
-                  <label class="text-[14px] font-bold text-slate-800 ml-1 flex items-center gap-2">
-                    Variante * 
-                    <span class="text-slate-400 font-medium text-[12px] italic">— selecciona la combinación exacta</span>
-                  </label>
-                  <div class="relative group">
-                    <select [(ngModel)]="sale.inventoryProductVariantId" name="inventoryProductVariantId" (change)="onVariantChange()" required
-                            class="w-full px-6 py-4 rounded-[20px] border-2 border-blue-50 bg-blue-50/5 focus:outline-none focus:ring-4 focus:ring-blue-100/50 focus:border-blue-400 transition-all text-[15px] text-slate-900 appearance-none cursor-pointer font-bold shadow-sm">
-                      <option [ngValue]="null" disabled>Elige talla, color o modelo...</option>
-                      <option *ngFor="let v of selectedProduct?.variants" [value]="v.id">
-                        {{ v.variantLabel }} — Stock: {{ v.stock }} — {{ v.purchasePrice || selectedProduct?.purchasePrice }}€
-                      </option>
-                    </select>
-                    <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-blue-500 pointer-events-none">expand_more</span>
-                  </div>
-                  
-                  <!-- Premium Info Box -->
-                  <div class="mt-4 p-5 bg-blue-50/80 border border-blue-100 rounded-[24px] flex gap-4 items-start shadow-sm" *ngIf="selectedVariant">
-                    <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
-                        <span class="material-symbols-outlined text-[24px]">layers</span>
-                    </div>
-                    <div class="flex-1 space-y-1.5">
-                      <div class="text-[15px] font-extrabold text-blue-900">{{ selectedProduct?.name }} — {{ selectedVariant.variantLabel }}</div>
-                      <div class="flex items-center gap-4">
-                        <span class="text-[11px] font-extrabold text-blue-500 bg-blue-100/50 px-2.5 py-1 rounded-lg uppercase tracking-wider">SKU: {{ selectedVariant.sku || 'N/A' }}</span>
-                        <span class="text-[11px] font-extrabold text-emerald-600 bg-emerald-100/50 px-2.5 py-1 rounded-lg">STOCK DISPONIBLE: {{ selectedVariant.stock }} UDS.</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Service Selection -->
-              <div class="space-y-2.5 animate-in slide-in-from-top-4 duration-500" *ngIf="sale.itemType === 'SERVICE'">
-                <label class="text-[14px] font-bold text-slate-900 ml-1">Servicio *</label>
-                <div class="relative group">
-                  <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors text-[22px]">spa</span>
-                  <select [(ngModel)]="sale.serviceId" name="serviceId" (change)="onServiceChange()" required
-                          class="w-full pl-12 pr-12 py-4 rounded-[20px] border border-slate-200 bg-white focus:outline-none focus:ring-4 focus:ring-blue-100/50 focus:border-blue-500 transition-all text-[15px] text-slate-900 appearance-none cursor-pointer font-medium shadow-sm">
-                    <option [ngValue]="undefined" disabled>Seleccione el servicio realizado...</option>
-                    <option *ngFor="let s of services" [value]="s.id">{{ s.name }} ({{ s.price }}€)</option>
-                  </select>
-                  <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-hover:text-slate-600 transition-colors">expand_more</span>
-                </div>
-              </div>
-
-              <!-- Price and Quantity Grid -->
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
-                <div class="space-y-2.5">
-                  <label class="text-[14px] font-bold text-slate-900 ml-1">Precio Unitario (€)</label>
-                  <div class="relative group">
-                    <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 font-extrabold text-[15px]">€</span>
-                    <input type="number" [(ngModel)]="sale.unitPrice" name="unitPrice" (input)="calculateSummary()" step="0.01"
-                           class="w-full pl-10 pr-5 py-4 rounded-[20px] border border-slate-200 bg-white focus:outline-none focus:ring-4 focus:ring-blue-100/50 focus:border-blue-500 transition-all text-[16px] font-bold text-slate-900 shadow-sm">
-                  </div>
-                </div>
-                <div class="space-y-2.5">
-                  <label class="text-[14px] font-bold text-slate-900 ml-1">Cantidad *</label>
-                  <div class="relative group">
-                    <input type="number" [(ngModel)]="sale.quantity" name="quantity" (input)="calculateSummary()" min="1" required
-                           class="w-full px-6 py-4 rounded-[20px] border border-slate-200 bg-white focus:outline-none focus:ring-4 focus:ring-blue-100/50 focus:border-blue-500 transition-all text-[16px] font-bold text-slate-900 shadow-sm text-center">
-                  </div>
-                </div>
-              </div>
-
-              <!-- Date Selection -->
-              <div class="space-y-2.5">
-                <label class="text-[14px] font-bold text-slate-900 ml-1">Fecha</label>
-                <div class="relative group">
-                  <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 transition-colors text-[22px]">calendar_today</span>
-                  <input type="date" [(ngModel)]="sale.saleDate" name="saleDate" required
-                         class="w-full pl-12 pr-6 py-4 rounded-[20px] border border-slate-200 bg-white focus:outline-none focus:ring-4 focus:ring-blue-100/50 focus:border-blue-500 transition-all text-[16px] font-bold text-slate-900 shadow-sm">
-                </div>
-              </div>
-
-              <!-- Payment Method -->
-              <div class="space-y-2.5">
-                <label class="text-[14px] font-bold text-slate-900 ml-1">Método de Pago *</label>
-                <div class="relative group">
-                  <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 transition-colors text-[22px]">payments</span>
-                  <select [(ngModel)]="sale.paymentMethod" name="paymentMethod" required
-                          class="w-full pl-12 pr-12 py-4 rounded-[20px] border border-slate-200 bg-white focus:outline-none focus:ring-4 focus:ring-blue-100/50 focus:border-blue-500 transition-all text-[15px] text-slate-900 appearance-none cursor-pointer font-medium shadow-sm">
-                    <option value="CASH">Efectivo 💵</option>
-                    <option value="DEBIT_CARD">Tarjeta de Débito 💳</option>
-                    <option value="CREDIT_CARD">Tarjeta de Crédito 💳</option>
-                    <option value="BIZUM">Bizum 📱</option>
-                    <option value="BANK_TRANSFER">Transferencia 🏦</option>
-                  </select>
-                  <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-hover:text-slate-600 transition-colors">expand_more</span>
-                </div>
-              </div>
-
-              <!-- Notes -->
-              <div class="space-y-2.5 pt-2">
-                <label class="text-[14px] font-bold text-slate-900 ml-1">Notas Administrativas</label>
-                <textarea [(ngModel)]="sale.notes" name="notes" placeholder="Detalles o notas internas adicionales..." rows="4"
-                          class="w-full px-6 py-5 rounded-[24px] border border-slate-200 bg-white focus:outline-none focus:ring-4 focus:ring-blue-100/50 focus:border-blue-500 transition-all text-[15px] text-slate-900 resize-none shadow-sm"></textarea>
-              </div>
-
+          <!-- Client Selector -->
+          <div class="space-y-1.5">
+            <label class="text-[13px] font-bold text-slate-900">Cliente *</label>
+            <div class="relative">
+              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">person</span>
+              <select [(ngModel)]="sale.clientId" name="clientId" (change)="onClientChange()" required
+                      class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
+                <option [ngValue]="undefined" disabled>Seleccione el destinatario...</option>
+                <option *ngFor="let c of clients" [value]="c.id">{{ c.fullName }} — {{ c.phone }}</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
             </div>
           </div>
-        </div>
-        
-        <!-- Premium Danger Zone -->
-        <div class="p-10 bg-red-50/40 rounded-[40px] border border-red-100 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
-          <div class="space-y-1.5 text-center md:text-left">
-            <h4 class="text-[16px] font-black text-red-900 tracking-tight">Acción Irreversible</h4>
-            <p class="text-[14px] text-red-600/70 font-bold leading-tight">Eliminar este registro afectará a su balance financiero inmediatamente.</p>
+
+          <!-- Type Toggle -->
+          <div class="flex items-center gap-6 py-2">
+             <label class="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="itemType" value="SERVICE" [(ngModel)]="sale.itemType" (change)="calculateSummary()" class="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer">
+                <span class="text-[14px] font-medium text-slate-700">Servicio</span>
+             </label>
+
+             <label class="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="itemType" value="PRODUCT" [(ngModel)]="sale.itemType" (change)="calculateSummary()" class="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer">
+                <span class="text-[14px] font-medium text-slate-700">Producto</span>
+             </label>
           </div>
-          <button (click)="deleteSale()" [disabled]="isSubmitting"
-                  class="flex items-center gap-3 px-8 py-4 rounded-[20px] bg-white border-2 border-red-100 text-red-500 hover:bg-red-600 hover:text-white hover:border-red-600 font-black text-[14px] transition-all cursor-pointer shadow-sm group">
-            <span class="material-symbols-outlined text-[20px] group-hover:rotate-12 transition-transform">delete</span>
-            ELIMINAR REGISTRO
-          </button>
-        </div>
 
-      </div>
-
-      <!-- Right Column: Premium Summary Sidebar (1/3) -->
-      <div class="w-full lg:w-[400px] sticky top-10 space-y-8">
-        
-        <div class="bg-white rounded-[44px] border border-slate-200 shadow-[0_30px_60px_-20px_rgba(0,0,0,0.08)] overflow-hidden">
-          <div class="p-10 space-y-10">
-            <h2 class="text-[22px] font-extrabold text-slate-900 tracking-tight">Resumen de cambios</h2>
-
-            <div class="space-y-8">
-              
-              <!-- Item Details -->
-              <div class="space-y-6">
-                <div class="space-y-2">
-                  <p class="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest">Artículo</p>
-                  <h3 class="text-[20px] font-black text-slate-800 leading-tight">{{ selectedProduct?.name || selectedService?.name || '---' }}</h3>
-                  <p class="text-[15px] font-extrabold text-blue-600 flex items-center gap-1.5" *ngIf="selectedVariant">
-                    <span class="material-symbols-outlined text-[18px]">layers</span>
-                    Variante: {{ selectedVariant.variantLabel }}
-                  </p>
-                </div>
-
-                <div class="grid grid-cols-2 gap-6 pt-2" *ngIf="sale.itemType === 'PRODUCT' && selectedProduct">
-                  <div class="space-y-1.5">
-                    <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">SKU</p>
-                    <p class="text-[14px] font-black text-slate-700 truncate tracking-tight">{{ (selectedVariant ? selectedVariant.sku : selectedProduct.sku) || 'N/A' }}</p>
-                  </div>
-                  <div class="space-y-1.5">
-                    <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Stock disponible</p>
-                    <p class="text-[14px] font-black flex items-center gap-1" [ngClass]="(selectedVariant ? selectedVariant.stock : selectedProduct.stock) > 0 ? 'text-emerald-600' : 'text-red-500'">
-                      {{ (selectedVariant ? selectedVariant.stock : selectedProduct.stock) }} uds.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div class="border-t border-slate-100 pt-8 space-y-5">
-                <div class="flex justify-between items-center">
-                  <span class="text-[15px] font-bold text-slate-400">Precio unitario</span>
-                  <span class="text-[17px] font-black text-slate-900">€{{ (sale.unitPrice || 0) | number:'1.2-2' }}</span>
-                </div>
-                <div class="flex justify-between items-center">
-                  <span class="text-[15px] font-bold text-slate-400">Cantidad</span>
-                  <span class="text-[17px] font-black text-slate-900">x{{ sale.quantity }}</span>
-                </div>
-              </div>
-
-              <!-- Grand Total -->
-              <div class="border-t-[3px] border-slate-900/5 pt-8">
-                <div class="flex flex-col gap-1">
-                  <span class="text-[14px] font-black text-slate-400 uppercase tracking-widest">Total actualizado</span>
-                  <div class="flex items-baseline gap-1">
-                    <span class="text-[42px] font-black text-blue-600 leading-none">€{{ totalEstimado | number:'1.2-2' }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Residual Stock Badge -->
-              <div class="bg-indigo-50/50 border border-indigo-100 rounded-[20px] p-5 flex flex-col gap-1" *ngIf="sale.itemType === 'PRODUCT' && selectedProduct">
-                <span class="text-[11px] font-extrabold text-indigo-600 uppercase tracking-widest">Impacto en Stock</span>
-                <div class="flex items-center justify-between">
-                    <span class="text-[13px] font-bold text-indigo-700">Stock resultante:</span>
-                    <span class="text-[15px] font-black text-indigo-900">{{ stockRestante }} uds.</span>
-                </div>
+          <!-- Product Flow -->
+          <div class="space-y-6" *ngIf="sale.itemType === 'PRODUCT'">
+            <div class="space-y-1.5">
+              <label class="text-[13px] font-bold text-slate-900">Producto *</label>
+              <div class="relative">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">inventory_2</span>
+                <select [(ngModel)]="sale.inventoryProductId" name="inventoryProductId" (change)="onProductChange()" required
+                        class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
+                  <option [ngValue]="undefined" disabled>Selecciona el producto...</option>
+                  <option *ngFor="let p of products" [value]="p.id">
+                    {{ p.name }} {{ p.hasVariants ? '(' + (p.variants?.length || p.variantCount || 0) + ' variantes)' : '' }}
+                  </option>
+                </select>
+                <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
               </div>
             </div>
 
-            <!-- Submit Buttons -->
-            <div class="space-y-4 pt-6">
-              <button [disabled]="isSubmitting || !sale.clientId" (click)="saveSale()"
-                      class="w-full flex items-center justify-center gap-3 py-5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black text-[16px] rounded-[24px] shadow-2xl shadow-blue-300 transition-all hover:-translate-y-1 active:translate-y-0.5">
-                <span class="material-symbols-outlined text-[24px]" *ngIf="!isSubmitting">save</span>
-                <span class="material-symbols-outlined text-[24px] animate-spin" *ngIf="isSubmitting">progress_activity</span>
-                {{ isSubmitting ? 'GUARDANDO...' : 'GUARDAR CAMBIOS' }}
-              </button>
-              <button [routerLink]="['/ventas']" 
-                      class="w-full py-4 bg-white text-slate-400 hover:text-slate-600 font-extrabold text-[15px] rounded-[24px] transition-all tracking-wide">
-                DESCARTAR CAMBIOS
-              </button>
+            <!-- Variant Selection -->
+            <div class="space-y-1.5" *ngIf="selectedProduct?.hasVariants">
+              <label class="text-[13px] font-bold text-slate-900">Variante del Producto *</label>
+              <div class="relative">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">layers</span>
+                <select [(ngModel)]="sale.inventoryProductVariantId" name="inventoryProductVariantId" (change)="onVariantChange()" required
+                        class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
+                  <option [ngValue]="null" disabled>Selecciona producto a reponer...</option>
+                  <option *ngFor="let v of selectedProduct?.variants" [value]="v.id">
+                    {{ v.variantLabel }} — Stock: {{ v.stock }}
+                  </option>
+                </select>
+                <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+              </div>
             </div>
+          </div>
 
+          <!-- Service Selection -->
+          <div class="space-y-1.5" *ngIf="sale.itemType === 'SERVICE'">
+            <label class="text-[13px] font-bold text-slate-900">Servicio *</label>
+            <div class="relative">
+              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">local_florist</span>
+              <select [(ngModel)]="sale.serviceId" name="serviceId" (change)="onServiceChange()" required
+                      class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
+                <option [ngValue]="undefined" disabled>Seleccione el servicio...</option>
+                <option *ngFor="let s of services" [value]="s.id">{{ s.name }} ({{ s.price }}€)</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+            </div>
+          </div>
+
+          <!-- Price and Quantity Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-1.5">
+              <label class="text-[13px] font-bold text-slate-900">Precio Unitario (€)</label>
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-[14px]">€</span>
+                <input type="number" [(ngModel)]="sale.unitPrice" name="unitPrice" (input)="calculateSummary()" step="0.01"
+                       class="w-full pl-8 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700">
+              </div>
+            </div>
+            <div class="space-y-1.5">
+              <label class="text-[13px] font-bold text-slate-900">Cantidad *</label>
+              <input type="number" [(ngModel)]="sale.quantity" name="quantity" (input)="calculateSummary()" min="1" required
+                     class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700">
+            </div>
+          </div>
+
+          <!-- Date -->
+          <div class="space-y-1.5">
+            <label class="text-[13px] font-bold text-slate-900">Fecha</label>
+            <div class="relative">
+              <input type="date" [(ngModel)]="sale.saleDate" name="saleDate" required
+                     class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700">
+            </div>
+          </div>
+
+          <!-- Payment Method -->
+          <div class="space-y-1.5">
+            <label class="text-[13px] font-bold text-slate-900">Método de Pago</label>
+            <div class="relative">
+              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">payments</span>
+              <select [(ngModel)]="sale.paymentMethod" name="paymentMethod" required
+                      class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
+                <option value="CASH">Efectivo 💵</option>
+                <option value="DEBIT_CARD">Tarjeta de Débito 💳</option>
+                <option value="CREDIT_CARD">Tarjeta de Crédito 💳</option>
+                <option value="BIZUM">Bizum 📱</option>
+                <option value="BANK_TRANSFER">Transferencia 🏦</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+            </div>
+          </div>
+
+          <!-- Notes -->
+          <div class="space-y-1.5">
+            <label class="text-[13px] font-bold text-slate-900">Notas</label>
+            <textarea [(ngModel)]="sale.notes" name="notes" placeholder="Detalles de la compra, proveedor, etc..." rows="3"
+                      class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 resize-none"></textarea>
+          </div>
+
+        </div>
+
+        <!-- Integrated Summary & Actions Section -->
+        <div class="bg-slate-50 border-t border-slate-200 p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div class="flex items-center gap-2">
+            <span class="text-[14px] font-semibold text-slate-600">Total Estimado:</span>
+            <span class="text-[18px] font-bold text-blue-600">€{{ totalEstimado | number:'1.2-2' }}</span>
+          </div>
+
+          <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            <button [routerLink]="['/ventas']" 
+                    class="px-5 py-2.5 text-slate-600 hover:bg-slate-200 font-semibold text-[14px] rounded-xl transition-all text-center">
+              Cancelar
+            </button>
+            <button [disabled]="isSubmitting || !sale.clientId" (click)="saveSale()"
+                    class="flex items-center justify-center gap-2 px-6 py-2.5 bg-[#0f172a] hover:bg-slate-800 disabled:opacity-50 text-white font-semibold text-[14px] rounded-xl transition-all shadow-sm min-w-[140px]">
+              <span class="material-symbols-outlined text-[18px]" *ngIf="isSubmitting">progress_activity</span>
+              {{ isSubmitting ? 'Guardando...' : 'Guardar Cambios' }}
+            </button>
           </div>
         </div>
+
       </div>
     </div>
   </div>

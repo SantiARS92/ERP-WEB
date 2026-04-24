@@ -9,6 +9,8 @@ import { Product } from '../../core/models/product.model';
 import { ThemeService } from '../../core/services/theme.service';
 import { AuthService } from '../../core/services/auth.service';
 import { UserRole } from '../../core/models/user.model';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 @Component({
   selector: 'app-dashboard',
@@ -104,13 +106,65 @@ export class Dashboard implements OnInit {
   private loadInventoryData() {
     this.productApi.getProducts({ size: 1000 }).subscribe({
       next: (res) => {
-        this.sinStockCount = res.content.filter(p => p.status === 'OUT_OF_STOCK' || p.stock === 0).length;
-        this.pocoStockCount = res.content.filter(p => p.status === 'LOW_STOCK').length;
-        this.stockSuficienteCount = res.content.filter(p => p.status === 'IN_STOCK' && p.stock > 0).length;
-        this.cdr.detectChanges();
+        const variantsRequests = res.content
+          .filter(p => p.hasVariants && p.id !== undefined)
+          .map(p => this.productApi.getProductById(p.id as number).pipe(
+            catchError(() => of(p))
+          ));
+
+        if (variantsRequests.length > 0) {
+          forkJoin(variantsRequests).subscribe({
+            next: (fullProducts) => {
+              const allProducts = res.content.map(p => {
+                const fullP = fullProducts.find(fp => fp.id === p.id);
+                return fullP ? fullP : p;
+              });
+              this.calculateStockAlerts(allProducts);
+            },
+            error: (err) => {
+              console.error('Error fetching variants', err);
+              this.calculateStockAlerts(res.content);
+            }
+          });
+        } else {
+          this.calculateStockAlerts(res.content);
+        }
       },
       error: (err) => console.error('Error fetching products', err)
     });
+  }
+
+  private calculateStockAlerts(products: Product[]) {
+    let sinStock = 0;
+    let pocoStock = 0;
+    let suficienteStock = 0;
+
+    products.forEach(p => {
+      if (p.hasVariants && p.variants && p.variants.length > 0) {
+        p.variants.forEach(v => {
+          if (v.stock <= 0) {
+            sinStock++;
+          } else if (v.stock <= (v.minimumStock || 0)) {
+            pocoStock++;
+          } else {
+            suficienteStock++;
+          }
+        });
+      } else if (!p.hasVariants) {
+        if (p.status === 'OUT_OF_STOCK' || p.stock <= 0) {
+          sinStock++;
+        } else if (p.status === 'LOW_STOCK' || p.stock <= (p.minimumStock || 0)) {
+          pocoStock++;
+        } else {
+          suficienteStock++;
+        }
+      }
+    });
+
+    this.sinStockCount = sinStock;
+    this.pocoStockCount = pocoStock;
+    this.stockSuficienteCount = suficienteStock;
+    this.cdr.detectChanges();
   }
 
   getAppointmentStatusClass(status: string): string {

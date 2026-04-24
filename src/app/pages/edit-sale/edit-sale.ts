@@ -10,6 +10,7 @@ import { Client } from '../../core/models/client.model';
 import { Service } from '../../core/models/service.model';
 import { Product, InventoryVariant } from '../../core/models/product.model';
 import { ProductApiService } from '../../core/services/product-api.service';
+import { NotificationService } from '../../core/services/notification.service';
 
 @Component({
   selector: 'app-edit-sale',
@@ -46,6 +47,7 @@ export class EditSale implements OnInit {
   private productApi = inject(ProductApiService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private notification = inject(NotificationService);
 
   ngOnInit() {
     this.clientApi.getClients({ size: 500 }).subscribe({ next: (res) => this.clients = res.content || [] });
@@ -81,7 +83,7 @@ export class EditSale implements OnInit {
           this.calculateSummary();
         },
         error: (err) => {
-          if (err.status === 404) alert('Venta no encontrada');
+          if (err.status === 404) this.notification.error('Venta no encontrada', 'No existe');
           this.router.navigate(['/ventas']);
         }
       });
@@ -169,14 +171,14 @@ export class EditSale implements OnInit {
 
   saveSale() {
     if (this.originalSale?.sourceType === 'APPOINTMENT') {
-       alert('No se pueden modificar las ventas generadas automáticamente desde citas.');
+       this.notification.warning('No se pueden modificar las ventas generadas automáticamente desde citas.');
        return;
     }
     
-    if (!this.sale.clientId) { alert('Debe seleccionar un cliente.'); return; }
-    if (this.sale.itemType === 'SERVICE' && !this.sale.serviceId) { alert('Debe seleccionar un servicio.'); return; }
-    if (this.sale.itemType === 'PRODUCT' && !this.sale.inventoryProductId) { alert('Debe seleccionar un producto del inventario.'); return; }
-    if (this.sale.quantity <= 0) { alert('La cantidad debe ser mayor a 0.'); return; }
+    if (!this.sale.clientId) { this.notification.warning('Debe seleccionar un cliente.'); return; }
+    if (this.sale.itemType === 'SERVICE' && !this.sale.serviceId) { this.notification.warning('Debe seleccionar un servicio.'); return; }
+    if (this.sale.itemType === 'PRODUCT' && !this.sale.inventoryProductId) { this.notification.warning('Debe seleccionar un producto del inventario.'); return; }
+    if (this.sale.quantity <= 0) { this.notification.warning('La cantidad debe ser mayor a 0.'); return; }
 
     const payload: any = { ...this.sale };
     
@@ -200,12 +202,15 @@ export class EditSale implements OnInit {
         delete payload.serviceId;
     }
 
+    payload.saleTime = '00:00:00';
     this.isSubmitting = true;
     this.saleApi.updateSale(this.saleId, payload).subscribe({
-      next: () => this.router.navigate(['/ventas']),
+      next: () => {
+        this.notification.success('Venta actualizada correctamente.', '¡Éxito!');
+        this.router.navigate(['/ventas']);
+      },
       error: (err) => {
         this.isSubmitting = false;
-        alert('Hubo un error al guardar los cambios.');
         console.error(err);
       }
     });
@@ -213,13 +218,16 @@ export class EditSale implements OnInit {
 
   deleteSale() {
     if (this.originalSale?.sourceType === 'APPOINTMENT') {
-       alert('No se pueden eliminar las ventas vinculadas a una cita. Cancele la cita para anular la venta.');
+       this.notification.warning('No se pueden eliminar las ventas vinculadas a una cita. Cancele la cita para anular la venta.');
        return;
     }
     if (confirm('¿Está seguro de eliminar permanentemente esta venta manual?')) {
        this.saleApi.deleteSale(this.saleId).subscribe({
-         next: () => this.router.navigate(['/ventas']),
-         error: (err) => alert('Ocurrió un error al eliminar la venta.')
+         next: () => {
+           this.notification.success('Venta eliminada de los registros.', 'Eliminada');
+           this.router.navigate(['/ventas']);
+         },
+         error: (err) => this.notification.error('Ocurrió un error al eliminar la venta.')
        });
     }
   }

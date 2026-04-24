@@ -20,7 +20,7 @@ export interface SaleResponse {
   totalAmount: number;
   paymentMethod: PaymentMethod | null;
   saleDate: string; // yyyy-MM-dd
-  saleTime: string; // HH:mm:ss
+  saleTime?: string;
   notes: string | null;
   createdAt: string;
   updatedAt: string;

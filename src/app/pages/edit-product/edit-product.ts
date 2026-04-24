@@ -4,15 +4,17 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { ProductApiService } from '../../core/services/product-api.service';
 import { CategoryApiService } from '../../core/services/category-api.service';
-import { Product } from '../../core/models/product.model';
+import { Product, InventoryVariant } from '../../core/models/product.model';
 import { Category } from '../../core/models/category.model';
 import { AuthService } from '../../core/services/auth.service';
 import { UserRole } from '../../core/models/user.model';
+import { VariantConfigComponent } from '../inventory/components/variant-config/variant-config';
+import { NotificationService } from '../../core/services/notification.service';
 
 @Component({
   selector: 'app-edit-product',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule, VariantConfigComponent],
   templateUrl: './edit-product.html',
   styles: ``,
 })
@@ -24,36 +26,52 @@ export class EditProduct implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
+  private notification = inject(NotificationService);
 
   isEditMode = false;
   isSubmitting = false;
+  
+  selectedVariantToEdit: InventoryVariant | null = null;
+  editingVariantDraft: InventoryVariant | null = null;
 
   product: Product = {
     name: '',
     categoryId: 0,
     sku: '',
     stock: 0,
-    minimumStock: 0,
+    minimumStock: 10,
     status: 'IN_STOCK',
     purchasePrice: 0,
-    description: ''
+    description: '',
+    hasVariants: false,
+    variants: []
   };
 
   categories: Category[] = [];
 
-  statusOptions = [
-    { value: 'IN_STOCK', label: 'En Stock', color: 'bg-emerald-500' },
-    { value: 'LOW_STOCK', label: 'Stock Bajo', color: 'bg-orange-500' },
-    { value: 'OUT_OF_STOCK', label: 'Agotado', color: 'bg-red-500' }
-  ];
+  get statusLabel(): { label: string; cls: string } {
+    if (this.product.hasVariants) return { label: 'Gestionado por Variantes', cls: 'text-blue-600' };
+    if (this.product.stock <= 0) return { label: 'Agotado', cls: 'text-red-500' };
+    if (this.product.stock <= this.product.minimumStock) return { label: 'Bajo Stock', cls: 'text-orange-500' };
+    return { label: 'En Stock', cls: 'text-emerald-600' };
+  }
+
+  get totalVariantStock(): number {
+    return (this.product.variants ?? []).reduce((s, v) => s + (v.stock ?? 0), 0);
+  }
 
   ngOnInit(): void {
     this.loadCategories();
-    const id = this.route.snapshot.paramMap.get('id');
-    if (id && id !== 'nuevo') {
-      this.isEditMode = true;
-      this.loadProduct(Number(id));
-    }
+    this.route.paramMap.subscribe(params => {
+      const idStr = params.get('id');
+      if (idStr && idStr !== 'nuevo') {
+        const id = Number(idStr);
+        if (!isNaN(id)) {
+          this.isEditMode = true;
+          this.loadProduct(id);
+        }
+      }
+    });
   }
 
   loadCategories() {
@@ -69,48 +87,113 @@ export class EditProduct implements OnInit {
   loadProduct(id: number) {
     this.productApi.getProductById(id).subscribe({
       next: (data) => {
-        this.product = { ...data };
+        this.product = { 
+          ...data,
+          variants: data.variants ? data.variants.map(v => ({ ...v })) : []
+        };
         this.cdr.detectChanges();
       },
-      error: (err) => console.error('Error loading product:', err)
+      error: (err) => {
+        console.error('Error loading product:', err);
+        this.router.navigate(['/inventario']);
+      }
     });
   }
 
+  onToggleVariants() {
+    if (this.product.hasVariants && this.isEditMode && this.product.id && !this.product.hasVariants && this.product.stock > 0) {
+      this.notification.warning('No se puede convertir un producto simple con stock a un producto con variantes.');
+      this.product.hasVariants = false;
+      return;
+    }
+  }
+
+  onVariantsChange(variants: InventoryVariant[]) {
+    this.product.variants = variants;
+    this.cdr.detectChanges();
+  }
+
+  openVariantEditor(v: InventoryVariant) {
+    this.selectedVariantToEdit = v;
+    this.editingVariantDraft = { ...v };
+  }
+
+  saveVariantEditor() {
+    if (this.selectedVariantToEdit && this.editingVariantDraft) {
+      Object.assign(this.selectedVariantToEdit, this.editingVariantDraft);
+    }
+    this.selectedVariantToEdit = null;
+    this.editingVariantDraft = null;
+    this.cdr.detectChanges();
+  }
+
+  closeVariantEditor() {
+    this.selectedVariantToEdit = null;
+    this.editingVariantDraft = null;
+  }
+
   saveProduct() {
-     if (!this.product.name.trim()) {
-      alert('Debe introducir un nombre para el producto.');
+    if (!this.product.name.trim()) {
+      this.notification.warning('Debe introducir un nombre para el producto.');
       return;
     }
     if (!this.product.categoryId) {
-      alert('Debe seleccionar una categoría.');
+      this.notification.warning('Debe seleccionar una categoría.');
+      return;
+    }
+
+    if (this.product.hasVariants && (!this.product.variants || this.product.variants.length === 0)) {
+      this.notification.warning('Debe configurar al menos una variante si el producto tiene variantes.');
       return;
     }
 
     this.isSubmitting = true;
-    const obs = this.isEditMode 
-      ? this.productApi.updateProduct(this.product.id!, this.product)
-      : this.productApi.createProduct(this.product);
+
+    // Prepare payload (match modal logic)
+    const payload: Product = {
+      ...this.product,
+      name: this.product.name.trim(),
+      description: this.product.description?.trim() || undefined,
+      sku: this.product.hasVariants ? undefined : (this.product.sku?.trim() || undefined),
+      stock: this.product.hasVariants ? 0 : this.product.stock,
+      minimumStock: this.product.hasVariants ? 0 : this.product.minimumStock,
+      purchasePrice: this.product.hasVariants ? undefined : this.product.purchasePrice,
+      productType: this.product.hasVariants ? 'VARIANT' : 'SIMPLE',
+      variants: this.product.hasVariants ? this.product.variants?.map(v => ({
+        ...v,
+        active: v.active ?? true
+      })) : [],
+    };
+
+    const obs = this.isEditMode && this.product.id
+      ? this.productApi.updateProduct(this.product.id, payload)
+      : this.productApi.createProduct(payload);
 
     obs.subscribe({
       next: () => {
         this.isSubmitting = false;
+        this.notification.success(this.isEditMode ? 'Producto actualizado correctamente.' : 'Producto creado correctamente.', '¡Éxito!');
         this.router.navigate(['/inventario']);
       },
       error: (err) => {
         this.isSubmitting = false;
         console.error('Error saving product:', err);
-        const errorMsg = err.error?.message || (typeof err.error === 'string' ? err.error : JSON.stringify(err.error)) || 'Ocurrió un error al guardar el producto.';
-        alert(errorMsg);
         this.cdr.detectChanges();
       }
     });
   }
 
   deleteProduct() {
-    if (confirm('¿Está seguro de que desea eliminar este producto?')) {
-      this.productApi.deleteProduct(this.product.id!).subscribe({
-        next: () => this.router.navigate(['/inventario']),
-        error: (err) => console.error('Error deleting product:', err)
+    if (this.product.id && confirm('¿Está seguro de que desea eliminar este producto permanentemente?')) {
+      this.productApi.deleteProduct(this.product.id).subscribe({
+        next: () => {
+          this.notification.success('Producto eliminado del inventario.', 'Eliminado');
+          this.router.navigate(['/inventario']);
+        },
+        error: (err) => {
+          console.error('Error deleting product:', err);
+          this.notification.error('Error al eliminar el producto.');
+        }
       });
     }
   }
@@ -118,4 +201,12 @@ export class EditProduct implements OnInit {
   cancel() {
     this.router.navigate(['/inventario']);
   }
+
+  getVariantStatus(v: InventoryVariant): { label: string; cls: string } {
+    if (v.stock <= 0) return { label: 'Agotado', cls: 'text-red-500' };
+    if (v.stock <= v.minimumStock) return { label: 'Bajo Stock', cls: 'text-orange-500' };
+    return { label: 'En Stock', cls: 'text-emerald-500' };
+  }
+
+  trackByIndex(i: number) { return i; }
 }

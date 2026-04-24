@@ -6,6 +6,7 @@ import { SaleApiService } from '../../core/services/sale-api.service';
 import { ServiceApiService } from '../../core/services/service-api.service';
 import { ProductApiService } from '../../core/services/product-api.service';
 import { ClientApiService } from '../../core/services/client-api.service';
+import { NotificationService } from '../../core/services/notification.service';
 import { SaleRequest } from '../../core/models/sale.model';
 import { Service } from '../../core/models/service.model';
 import { Product, InventoryVariant } from '../../core/models/product.model';
@@ -25,6 +26,7 @@ export class CreateSale implements OnInit {
   private clientApi = inject(ClientApiService);
   private cdr = inject(ChangeDetectorRef);
   private router = inject(Router);
+  private notification = inject(NotificationService);
 
   services: Service[] = [];
   products: Product[] = [];
@@ -135,25 +137,25 @@ export class CreateSale implements OnInit {
 
   registerSale() {
     if (!this.newSale.clientId) {
-      alert('Debe seleccionar un cliente.');
+      this.notification.warning('Debe seleccionar un cliente.');
       return;
     }
     if (this.newSale.itemType === 'SERVICE' && !this.newSale.serviceId) {
-      alert('Debe seleccionar un servicio.');
+      this.notification.warning('Debe seleccionar un servicio.');
       return;
     }
     if (this.newSale.itemType === 'PRODUCT') {
       if (!this.newSale.inventoryProductId) {
-        alert('Debe seleccionar un producto del inventario.');
+        this.notification.warning('Debe seleccionar un producto del inventario.');
         return;
       }
       if (this.selectedProduct?.hasVariants && !this.newSale.inventoryProductVariantId) {
-        alert('Debe seleccionar una variante del producto.');
+        this.notification.warning('Debe seleccionar una variante del producto.');
         return;
       }
     }
     if (this.newSale.quantity <= 0) {
-      alert('La cantidad debe ser mayor a 0.');
+      this.notification.warning('La cantidad debe ser mayor a 0.');
       return;
     }
 
@@ -179,21 +181,19 @@ export class CreateSale implements OnInit {
         delete payload.serviceId;
     }
 
+    payload.saleTime = '00:00:00';
     this.isSubmitting = true;
     this.cdr.detectChanges();
 
     this.saleApi.createSale(payload).subscribe({
       next: (res) => {
+        this.notification.success('Venta registrada correctamente.', '¡Éxito!');
         this.router.navigate(['/ventas']);
       },
       error: (err) => {
         console.error('Error creando venta:', err);
         this.isSubmitting = false;
-        let errorMessage = 'Error al registrar la venta. ';
-        if(err.error) {
-            errorMessage += (err.error.message || JSON.stringify(err.error));
-        }
-        alert(errorMessage);
+        // La notificación global interceptará este mensaje, no necesitamos alert
         this.cdr.detectChanges();
       }
     });

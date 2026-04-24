@@ -1,10 +1,15 @@
-<div class="h-[calc(100vh-theme(spacing.20))] overflow-y-auto bg-slate-50/50">
+<div class="h-[calc(100vh-theme(spacing.20))] overflow-y-auto bg-white">
   <div class="max-w-7xl mx-auto py-8 px-8 pb-20">
 
     <!-- Page Header -->
-    <div class="mb-6">
-      <h1 class="text-[26px] font-bold text-slate-900 leading-tight">Gestión de Inventario</h1>
-      <p class="text-[14px] text-slate-500 mt-1">Gestiona productos simples y con variantes. Controla el stock de forma centralizada.</p>
+    <div class="mb-8">
+      <div class="text-[13px] font-medium text-slate-500 mb-1 flex items-center gap-1.5">
+        <span class="hover:text-blue-600 cursor-pointer transition-colors" routerLink="/">Inicio</span>
+        <span class="text-slate-400 text-[15px]">›</span>
+        <span class="text-slate-600">Inventario</span>
+      </div>
+      <h1 class="text-[28px] font-bold text-slate-900 leading-tight">Gestión de Inventario</h1>
+      <p class="text-[14px] text-slate-500 mt-0.5">Gestiona productos simples y con variantes. Controla el stock de forma centralizada.</p>
     </div>
 
     <!-- Search & Action toolbar -->
@@ -64,7 +69,7 @@
       </button>
 
       <!-- New Product -->
-      <button (click)="openNewModal()"
+      <button [routerLink]="['/inventario/nuevo']"
         class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-[14px] transition-colors shadow-sm whitespace-nowrap">
         <span class="material-symbols-outlined text-[18px]">add</span>
         Nuevo Producto
@@ -119,7 +124,7 @@
               <td class="px-5 py-4">
                 <div class="flex items-center gap-2">
                   <span class="text-[15px] font-black text-slate-900 tabular-nums">
-                    {{ product.hasVariants ? variantsTotalStock(product) : product.stock }}
+                    {{ product.stock }}
                   </span>
                   @if (product.hasVariants) {
                     <span class="text-[12px] text-slate-400 font-medium">total</span>
@@ -140,7 +145,7 @@
                   <button (click)="toggleExpand(product.id!)"
                     class="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-[13px] font-semibold">
                     <span class="material-symbols-outlined text-[15px]">workspaces</span>
-                    {{ product.variants?.length }} variantes
+                    {{ (product.variants?.length ?? product.variantCount ?? 0) }} variantes
                   </button>
                 } @else {
                   <span class="inline-flex items-center gap-1.5 text-slate-500 text-[13px] font-medium">
@@ -152,9 +157,9 @@
 
               <!-- Three-dot menu -->
               <td class="px-4 py-4">
-                <button (click)="openEditModal(product)"
-                  class="w-8 h-8 rounded-full text-slate-300 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100">
-                  <span class="material-symbols-outlined text-[20px]">more_vert</span>
+                <button [routerLink]="['/inventario/editar', product.id]"
+                  class="w-8 h-8 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100">
+                  <span class="material-symbols-outlined text-[20px]">edit</span>
                 </button>
               </td>
             </tr>
@@ -219,13 +224,3 @@
   </div>
 </div>
 
-<!-- Product Form Modal -->
-@if (isModalOpen) {
-  <app-inventory-form-modal
-    [product]="editingProduct"
-    [categories]="categories"
-    (save)="onSaveProduct($event)"
-    (delete)="onDeleteProduct($event)"
-    (close)="closeModal()">
-  </app-inventory-form-modal>
-}

@@ -10,6 +10,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { UserRole } from '../../core/models/user.model';
 import { BusinessSettings, DayOfWeek, OpeningHour, SpecialClosure } from '../../core/models/settings.model';
 import { Professional } from '../../core/models/professional.model';
+import { NotificationService } from '../../core/services/notification.service';
 
 @Component({
   selector: 'app-configuracion',
@@ -59,6 +60,7 @@ export class Configuracion implements OnInit, OnDestroy {
   private professionalApi = inject(ProfessionalApiService);
   authService = inject(AuthService);
   UserRole = UserRole;
+  private notification = inject(NotificationService);
 
   availableColors: { name: PrimaryColor, label: string, hex: string }[] = [
     { name: 'blue', label: 'Azul', hex: '#3b82f6' },
@@ -89,6 +91,8 @@ export class Configuracion implements OnInit, OnDestroy {
 
   professionals: Professional[] = [];
   isSubmitting = false;
+  saveStatus: 'idle' | 'saving' | 'saved' | 'error' = 'idle';
+  private saveResetTimer: any = null;
 
   // For adding/editing professional (Modal mini-state)
   isProfessionalModalOpen = false;
@@ -130,11 +134,31 @@ export class Configuracion implements OnInit, OnDestroy {
   }
 
   loadAll() {
-    this.settingsApi.getSettings().subscribe(data => {
-      this.settings = data;
+    this.settingsApi.getSettings().subscribe({
+      next: (data) => {
+        // Deep-merge backend response over the current defaults so no field gets wiped by null
+        this.settings = {
+          ...this.settings,        // start with conservative defaults
+          ...data,                 // overwrite with whatever backend returned
+          // Keep local logo if the backend didn't persist it (Base64 too large for some backends)
+          businessLogo: data.businessLogo || localStorage.getItem('fallback_businessLogo') || '',
+          // Ensure arrays are never null
+          openingHours: data.openingHours?.length ? data.openingHours : this.settings.openingHours,
+          specialClosures: data.specialClosures ?? [],
+        };
+      },
+      error: (err) => {
+        console.error('Error loading settings:', err);
+        // Restore from localStorage on API failure
+        const savedName = localStorage.getItem('fallback_businessName');
+        const savedLogo = localStorage.getItem('fallback_businessLogo');
+        if (savedName) this.settings.businessName = savedName;
+        if (savedLogo) this.settings.businessLogo = savedLogo;
+      }
     });
-    this.professionalApi.getProfessionals().subscribe(data => {
-      this.professionals = data;
+    this.professionalApi.getProfessionals().subscribe({
+      next: (data) => { this.professionals = data; },
+      error: (err) => console.error('Error loading professionals:', err)
     });
   }
 
@@ -146,14 +170,19 @@ export class Configuracion implements OnInit, OnDestroy {
   // --- Actions ---
 
   triggerSave() {
+    if (this.saveResetTimer) clearTimeout(this.saveResetTimer);
+    this.saveStatus = 'saving';
     this.isSubmitting = true;
     this.settingsApi.updateSettings(this.settings).subscribe({
       next: () => {
         this.isSubmitting = false;
-        console.log('Configuración auto-guardada');
+        this.saveStatus = 'saved';
+        this.saveResetTimer = setTimeout(() => { this.saveStatus = 'idle'; }, 3000);
       },
       error: (err) => {
         this.isSubmitting = false;
+        this.saveStatus = 'error';
+        this.saveResetTimer = setTimeout(() => { this.saveStatus = 'idle'; }, 5000);
         console.error('Error auto-saving settings:', err);
       }
     });
@@ -161,7 +190,33 @@ export class Configuracion implements OnInit, OnDestroy {
 
   saveAllSettings() {
     this.triggerSave();
-    alert('Configuración guardada correctamente');
+    this.notification.success('Configuración guardada correctamente.', '¡Guardado!');
+  }
+
+  // Logo file upload (Base64)
+  onLogoFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    // Validate size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      this.notification.warning('La imagen no puede superar 2MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      this.settings.businessLogo = e.target?.result as string;
+      localStorage.setItem('fallback_businessLogo', this.settings.businessLogo);
+      this.onFieldChange(); // triggers auto-save
+    };
+    reader.readAsDataURL(file);
+  }
+
+  removeLogo() {
+    this.settings.businessLogo = '';
+    this.onFieldChange();
   }
 
   // Management for Opening Hours
@@ -209,12 +264,12 @@ export class Configuracion implements OnInit, OnDestroy {
 
   saveProfessional() {
     if (!this.editingProfessional.fullName || !this.editingProfessional.specialty) {
-      alert('Nombre y especialidad son obligatorios');
+      this.notification.warning('Nombre y especialidad son obligatorios');
       return;
     }
 
     if (!this.editingProfessional.id && !this.editingProfessional.accessPassword) {
-      alert('La clave de acceso es obligatoria para nuevos profesionales');
+      this.notification.warning('La clave de acceso es obligatoria para nuevos profesionales');
       return;
     }
 
@@ -229,7 +284,7 @@ export class Configuracion implements OnInit, OnDestroy {
       },
       error: (err) => {
         console.error('Error saving professional:', err);
-        alert('Error al guardar el profesional. Compruebe los datos.');
+        this.notification.error('Error al guardar el profesional. Compruebe los datos.');
       }
     });
   }
@@ -245,7 +300,7 @@ export class Configuracion implements OnInit, OnDestroy {
         },
         error: (err) => {
           console.error('Error deleting professional:', err);
-          alert('Error al eliminar el profesional');
+          this.notification.error('Error al eliminar el profesional');
         }
       });
     }
