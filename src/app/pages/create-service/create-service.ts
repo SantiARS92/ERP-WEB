@@ -31,7 +31,7 @@ export class CreateService {
   private router = inject(Router);
 
   ngOnInit() {
-    this.categoryApi.getCategories().subscribe(cats => {
+    this.categoryApi.getCategories().subscribe((cats: Category[]) => {
       this.categories = cats;
       // Ensure we select the first category if none is selected
       if (this.categories.length > 0 && (this.service.categoryId === 0 || !this.service.categoryId)) {
@@ -56,11 +56,11 @@ export class CreateService {
     console.log('Enviando payload a la API:', this.service);
 
     this.serviceApi.createService(this.service).subscribe({
-      next: (response) => {
+      next: (response: any) => {
         console.log('Servicio creado con éxito:', response);
         this.router.navigate(['/servicios']);
       },
-      error: (err) => {
+      error: (err: any) => {
         console.error('Error completo de la API:', err);
         let errorMsg = 'Error al crear el servicio.\n\n';
         
@@ -70,7 +70,7 @@ export class CreateService {
             errorMsg += 'Detalle: ' + JSON.stringify(err.error, null, 2);
           }
         } else if (err.status === 0) {
-          errorMsg += 'No se pudo conectar con el servidor. Verifique que la API en localhost:8091 esté encendida.';
+          errorMsg += 'No se pudo conectar con el servidor. Verifique que la API esté encendida.';
         } else {
           errorMsg += `Código: ${err.status}\nMensaje: ${err.message}`;
         }
