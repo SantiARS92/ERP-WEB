@@ -2,15 +2,28 @@ import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { SaleApiService } from '../../core/services/sale-api.service';
 import { ServiceApiService } from '../../core/services/service-api.service';
 import { ProductApiService } from '../../core/services/product-api.service';
 import { ClientApiService } from '../../core/services/client-api.service';
 import { NotificationService } from '../../core/services/notification.service';
-import { SaleRequest } from '../../core/models/sale.model';
+import { SaleRequest, PaymentMethod } from '../../core/models/sale.model';
 import { Service } from '../../core/models/service.model';
 import { Product, InventoryVariant } from '../../core/models/product.model';
 import { Client } from '../../core/models/client.model';
+
+interface SaleLine {
+  itemType: 'SERVICE' | 'PRODUCT';
+  serviceId?: number;
+  inventoryProductId?: number;
+  inventoryProductVariantId?: number | null;
+  unitPrice?: number;
+  quantity: number;
+  selectedService?: Service | null;
+  selectedProduct?: Product | null;
+  selectedVariant?: InventoryVariant | null;
+}
 
 @Component({
   selector: 'app-create-sale',
@@ -32,22 +45,30 @@ export class CreateSale implements OnInit {
   products: Product[] = [];
   clients: Client[] = [];
 
-  selectedClient: Client | null = null;
-  selectedProduct: Product | null = null;
-  selectedService: Service | null = null;
-  selectedVariant: InventoryVariant | null = null;
-
   totalEstimado = 0;
-  stockRestante = 0;
 
-  newSale: SaleRequest = {
-    clientId: undefined,
-    itemType: 'SERVICE',
-    quantity: 1,
-    paymentMethod: 'CASH',
-    saleDate: new Date().toISOString().split('T')[0],
-    notes: ''
+  sharedData = {
+    clientId: undefined as number | undefined,
+    paymentMethod: 'CASH' as PaymentMethod,
+    saleDate: new Date().toISOString().split('T')[0], // YYYY-MM-DD
+    notes: '',
   };
+
+  saleLines: SaleLine[] = [this.createEmptyLine()];
+  
+  createEmptyLine(): SaleLine {
+    return { itemType: 'SERVICE', quantity: 1 };
+  }
+  
+  addLine() {
+    this.saleLines.push(this.createEmptyLine());
+  }
+
+  removeLine(index: number) {
+    if (this.saleLines.length === 1) return; //siempre debe quedar al menos 1
+    this.saleLines.splice(index, 1);
+    this.calculateSummary();
+  }
 
   constructor() {
     // Add watcher for quantities and prices if they change manually
@@ -61,20 +82,21 @@ export class CreateSale implements OnInit {
     this.productApi.getProducts({ size: 500 }).subscribe({ next: (res) => { this.products = res.content || []; this.cdr.detectChanges(); } });
   }
 
-  onProductChange() {
-    const productId = Number(this.newSale.inventoryProductId);
+  onProductChange(index: number) {
+    const line = this.saleLines[index];
+    const productId = Number(line.inventoryProductId);
     if (!productId) {
-      this.selectedProduct = null;
-      this.selectedVariant = null;
-      this.newSale.inventoryProductVariantId = null;
+      line.selectedProduct = null;
+      line.selectedVariant = null;
+      line.inventoryProductVariantId = null;
       return;
     }
-
+    
     const product = this.products.find(p => p.id === productId);
     if (product) {
-      this.selectedProduct = product;
-      this.selectedVariant = null;
-      this.newSale.inventoryProductVariantId = null;
+      line.selectedProduct = product;
+      line.selectedVariant = null;
+      line.inventoryProductVariantId = null;
 
       // If it has variants but they aren't loaded (backend might return variants: [] in list)
       if (product.hasVariants && (!product.variants || product.variants.length === 0)) {
@@ -90,104 +112,98 @@ export class CreateSale implements OnInit {
     this.calculateSummary();
   }
 
-  onVariantChange() {
-    const variantId = Number(this.newSale.inventoryProductVariantId);
-    if (this.selectedProduct && variantId) {
-      this.selectedVariant = this.selectedProduct.variants?.find(v => v.id === variantId) || null;
-      if (this.selectedVariant && this.selectedVariant.purchasePrice) {
-          this.newSale.unitPrice = this.selectedVariant.purchasePrice;
-      } else if (this.selectedProduct.purchasePrice) {
-          this.newSale.unitPrice = this.selectedProduct.purchasePrice;
+  onVariantChange(index: number) {
+    const line = this.saleLines[index];
+    const variantId = Number(line.inventoryProductVariantId);
+    if (line.selectedProduct && variantId) {
+      line.selectedVariant = line.selectedProduct.variants?.find(v => v.id === variantId) || null;
+      if (line.selectedVariant?.purchasePrice) {
+          line.unitPrice = line.selectedVariant.purchasePrice;
+      } else if (line.selectedProduct.purchasePrice) {
+          line.unitPrice = line.selectedProduct.purchasePrice;
       }
     } else {
-      this.selectedVariant = null;
+      line.selectedVariant = null;
     }
     this.calculateSummary();
   }
 
-  onClientChange() {
-    this.selectedClient = this.clients.find(c => c.id === Number(this.newSale.clientId)) || null;
-  }
-
-  onServiceChange() {
-    this.selectedService = this.services.find(s => s.id === Number(this.newSale.serviceId)) || null;
-    if (this.selectedService) {
-        this.newSale.unitPrice = this.selectedService.price;
+  onServiceChange(index: number) {
+    const line = this.saleLines[index];
+    line.selectedService = this.services.find(s => s.id === Number(line.serviceId)) || null;
+    if (line.selectedService) {
+        line.unitPrice = line.selectedService.price;
     }
     this.calculateSummary();
   }
 
   calculateSummary() {
-    const qty = this.newSale.quantity || 0;
-    let price = this.newSale.unitPrice || 0;
+    this.totalEstimado = this.saleLines.reduce((sum, line) => {;
+    const qty = line.quantity || 0;
+    let price = line.unitPrice || 0;
 
-    if (!this.newSale.unitPrice && this.newSale.itemType === 'SERVICE' && this.selectedService) {
-        price = this.selectedService.price;
+    if (!line.unitPrice && line.itemType === 'SERVICE' && line.selectedService) {
+        price = line.selectedService.price;
     }
-
-    this.totalEstimado = qty * price;
-
-    if (this.newSale.itemType === 'PRODUCT' && this.selectedProduct) {
-        const currentStock = this.selectedVariant ? this.selectedVariant.stock : this.selectedProduct.stock;
-        this.stockRestante = Math.max(0, currentStock - qty);
-    } else {
-        this.stockRestante = 0;
-    }
+    return sum + (qty * price);
+    }, 0);
   }
-
+  
   registerSale() {
-    if (!this.newSale.clientId) {
+    if (!this.sharedData.clientId) {
       this.notification.warning('Debe seleccionar un cliente.');
       return;
     }
-    if (this.newSale.itemType === 'SERVICE' && !this.newSale.serviceId) {
-      this.notification.warning('Debe seleccionar un servicio.');
-      return;
-    }
-    if (this.newSale.itemType === 'PRODUCT') {
-      if (!this.newSale.inventoryProductId) {
-        this.notification.warning('Debe seleccionar un producto del inventario.');
+
+    for (const line of this.saleLines) {
+      if (line.itemType === 'SERVICE' && !line.serviceId) {
+        this.notification.warning('Debe seleccionar un servicio en todas las líneas.');
         return;
       }
-      if (this.selectedProduct?.hasVariants && !this.newSale.inventoryProductVariantId) {
-        this.notification.warning('Debe seleccionar una variante del producto.');
-        return;
-      }
-    }
-    if (this.newSale.quantity <= 0) {
-      this.notification.warning('La cantidad debe ser mayor a 0.');
-      return;
-    }
-
-    const payload: any = { ...this.newSale };
-    
-    // Convert numbers explicitly
-    payload.clientId = Number(payload.clientId);
-    payload.quantity = Number(payload.quantity);
-    if (payload.unitPrice) payload.unitPrice = Number(payload.unitPrice);
-
-    if (payload.itemType === 'SERVICE') {
-        payload.serviceId = Number(payload.serviceId);
-        delete payload.inventoryProductId;
-        delete payload.inventoryProductVariantId;
-    } else {
-        payload.inventoryProductId = Number(payload.inventoryProductId);
-        if (this.selectedProduct?.hasVariants) {
-          payload.inventoryProductVariantId = Number(payload.inventoryProductVariantId);
-        } else {
-          // Explicitly null or omit for simple products
-          payload.inventoryProductVariantId = null;
+      if (line.itemType === 'PRODUCT') {
+        if (!line.inventoryProductId) {
+          this.notification.warning('Debe seleccionar un producto del inventario en todas las líneas.');
+          return;
         }
-        delete payload.serviceId;
+        if (line.selectedProduct?.hasVariants && !line.inventoryProductVariantId) {
+          this.notification.warning('Debe seleccionar una variante del producto en todas las líneas.');
+          return;
+        }
+      }
+      if (line.quantity <= 0) {
+        this.notification.warning('La cantidad debe ser mayor a 0 en todas las líneas.');
+        return;
+      }
     }
 
-    payload.saleTime = '00:00:00';
+    const requests = this.saleLines.map(line => {
+      const payLoad: any = {
+        clientId: Number(this.sharedData.clientId),
+        itemType: line.itemType,
+        quantity: Number(line.quantity),
+        paymentMethod: this.sharedData.paymentMethod,
+        saleDate: this.sharedData.saleDate,
+        saleTime: '00:00:00',
+        notes: this.sharedData.notes,
+      };
+      if (line.unitPrice) payLoad.unitPrice = Number(line.unitPrice);
+
+      if (line.itemType === 'SERVICE') {
+        payLoad.serviceId = Number(line.serviceId);
+      } else {
+        payLoad.inventoryProductId = Number(line.inventoryProductId);
+        payLoad.inventoryProductVariantId = line.selectedProduct?.hasVariants ? Number(line.inventoryProductVariantId) : null;
+      }
+      return this.saleApi.createSale(payLoad);
+    });
+
     this.isSubmitting = true;
     this.cdr.detectChanges();
-
-    this.saleApi.createSale(payload).subscribe({
-      next: (res) => {
-        this.notification.success('Venta registrada correctamente.', '¡Éxito!');
+    
+    // Execute all requests in parallel
+    forkJoin(requests).subscribe({
+      next: () => {
+        this.notification.success(`${requests.length} venta(s) registrada(s) correctamente.`, '¡Éxito!');
         this.router.navigate(['/ventas']);
       },
       error: (err) => {

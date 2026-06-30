@@ -26,7 +26,7 @@
             <label class="text-[13px] font-bold text-slate-900">Cliente *</label>
             <div class="relative">
               <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">person</span>
-              <select [(ngModel)]="newSale.clientId" name="clientId" (change)="onClientChange()" required
+              <select [(ngModel)]="sharedData.clientId" name="clientId" required
                       class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
                 <option [ngValue]="undefined" disabled>Selecciona un cliente...</option>
                 <option *ngFor="let c of clients" [value]="c.id">{{ c.fullName }} — {{ c.phone }}</option>
@@ -35,90 +35,106 @@
             </div>
           </div>
 
-          <!-- Type Toggle -->
-          <div class="flex items-center gap-6 py-2">
-             <label class="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="itemType" value="SERVICE" [(ngModel)]="newSale.itemType" (change)="calculateSummary()" class="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer">
-                <span class="text-[14px] font-medium text-slate-700">Servicio</span>
-             </label>
+          <!-- ===== Bloque repetible: una iteración por línea de venta ===== -->
+          <div *ngFor="let line of saleLines; let i = index" class="border border-slate-200 rounded-xl p-5 space-y-5 relative">
 
-             <label class="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="itemType" value="PRODUCT" [(ngModel)]="newSale.itemType" (change)="calculateSummary()" class="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer">
-                <span class="text-[14px] font-medium text-slate-700">Producto</span>
-             </label>
-          </div>
+            <button type="button" *ngIf="saleLines.length > 1" (click)="removeLine(i)"
+                    class="absolute top-3 right-3 text-slate-400 hover:text-red-500">
+              <span class="material-symbols-outlined text-[20px]">delete</span>
+            </button>
 
-          <!-- Product Flow -->
-          <div class="space-y-6" *ngIf="newSale.itemType === 'PRODUCT'">
-            <div class="space-y-1.5">
-              <label class="text-[13px] font-bold text-slate-900">Producto *</label>
+            <!-- Type Toggle -->
+            <div class="flex items-center gap-6 py-2">
+               <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" [name]="'itemType-' + i" value="SERVICE" [(ngModel)]="line.itemType" (change)="calculateSummary()" class="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer">
+                  <span class="text-[14px] font-medium text-slate-700">Servicio</span>
+               </label>
+
+               <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" [name]="'itemType-' + i" value="PRODUCT" [(ngModel)]="line.itemType" (change)="calculateSummary()" class="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer">
+                  <span class="text-[14px] font-medium text-slate-700">Producto</span>
+               </label>
+            </div>
+
+            <!-- Product Flow -->
+            <div class="space-y-6" *ngIf="line.itemType === 'PRODUCT'">
+              <div class="space-y-1.5">
+                <label class="text-[13px] font-bold text-slate-900">Producto *</label>
+                <div class="relative">
+                  <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">inventory_2</span>
+                  <select [(ngModel)]="line.inventoryProductId" [name]="'product-' + i" (change)="onProductChange(i)" required
+                          class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
+                    <option [ngValue]="undefined" disabled>Selecciona un producto...</option>
+                    <option *ngFor="let p of products" [value]="p.id">
+                      {{ p.name }} {{ p.hasVariants ? '(' + (p.variants?.length || p.variantCount || 0) + ' variantes)' : '' }}
+                    </option>
+                  </select>
+                  <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+                </div>
+              </div>
+
+              <!-- Variant Selection -->
+              <div class="space-y-1.5" *ngIf="line.selectedProduct?.hasVariants">
+                <label class="text-[13px] font-bold text-slate-900">Variante del Producto *</label>
+                <div class="relative">
+                  <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">layers</span>
+                  <select [(ngModel)]="line.inventoryProductVariantId" [name]="'variant-' + i" (change)="onVariantChange(i)" required
+                          class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
+                    <option [ngValue]="null" disabled>Selecciona producto a reponer...</option>
+                    <option *ngFor="let v of line.selectedProduct?.variants" [value]="v.id">
+                      {{ v.variantLabel }} — Stock: {{ v.stock }}
+                    </option>
+                  </select>
+                  <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Service Selection -->
+            <div class="space-y-1.5" *ngIf="line.itemType === 'SERVICE'">
+              <label class="text-[13px] font-bold text-slate-900">Servicio *</label>
               <div class="relative">
-                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">inventory_2</span>
-                <select [(ngModel)]="newSale.inventoryProductId" name="inventoryProductId" (change)="onProductChange()" required
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">local_florist</span>
+                <select [(ngModel)]="line.serviceId" [name]="'service-' + i" (change)="onServiceChange(i)" required
                         class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
-                  <option [ngValue]="undefined" disabled>Selecciona un producto...</option>
-                  <option *ngFor="let p of products" [value]="p.id">
-                    {{ p.name }} {{ p.hasVariants ? '(' + (p.variants?.length || p.variantCount || 0) + ' variantes)' : '' }}
-                  </option>
+                  <option [ngValue]="undefined" disabled>Selecciona un servicio...</option>
+                  <option *ngFor="let s of services" [value]="s.id">{{ s.name }} ({{ s.price }}€)</option>
                 </select>
                 <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
               </div>
             </div>
 
-            <!-- Variant Selection -->
-            <div class="space-y-1.5" *ngIf="selectedProduct?.hasVariants">
-              <label class="text-[13px] font-bold text-slate-900">Variante del Producto *</label>
-              <div class="relative">
-                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">layers</span>
-                <select [(ngModel)]="newSale.inventoryProductVariantId" name="inventoryProductVariantId" (change)="onVariantChange()" required
-                        class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
-                  <option [ngValue]="null" disabled>Selecciona producto a reponer...</option>
-                  <option *ngFor="let v of selectedProduct?.variants" [value]="v.id">
-                    {{ v.variantLabel }} — Stock: {{ v.stock }}
-                  </option>
-                </select>
-                <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+            <!-- Price and Quantity Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="space-y-1.5">
+                <label class="text-[13px] font-bold text-slate-900">Precio Unitario (€)</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-[14px]">€</span>
+                  <input type="number" [(ngModel)]="line.unitPrice" [name]="'price-' + i" (input)="calculateSummary()" step="0.01" placeholder="0.00"
+                         class="w-full pl-8 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700">
+                </div>
+                <p class="text-[11px] text-slate-400 mt-1">Si se deja vacío, se usará el precio del servicio.</p>
+              </div>
+              <div class="space-y-1.5">
+                <label class="text-[13px] font-bold text-slate-900">Cantidad *</label>
+                <input type="number" [(ngModel)]="line.quantity" [name]="'qty-' + i" (input)="calculateSummary()" min="1" required
+                       class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700">
               </div>
             </div>
-          </div>
 
-          <!-- Service Selection -->
-          <div class="space-y-1.5" *ngIf="newSale.itemType === 'SERVICE'">
-            <label class="text-[13px] font-bold text-slate-900">Servicio *</label>
-            <div class="relative">
-              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">local_florist</span>
-              <select [(ngModel)]="newSale.serviceId" name="serviceId" (change)="onServiceChange()" required
-                      class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
-                <option [ngValue]="undefined" disabled>Selecciona un servicio...</option>
-                <option *ngFor="let s of services" [value]="s.id">{{ s.name }} ({{ s.price }}€)</option>
-              </select>
-              <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
-            </div>
           </div>
+          <!-- ===== Fin bloque repetible ===== -->
 
-          <!-- Price and Quantity Grid -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="space-y-1.5">
-              <label class="text-[13px] font-bold text-slate-900">Precio Unitario (€)</label>
-              <div class="relative">
-                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-[14px]">€</span>
-                <input type="number" [(ngModel)]="newSale.unitPrice" name="unitPrice" (input)="calculateSummary()" step="0.01" placeholder="0.00"
-                       class="w-full pl-8 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700">
-              </div>
-              <p class="text-[11px] text-slate-400 mt-1">Si se deja vacío, se usará el precio del servicio.</p>
-            </div>
-            <div class="space-y-1.5">
-              <label class="text-[13px] font-bold text-slate-900">Cantidad *</label>
-              <input type="number" [(ngModel)]="newSale.quantity" name="quantity" (input)="calculateSummary()" min="1" required
-                     class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700">
-            </div>
-          </div>
+          <button type="button" (click)="addLine()"
+                  class="text-blue-600 font-semibold text-[14px] hover:text-blue-700 flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[18px]">add</span> Añadir línea
+          </button>
 
           <!-- Date -->
           <div class="space-y-1.5">
             <label class="text-[13px] font-bold text-slate-900">Fecha</label>
             <div class="relative">
-              <input type="date" [(ngModel)]="newSale.saleDate" name="saleDate" required
+              <input type="date" [(ngModel)]="sharedData.saleDate" name="saleDate" required
                      class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700">
             </div>
           </div>
@@ -128,7 +144,7 @@
             <label class="text-[13px] font-bold text-slate-900">Método de Pago</label>
             <div class="relative">
               <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">payments</span>
-              <select [(ngModel)]="newSale.paymentMethod" name="paymentMethod" required
+              <select [(ngModel)]="sharedData.paymentMethod" name="paymentMethod" required
                       class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
                 <option [ngValue]="undefined" disabled>Seleccione método...</option>
                 <option value="CASH">Efectivo</option>
@@ -144,7 +160,7 @@
           <!-- Notes -->
           <div class="space-y-1.5">
             <label class="text-[13px] font-bold text-slate-900">Notas</label>
-            <textarea [(ngModel)]="newSale.notes" name="notes" placeholder="Añade cualquier detalle aquí..." rows="3"
+            <textarea [(ngModel)]="sharedData.notes" name="notes" placeholder="Añade cualquier detalle aquí..." rows="3"
                       class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 resize-none"></textarea>
           </div>
 
@@ -162,7 +178,7 @@
                     class="px-5 py-2.5 text-slate-600 hover:bg-slate-200 font-semibold text-[14px] rounded-xl transition-all text-center">
               Cancelar
             </button>
-            <button [disabled]="isSubmitting || !newSale.clientId" (click)="registerSale()"
+            <button [disabled]="isSubmitting || !sharedData.clientId" (click)="registerSale()"
                     class="flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-[14px] rounded-xl transition-all shadow-sm">
               <span class="material-symbols-outlined text-[18px]" *ngIf="isSubmitting">progress_activity</span>
               {{ isSubmitting ? 'Guardando...' : 'Registrar Venta' }}
