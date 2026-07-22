@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpContext } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Professional } from '../models/professional.model';
 import { environment } from '../../../environments/environment';
@@ -10,13 +10,12 @@ import { environment } from '../../../environments/environment';
 export class ProfessionalApiService {
   private http = inject(HttpClient);
   private apiUrl = `${environment.apiUrl}/api/professionals`;
-
-  getProfessionals(active?: boolean): Observable<Professional[]> {
+  getProfessionals(active?: boolean, context?: HttpContext ): Observable<Professional[]> {
     let params = new HttpParams();
     if (active !== undefined) {
       params = params.set('active', active.toString());
     }
-    return this.http.get<Professional[]>(this.apiUrl, { params });
+    return this.http.get<Professional[]>(this.apiUrl, { params, context });
   }
 
   getProfessionalById(id: number): Observable<Professional> {
