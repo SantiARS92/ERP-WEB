@@ -1,4 +1,4 @@
-import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
+import { HttpInterceptorFn, HttpErrorResponse, HttpContextToken } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, throwError } from 'rxjs';
 import { NotificationService } from '../services/notification.service';
@@ -35,9 +35,12 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           errorMessage = error.error;
         }
       }
-
+      if (req.context.get(silentError)) {
+        return throwError(() => error);
+      }else {
       notificationService.error(errorMessage, errorTitle);
       return throwError(() => error);
-    })
+}})
   );
 };
+export const silentError = new HttpContextToken<boolean>(() => false);

@@ -3,6 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { BusinessSettings } from '../models/settings.model';
 import { environment } from '../../../environments/environment';
+import { HttpContext } from '@angular/common/http';
+import { silentError } from '../interceptors/error.interceptor';
 
 @Injectable({
   providedIn: 'root'
@@ -20,10 +22,11 @@ export class SettingsApiService {
   }
 
   loadSettings(): void {
-    this.http.get<BusinessSettings>(this.apiUrl).subscribe({
+    this.http.get<BusinessSettings>(this.apiUrl, { context: new HttpContext().set(silentError, true) }).subscribe({
       next: (data) => {
         // Fallback: Restore from localStorage if backend returned empty but we have a local copy
         const enriched = this.applyLocalStorageFallback(data);
+      
         this.settingsSignal.set(enriched);
       },
       error: (err) => {

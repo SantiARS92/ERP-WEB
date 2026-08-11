@@ -6,6 +6,8 @@ import { SettingsApiService } from '../../core/services/settings-api.service';
 import { ProfessionalApiService } from '../../core/services/professional-api.service';
 import { UserRole } from '../../core/models/user.model';
 import { Professional } from '../../core/models/professional.model';
+import { HttpContext } from '@angular/common/http';
+import { silentError } from '../../core/interceptors/error.interceptor';
 
 @Component({
   selector: 'app-login',
@@ -35,7 +37,7 @@ export class Login {
   }
 
   loadProfessionals() {
-    this.professionalApi.getProfessionals(true).subscribe({
+    this.professionalApi.getProfessionals(true, new HttpContext().set(silentError, true)).subscribe({
       next: (data) => this.professionals.set(data),
       error: () => console.error('Error loading professionals for login')
     });
