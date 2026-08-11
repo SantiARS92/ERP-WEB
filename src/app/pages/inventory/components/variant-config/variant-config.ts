@@ -78,7 +78,7 @@ export class VariantConfigComponent {
     const combos = this.cartesian(this.attributes.map(a => a.values));
     this.generatedVariants = combos.map((combo, i) => ({
       variantLabel: combo.join(' / '),
-      sku: `SKU-${String(i + 1).padStart(3, '0')}`,
+      sku: '',
       stock: 0,
       minimumStock: 5,
       purchasePrice: 0,
