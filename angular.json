@@ -3,13 +3,22 @@
   "version": 1,
   "cli": {
     "packageManager": "pnpm",
-    "analytics": "f55e9089-0390-40e7-9ec6-8b1aa0c49963"
+    "analytics": "f55e9089-0390-40e7-9ec6-8b1aa0c49963",
+    "schematicCollections": [
+      "angular-eslint"
+    ]
   },
   "newProjectRoot": "projects",
   "projects": {
     "AppPimes": {
       "projectType": "application",
-      "schematics": {},
+      "schematics": {
+        "@schematics/angular:component": {
+          "changeDetection": "OnPush",
+          "style": "css",
+          "skipTests": false
+        }
+      },
       "root": "",
       "sourceRoot": "src",
       "prefix": "app",
@@ -73,6 +82,15 @@
         },
         "test": {
           "builder": "@angular/build:unit-test"
+        },
+        "lint": {
+          "builder": "@angular-eslint/builder:lint",
+          "options": {
+            "lintFilePatterns": [
+              "src/**/*.ts",
+              "src/**/*.html"
+            ]
+          }
         }
       }
     }

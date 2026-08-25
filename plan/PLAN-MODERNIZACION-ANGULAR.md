@@ -8,7 +8,7 @@
 | Angular | 21.1.x |
 | Gestor de paquetes | pnpm 10.33.0 |
 | Fecha de análisis | 2026-08-25 |
-| Estado global | 🟡 Fase 2 completada |
+| Estado global | 🟡 Fase 3 completada |
 
 ---
 
@@ -156,7 +156,7 @@ así se centraliza en un `StorageService` en Fase 7 por testabilidad.
 
 ## FASE 3 — Tooling
 
-> **Riesgo:** bajo · **Habilita el resto** · **Estado:** 🔴 pendiente
+> **Riesgo:** bajo · **Habilita el resto** · **Estado:** 🟢 completada
 
 | # | Acción |
 |---|---|
@@ -167,8 +167,9 @@ así se centraliza en un `StorageService` en Fase 7 por testabilidad.
 | 3.5 | `index.html`: `lang="en"` → `lang="es"`; añadir `<meta name="description">` y `<meta name="theme-color">`. |
 | 3.6 | Configurar el setup de `vitest` / `tsconfig.spec.json` y verificar que `pnpm test` ejecuta realmente. Fijar baseline verde. |
 
-**Punto de control:** `pnpm lint` arrojará ~100+ hallazgos. Ese listado es el backlog
-verificable de las fases 4–8.
+**Punto de control:** `pnpm lint` arroja **341 hallazgos** (296 errores, 45 warnings). Ese
+listado es el backlog verificable de las fases 4–8; el desglose por regla está en
+`plan/fases/fase-03-tooling.md`.
 
 ---
 
@@ -432,7 +433,7 @@ Cada fase completada genera un documento en `plan/fases/` siguiendo la plantilla
 |---|---|---|---|---|
 | 1 — Bloqueantes | `fases/fase-01-bloqueantes.md` | 🟢 Completada | 2026-08-26 | `9f48799` |
 | 2 — Eliminación SSR | `fases/fase-02-eliminacion-ssr.md` | 🟢 Completada | 2026-08-26 | `8b761dc` |
-| 3 — Tooling | `fases/fase-03-tooling.md` | 🔴 Pendiente | — | — |
+| 3 — Tooling | `fases/fase-03-tooling.md` | 🟢 Completada | 2026-08-26 | `<pendiente>` |
 | 4 — Migraciones automáticas | `fases/fase-04-migraciones-automaticas.md` | 🔴 Pendiente | — | — |
 | 5 — Limpieza | `fases/fase-05-limpieza.md` | 🔴 Pendiente | — | — |
 | 6 — Reactividad | `fases/fase-06-reactividad.md` | 🔴 Pendiente | — | — |
