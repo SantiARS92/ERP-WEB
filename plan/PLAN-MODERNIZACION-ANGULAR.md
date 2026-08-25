@@ -8,7 +8,7 @@
 | Angular | 21.1.x |
 | Gestor de paquetes | pnpm 10.33.0 |
 | Fecha de análisis | 2026-08-25 |
-| Estado global | 🟡 Fase 1 completada |
+| Estado global | 🟡 Fase 2 completada |
 
 ---
 
@@ -129,7 +129,7 @@ variantes. `inventory.ts:122` repite el patrón en cada cambio de página.
 
 ## FASE 2 — Eliminación de SSR
 
-> **Riesgo:** bajo · **Estado:** 🔴 pendiente
+> **Riesgo:** bajo · **Estado:** 🟢 completada
 
 **Borrar:**
 
@@ -406,7 +406,7 @@ aplicar `font-display: swap` y precarga selectiva.
 | Modelos de página | 6 | 1 |
 | Rutas eager | 20 | 0 |
 | `.subscribe()` en componentes | 85 | ~5 |
-| Ficheros SSR | 4 | 0 |
+| Ficheros SSR | 4 | 0 ✅ |
 
 ### Ficheros nuevos previstos
 
@@ -431,7 +431,7 @@ Cada fase completada genera un documento en `plan/fases/` siguiendo la plantilla
 | Fase | Documento | Estado | Fecha | Commit |
 |---|---|---|---|---|
 | 1 — Bloqueantes | `fases/fase-01-bloqueantes.md` | 🟢 Completada | 2026-08-26 | `9f48799` |
-| 2 — Eliminación SSR | `fases/fase-02-eliminacion-ssr.md` | 🔴 Pendiente | — | — |
+| 2 — Eliminación SSR | `fases/fase-02-eliminacion-ssr.md` | 🟢 Completada | 2026-08-26 | `<sha>` |
 | 3 — Tooling | `fases/fase-03-tooling.md` | 🔴 Pendiente | — | — |
 | 4 — Migraciones automáticas | `fases/fase-04-migraciones-automaticas.md` | 🔴 Pendiente | — | — |
 | 5 — Limpieza | `fases/fase-05-limpieza.md` | 🔴 Pendiente | — | — |

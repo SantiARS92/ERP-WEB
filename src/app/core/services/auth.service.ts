@@ -49,10 +49,7 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('accessToken');
-    }
-    return null;
+    return localStorage.getItem('accessToken');
   }
 
   login(username: string, password: string): Observable<User> {
@@ -81,19 +78,15 @@ export class AuthService {
       avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(res.displayName)}&background=EEF2FF&color=4338CA&bold=true&size=128`
     };
 
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('accessToken', res.accessToken);
-    }
-    
+    localStorage.setItem('accessToken', res.accessToken);
+
     this.isLoggedIn.set(true);
     this.currentUser.set(user);
     this.router.navigate(['/panel']);
   }
 
   logout() {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('accessToken');
-    }
+    localStorage.removeItem('accessToken');
     this.isLoggedIn.set(false);
     this.currentUser.set(null);
     this.router.navigate(['/login']);
