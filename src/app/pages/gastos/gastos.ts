@@ -127,8 +127,8 @@ export class Gastos implements OnInit {
         a.download = `historial_gastos_${this.fromDate}_${this.toDate}.pdf`;
         document.body.appendChild(a);
         a.click();
-        window.URL.revokeObjectURL(url);
         a.remove();
+        window.URL.revokeObjectURL(url);
       },
       error: (err) => {
         console.error('Error exporting PDF', err);

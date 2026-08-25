@@ -4,15 +4,6 @@ import { RouterModule } from '@angular/router';
 import { ReportApiService } from '../../../core/services/report-api.service';
 import { MonthlyDetailedReport } from '../../../core/models/report.model';
 
-const MOCK_MONTHLY_DETAILED: MonthlyDetailedReport = {
-  year: 2026, month: 3,
-  grossIncome: 24500.00, grossExpenses: 8200.00, operatingProfit: 16300.00,
-  estimatedIncomeBase: 20247.93, estimatedExpenseBase: 6776.86,
-  estimatedOutputVat: 4252.07, estimatedInputVat: 1423.14,
-  estimatedVatPayable: 2828.93, estimatedIrpfPayable: 3037.19,
-  estimatedTotalTaxes: 5866.12, profitabilityRatio: 66.5,
-};
-
 import { FormsModule } from '@angular/forms';
 
 @Component({
@@ -48,7 +39,7 @@ export class InformeMensualDetallado implements OnInit {
     this.reportData = null;
     this.reportApi.getMonthlyDetailed(this.selectedYear, this.selectedMonth).subscribe({
       next: (data) => { this.reportData = data; this.cdr.detectChanges(); },
-      error: () => { this.hasError = true; this.reportData = MOCK_MONTHLY_DETAILED; this.cdr.detectChanges(); }
+      error: () => { this.hasError = true; this.reportData = null; this.cdr.detectChanges(); }
     });
   }
 

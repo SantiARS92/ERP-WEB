@@ -7,46 +7,8 @@ import { CategoryApiService } from '../../core/services/category-api.service';
 import { Product, ProductPage, InventoryVariant } from '../../core/models/product.model';
 import { Category } from '../../core/models/category.model';
 import { PaginationComponent } from '../../shared/components/pagination/pagination';
-import { forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
-
-// ─── Mock data shown when backend returns no products ─────────────────────────
-const MOCK_PRODUCTS: Product[] = [
-  {
-    id: 1, name: 'Champú Kerastase', categoryId: 1, categoryName: 'Cabello',
-    sku: 'CHA-001', stock: 42, minimumStock: 5,
-    status: 'IN_STOCK', statusLabel: 'En stock',
-    productType: 'SIMPLE', hasVariants: false, purchasePrice: 12.5,
-    createdAt: '2024-01-10',
-  },
-  {
-    id: 2, name: 'Camiseta Básica', categoryId: 2, categoryName: 'Ropa',
-    sku: undefined, stock: 0, minimumStock: 5,
-    status: 'OUT_OF_STOCK', statusLabel: 'Agotado',
-    productType: 'VARIANT', hasVariants: true, purchasePrice: 0,
-    createdAt: '2024-02-01',
-    variants: [
-      { id: 1, variantLabel: 'M / Verde', sku: 'CAM-M-VER', stock: 0, minimumStock: 2, purchasePrice: 8 },
-      { id: 2, variantLabel: 'M / Rojo',  sku: 'CAM-M-ROJ', stock: 3, minimumStock: 2, purchasePrice: 8 },
-      { id: 3, variantLabel: 'S / Verde', sku: 'CAM-S-VER', stock: 0, minimumStock: 2, purchasePrice: 8 },
-      { id: 4, variantLabel: 'S / Rojo',  sku: 'CAM-S-ROJ', stock: 7, minimumStock: 2, purchasePrice: 8 },
-    ]
-  },
-  {
-    id: 3, name: 'Tornillo Galvanizado', categoryId: 3, categoryName: 'Ferretería',
-    sku: undefined, stock: 0, minimumStock: 20,
-    status: 'IN_STOCK', statusLabel: 'En stock',
-    productType: 'VARIANT', hasVariants: true, purchasePrice: 0,
-    createdAt: '2024-03-15',
-    variants: [
-      { id: 5, variantLabel: '4mm / 20mm', sku: 'TOR-200-4-20', stock: 150, minimumStock: 20, purchasePrice: 0.12 },
-      { id: 6, variantLabel: '4mm / 30mm', sku: 'TOR-200-4-30', stock: 120, minimumStock: 20, purchasePrice: 0.15 },
-      { id: 7, variantLabel: '6mm / 40mm', sku: 'TOR-200-6-40', stock: 50,  minimumStock: 20, purchasePrice: 0.18 },
-      { id: 8, variantLabel: '6mm / 50mm', sku: 'TOR-200-6-50', stock: 0,   minimumStock: 20, purchasePrice: 0.20 },
-    ]
-  },
-];
-// ─────────────────────────────────────────────────────────────────────────────
+import { from, of } from 'rxjs';
+import { catchError, mergeMap, toArray } from 'rxjs/operators';
 
 @Component({
   selector: 'app-inventory',
@@ -73,6 +35,8 @@ export class Inventory implements OnInit {
   totalElements = 0;
 
   isFilterOpen = false;
+  isLoading = false;
+  hasError = false;
 
   // ── Expand/collapse variant rows ─────────────────
   expandedIds = new Set<number>();
@@ -94,42 +58,45 @@ export class Inventory implements OnInit {
     const categoryIdsStr = this.selectedCategoryIds.length > 0
       ? this.selectedCategoryIds.join(',') : undefined;
 
+    this.isLoading = true;
+    this.hasError = false;
+
     this.productApi.getProducts({
       search: this.searchText, categoryIds: categoryIdsStr,
       page: this.currentPage, size: this.pageSize
     }).subscribe({
       next: (data: ProductPage) => {
-        // ── Use mock data when backend returns empty ─────────────────────────
-        if (data.content.length === 0 && this.currentPage === 0 && !this.searchText) {
-          this.products = [...MOCK_PRODUCTS];
-          this.totalElements = MOCK_PRODUCTS.length;
-          this.cdr.detectChanges();
-        } else {
-          this.products = data.content;
-          this.totalElements = data.totalElements;
-          this.cdr.detectChanges();
-          // Pre-load variants so we have accurate counts and data for the list
-          this.preloadVariants(data.content);
-        }
+        // Una lista vacía es un resultado legítimo, no un error.
+        this.products = data.content;
+        this.totalElements = data.totalElements;
+        this.isLoading = false;
+        this.cdr.detectChanges();
+        // Pre-load variants so we have accurate counts and data for the list
+        this.preloadVariants(data.content);
       },
-      error: (err) => {
-        console.error('Error loading products:', err);
-        this.products = [...MOCK_PRODUCTS];
-        this.totalElements = MOCK_PRODUCTS.length;
+      error: () => {
+        this.products = [];
+        this.totalElements = 0;
+        this.isLoading = false;
+        this.hasError = true;
         this.cdr.detectChanges();
       }
     });
   }
 
+  // TODO(api): mitigación temporal del N+1 (plan §1.10). Resolución definitiva en §7.4:
+  // que `GET /api/products` devuelva las variantes embebidas y se elimine este método.
   private preloadVariants(products: Product[]) {
     const variantProducts = products.filter(p => p.hasVariants && p.id !== undefined);
     if (variantProducts.length === 0) return;
 
-    const requests = variantProducts.map(p =>
-      this.productApi.getProductById(p.id as number).pipe(catchError(() => of(p)))
-    );
-
-    forkJoin(requests).subscribe({
+    from(variantProducts).pipe(
+      mergeMap(
+        p => this.productApi.getProductById(p.id as number).pipe(catchError(() => of(p))),
+        4
+      ),
+      toArray()
+    ).subscribe({
       next: (fullProducts) => {
         fullProducts.forEach(fp => {
           const target = this.products.find(p => p.id === fp.id);

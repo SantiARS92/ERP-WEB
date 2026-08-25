@@ -4,21 +4,6 @@ import { RouterModule } from '@angular/router';
 import { ReportApiService } from '../../../core/services/report-api.service';
 import { RankingResponse } from '../../../core/models/report.model';
 
-const MOCK_RANKING: RankingResponse = {
-  type: 'SERVICE', year: 2026, month: 3,
-  page: 0, size: 10, totalElements: 8, totalPages: 1, first: true, last: true,
-  content: [
-    { position: 1, id: 1, name: 'Manicura en Gel', categoryName: 'Manicura', totalCount: 45, generatedIncome: 2250, averageDurationMinutes: 60 },
-    { position: 2, id: 2, name: 'Tratamiento Facial', categoryName: 'Estética', totalCount: 32, generatedIncome: 3200, averageDurationMinutes: 90 },
-    { position: 3, id: 3, name: 'Depilación Láser', categoryName: 'Depilación', totalCount: 28, generatedIncome: 4200, averageDurationMinutes: 45 },
-    { position: 4, id: 4, name: 'Pedicura Spa', categoryName: 'Pedicura', totalCount: 22, generatedIncome: 1100, averageDurationMinutes: 75 },
-    { position: 5, id: 5, name: 'Masaje Relajante', categoryName: 'Masajes', totalCount: 18, generatedIncome: 2160, averageDurationMinutes: 60 },
-    { position: 6, id: 6, name: 'Limpieza Facial', categoryName: 'Estética', totalCount: 15, generatedIncome: 900, averageDurationMinutes: 45 },
-    { position: 7, id: 7, name: 'Tinte y Peluquería', categoryName: 'Cabello', totalCount: 12, generatedIncome: 840, averageDurationMinutes: 120 },
-    { position: 8, id: 8, name: 'Cejas y Pestañas', categoryName: 'Estética', totalCount: 8, generatedIncome: 400, averageDurationMinutes: 30 },
-  ]
-};
-
 import { FormsModule } from '@angular/forms';
 
 @Component({
@@ -58,8 +43,7 @@ export class InformeRankingServicios implements OnInit {
       },
       error: () => {
         this.hasError = true;
-        this.rankingData = MOCK_RANKING;
-        this.maxCitas = MOCK_RANKING.content[0]?.totalCount || 1;
+        this.rankingData = null;
         this.cdr.detectChanges();
       }
     });

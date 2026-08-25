@@ -36,9 +36,13 @@
     </header>
 
     @if (hasError) {
-      <div class="w-full mb-4 flex items-center gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 rounded-2xl px-5 py-3">
-        <span class="material-symbols-outlined text-[20px] shrink-0">wifi_off</span>
-        <p class="text-[13px] font-semibold">Backend no disponible — mostrando <strong>datos de ejemplo</strong>. Al conectar el servidor, la información se actualizará automáticamente.</p>
+      <div class="w-full mb-4 flex items-center gap-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-2xl px-5 py-3">
+        <span class="material-symbols-outlined text-[20px] shrink-0">error</span>
+        <p class="text-[13px] font-semibold flex-1">No se pudo cargar el informe. Los datos no están disponibles en este momento.</p>
+        <button type="button" (click)="loadData()"
+                class="text-[13px] font-bold px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-colors">
+          Reintentar
+        </button>
       </div>
     }
     @if (reportData) {

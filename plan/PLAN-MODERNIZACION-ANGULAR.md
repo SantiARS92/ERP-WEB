@@ -8,7 +8,7 @@
 | Angular | 21.1.x |
 | Gestor de paquetes | pnpm 10.33.0 |
 | Fecha de análisis | 2026-08-25 |
-| Estado global | 🔴 No iniciado |
+| Estado global | 🟡 Fase 1 completada |
 
 ---
 
@@ -108,7 +108,7 @@ variantes. `inventory.ts:122` repite el patrón en cada cambio de página.
 
 ## FASE 1 — Bloqueantes
 
-> **Riesgo:** bajo · **Impacto:** alto · **Estado:** 🔴 pendiente
+> **Riesgo:** bajo · **Impacto:** alto · **Estado:** 🟢 completada
 
 | # | Ubicación | Acción |
 |---|---|---|
@@ -430,7 +430,7 @@ Cada fase completada genera un documento en `plan/fases/` siguiendo la plantilla
 
 | Fase | Documento | Estado | Fecha | Commit |
 |---|---|---|---|---|
-| 1 — Bloqueantes | `fases/fase-01-bloqueantes.md` | 🔴 Pendiente | — | — |
+| 1 — Bloqueantes | `fases/fase-01-bloqueantes.md` | 🟢 Completada | 2026-08-26 | — |
 | 2 — Eliminación SSR | `fases/fase-02-eliminacion-ssr.md` | 🔴 Pendiente | — | — |
 | 3 — Tooling | `fases/fase-03-tooling.md` | 🔴 Pendiente | — | — |
 | 4 — Migraciones automáticas | `fases/fase-04-migraciones-automaticas.md` | 🔴 Pendiente | — | — |

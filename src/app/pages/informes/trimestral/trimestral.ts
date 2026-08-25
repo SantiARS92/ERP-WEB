@@ -4,26 +4,6 @@ import { RouterModule } from '@angular/router';
 import { ReportApiService } from '../../../core/services/report-api.service';
 import { QuarterlyDetailedReport } from '../../../core/models/report.model';
 
-const MOCK_QUARTERLY: QuarterlyDetailedReport = {
-  year: 2026, quarter: 2, quarterLabel: '2º Trimestre 2026',
-  grossIncome: 66150.00, grossExpenses: 22540.00, operatingProfit: 43610.00,
-  estimatedIncomeBase: 54669.42, estimatedExpenseBase: 18628.10,
-  estimatedOutputVat: 11480.58, estimatedInputVat: 3911.90,
-  estimatedVatPayable: 7568.68, estimatedIrpfPayable: 8200.41,
-  estimatedTotalTaxes: 15769.09, profitabilityRatio: 65.9,
-  operatingProfitChangePercentage: 8.3,
-  monthlyBreakdown: [
-    { year: 2026, month: 4, monthLabel: 'Abril', grossIncome: 22450, grossExpenses: 7890, operatingProfit: 14560, estimatedVatPayable: 2565.3 },
-    { year: 2026, month: 5, monthLabel: 'Mayo', grossIncome: 19200, grossExpenses: 6450, operatingProfit: 12750, estimatedVatPayable: 2203.5 },
-    { year: 2026, month: 6, monthLabel: 'Junio', grossIncome: 24500, grossExpenses: 8200, operatingProfit: 16300, estimatedVatPayable: 2799.88 },
-  ],
-  profitEvolution: [
-    { year: 2026, month: 4, monthLabel: 'Abril', operatingProfit: 14560 },
-    { year: 2026, month: 5, monthLabel: 'Mayo', operatingProfit: 12750 },
-    { year: 2026, month: 6, monthLabel: 'Junio', operatingProfit: 16300 },
-  ]
-};
-
 import { FormsModule } from '@angular/forms';
 
 @Component({
@@ -64,8 +44,7 @@ export class InformeTrimestral implements OnInit {
       },
       error: () => {
         this.hasError = true;
-        this.reportData = MOCK_QUARTERLY;
-        this.maxProfitToScaleChart = 20000;
+        this.reportData = null;
         this.cdr.detectChanges();
       }
     });

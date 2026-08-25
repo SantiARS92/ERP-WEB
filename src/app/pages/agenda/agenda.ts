@@ -1,7 +1,8 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule, DatePipe } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { finalize } from 'rxjs';
+import { finalize, interval } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { UserRole } from '../../core/models/user.model';
 import { AppointmentApiService } from '../../core/services/appointment-api.service';
@@ -55,6 +56,7 @@ export class Agenda implements OnInit {
   private serviceApi = inject(ServiceApiService);
   private professionalApi = inject(ProfessionalApiService);
   private cdr = inject(ChangeDetectorRef);
+  private destroyRef = inject(DestroyRef);
   private datePipe = inject(DatePipe);
   public authService = inject(AuthService);
 
@@ -65,10 +67,12 @@ export class Agenda implements OnInit {
     this.loadAllData();
     
     // Update red line every minute
-    setInterval(() => {
-      this.calculateCurrentTimePosition();
-      this.cdr.detectChanges();
-    }, 60000);
+    interval(60000)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.calculateCurrentTimePosition();
+        this.cdr.detectChanges();
+      });
   }
 
   appointmentStyles: { [id: number]: any } = {};

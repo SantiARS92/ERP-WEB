@@ -9,8 +9,8 @@ import { Product } from '../../core/models/product.model';
 import { ThemeService } from '../../core/services/theme.service';
 import { AuthService } from '../../core/services/auth.service';
 import { UserRole } from '../../core/models/user.model';
-import { forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { from, of } from 'rxjs';
+import { catchError, mergeMap, toArray } from 'rxjs/operators';
 
 @Component({
   selector: 'app-dashboard',
@@ -103,17 +103,21 @@ export class Dashboard implements OnInit {
     });
   }
 
+  // TODO(api): mitigación temporal del N+1 (plan §1.10). Resolución definitiva en §7.4:
+  // que `GET /api/products` devuelva las variantes embebidas y desaparezca esta cascada.
   private loadInventoryData() {
     this.productApi.getProducts({ size: 1000 }).subscribe({
       next: (res) => {
-        const variantsRequests = res.content
-          .filter(p => p.hasVariants && p.id !== undefined)
-          .map(p => this.productApi.getProductById(p.id as number).pipe(
-            catchError(() => of(p))
-          ));
+        const variantProducts = res.content.filter(p => p.hasVariants && p.id !== undefined);
 
-        if (variantsRequests.length > 0) {
-          forkJoin(variantsRequests).subscribe({
+        if (variantProducts.length > 0) {
+          from(variantProducts).pipe(
+            mergeMap(
+              p => this.productApi.getProductById(p.id as number).pipe(catchError(() => of(p))),
+              4
+            ),
+            toArray()
+          ).subscribe({
             next: (fullProducts) => {
               const allProducts = res.content.map(p => {
                 const fullP = fullProducts.find(fp => fp.id === p.id);

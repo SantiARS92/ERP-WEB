@@ -4,10 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
 import { SettingsApiService } from '../../core/services/settings-api.service';
 import { ProfessionalApiService } from '../../core/services/professional-api.service';
-import { UserRole } from '../../core/models/user.model';
 import { Professional } from '../../core/models/professional.model';
 import { HttpContext } from '@angular/common/http';
-import { silentError } from '../../core/interceptors/error.interceptor';
+import { silentError } from '../../core/http/http-contexts';
 
 @Component({
   selector: 'app-login',
@@ -22,7 +21,6 @@ export class Login {
   professionalApi = inject(ProfessionalApiService);
   
   settings = this.settingsApi.settings;
-  UserRole = UserRole;
   
   professionals = signal<Professional[]>([]);
 
@@ -56,24 +54,13 @@ export class Login {
     this.isLoading.set(true);
     this.error.set('');
 
-    // Simulate backend call
-    setTimeout(() => {
-      this.authService.login(this.username, this.password).subscribe({
-        next: () => this.isLoading.set(false),
-        error: (err) => {
-          this.error.set(err.error?.message || 'Credenciales incorrectas');
-          this.isLoading.set(false);
-        }
-      });
-    }, 1000);
-  }
-
-  loginWithRole(role: UserRole, username?: string) {
-    if (role === UserRole.ADMIN) {
-      this.authService.login('admin', '1234').subscribe();
-    } else if (role === UserRole.PROFESSIONAL) {
-      this.authService.login(username || 'Elena', '1234').subscribe();
-    }
+    this.authService.login(this.username, this.password).subscribe({
+      next: () => this.isLoading.set(false),
+      error: (err) => {
+        this.error.set(err.error?.message || 'Credenciales incorrectas');
+        this.isLoading.set(false);
+      }
+    });
   }
 
   loginAsGuest() {

@@ -4,7 +4,7 @@ import { Observable, tap } from 'rxjs';
 import { BusinessSettings } from '../models/settings.model';
 import { environment } from '../../../environments/environment';
 import { HttpContext } from '@angular/common/http';
-import { silentError } from '../interceptors/error.interceptor';
+import { silentError } from '../http/http-contexts';
 
 @Injectable({
   providedIn: 'root'

@@ -4,28 +4,6 @@ import { RouterModule } from '@angular/router';
 import { ReportApiService } from '../../../core/services/report-api.service';
 import { MonthlySimpleReport } from '../../../core/models/report.model';
 
-const MOCK_MONTHLY_SIMPLE: MonthlySimpleReport = {
-  year: 2026, month: 3,
-  totalIncome: 24500, totalExpenses: 8200, totalConfirmedAppointments: 142,
-  incomeChangePercentage: 12, expenseChangePercentage: -5, confirmedAppointmentsChangePercentage: 8,
-  lastThreeMonths: [
-    { period: '2026-01', year: 2026, month: 1, income: 15000, expenses: 6200, confirmedAppointments: 98 },
-    { period: '2026-02', year: 2026, month: 2, income: 19200, expenses: 7100, confirmedAppointments: 118 },
-    { period: '2026-03', year: 2026, month: 3, income: 24500, expenses: 8200, confirmedAppointments: 142 },
-  ],
-  topServices: [
-    { position: 1, id: 1, name: 'Manicura en Gel', categoryName: 'Manicura', totalCount: 45, generatedIncome: 2250, averageDurationMinutes: 60 },
-    { position: 2, id: 2, name: 'Tratamiento Facial', categoryName: 'Estética', totalCount: 32, generatedIncome: 3200, averageDurationMinutes: 90 },
-    { position: 3, id: 3, name: 'Depilación Láser', categoryName: 'Depilación', totalCount: 28, generatedIncome: 4200, averageDurationMinutes: 45 },
-    { position: 4, id: 4, name: 'Pedicura Spa', categoryName: 'Pedicura', totalCount: 22, generatedIncome: 1100, averageDurationMinutes: 75 },
-  ],
-  busiestDays: [
-    { dayOfWeek: 'SATURDAY', confirmedAppointments: 45, percentage: 45 },
-    { dayOfWeek: 'FRIDAY', confirmedAppointments: 38, percentage: 38 },
-    { dayOfWeek: 'SUNDAY', confirmedAppointments: 17, percentage: 17 },
-  ]
-};
-
 @Component({
   selector: 'app-informe-mensual-simple',
   standalone: true,
@@ -62,9 +40,7 @@ export class InformeMensualSimple implements OnInit {
       },
       error: () => {
         this.hasError = true;
-        this.reportData = MOCK_MONTHLY_SIMPLE;
-        this.maxIncomeExpense = Math.max(...MOCK_MONTHLY_SIMPLE.lastThreeMonths.map(m => Math.max(m.income, m.expenses)), 1);
-        this.maxTopServiceCount = Math.max(...MOCK_MONTHLY_SIMPLE.topServices.map(s => s.totalCount), 1);
+        this.reportData = null;
         this.cdr.detectChanges();
       }
     });
