@@ -431,7 +431,7 @@ Cada fase completada genera un documento en `plan/fases/` siguiendo la plantilla
 | Fase | Documento | Estado | Fecha | Commit |
 |---|---|---|---|---|
 | 1 — Bloqueantes | `fases/fase-01-bloqueantes.md` | 🟢 Completada | 2026-08-26 | `9f48799` |
-| 2 — Eliminación SSR | `fases/fase-02-eliminacion-ssr.md` | 🟢 Completada | 2026-08-26 | `<sha>` |
+| 2 — Eliminación SSR | `fases/fase-02-eliminacion-ssr.md` | 🟢 Completada | 2026-08-26 | `8b761dc` |
 | 3 — Tooling | `fases/fase-03-tooling.md` | 🔴 Pendiente | — | — |
 | 4 — Migraciones automáticas | `fases/fase-04-migraciones-automaticas.md` | 🔴 Pendiente | — | — |
 | 5 — Limpieza | `fases/fase-05-limpieza.md` | 🔴 Pendiente | — | — |
