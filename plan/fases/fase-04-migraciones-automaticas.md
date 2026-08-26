@@ -5,7 +5,7 @@
 | Estado | 🟢 Completada |
 | Fecha inicio | 2026-08-26 |
 | Fecha cierre | 2026-08-26 |
-| Commit | `<pendiente>` |
+| Commit | `f058dfb` |
 | Responsable | OpenCode |
 
 ---
