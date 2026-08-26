@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { ServiceApiService } from '../../core/services/service-api.service';
 import { CategoryApiService } from '../../core/services/category-api.service';
 import { Service } from '../../core/models/service.model';
@@ -10,7 +10,7 @@ import { PaginationComponent } from '../../shared/components/pagination/paginati
 
 @Component({
   selector: 'app-services',
-  imports: [CommonModule, RouterModule, FormsModule, PaginationComponent],
+  imports: [CurrencyPipe, RouterLink, FormsModule, PaginationComponent],
   templateUrl: './services.html',
   styles: ``,
 })
@@ -91,11 +91,6 @@ export class Services implements OnInit {
         alert(errorMsg);
       }
     });
-  }
-
-  // Helper for pagination array
-  get pagesArray(): number[] {
-    return Array.from({ length: this.totalPages }, (_, i) => i);
   }
 
   onSearch() {

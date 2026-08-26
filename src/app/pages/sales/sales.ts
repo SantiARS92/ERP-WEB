@@ -1,12 +1,12 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CurrencyPipe, NgClass, SlicePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { SaleApiService } from '../../core/services/sale-api.service';
 import { ServiceApiService } from '../../core/services/service-api.service';
 import { ProductApiService } from '../../core/services/product-api.service';
 import { ClientApiService } from '../../core/services/client-api.service';
-import { SaleResponse, SaleRequest, SaleItemType, SaleSourceType, PaymentMethod } from '../../core/models/sale.model';
+import { SaleResponse, SaleItemType, PaymentMethod } from '../../core/models/sale.model';
 import { Service } from '../../core/models/service.model';
 import { Product } from '../../core/models/product.model';
 import { Client } from '../../core/models/client.model';
@@ -14,7 +14,7 @@ import { PaginationComponent } from '../../shared/components/pagination/paginati
 
 @Component({
   selector: 'app-sales',
-  imports: [CommonModule, RouterModule, FormsModule, PaginationComponent],
+  imports: [SlicePipe, CurrencyPipe, NgClass, RouterLink, FormsModule, PaginationComponent],
   templateUrl: './sales.html',
   styles: ``,
 })

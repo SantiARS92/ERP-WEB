@@ -1,20 +1,20 @@
-import { Component, OnInit, inject, signal, OnDestroy } from '@angular/core';
-import { Router } from '@angular/router';
-import { CommonModule } from '@angular/common';
+import { NgClass } from '@angular/common';
+import { Component, OnDestroy, OnInit, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
 import { Subject, debounceTime, takeUntil } from 'rxjs';
 import { ThemeService, PrimaryColor, ThemeMode } from '../../core/services/theme.service';
 import { SettingsApiService } from '../../core/services/settings-api.service';
 import { ProfessionalApiService } from '../../core/services/professional-api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { UserRole } from '../../core/models/user.model';
-import { BusinessSettings, DayOfWeek, OpeningHour, SpecialClosure } from '../../core/models/settings.model';
+import { BusinessSettings, DayOfWeek, OpeningHour } from '../../core/models/settings.model';
 import { Professional } from '../../core/models/professional.model';
 import { NotificationService } from '../../core/services/notification.service';
 
 @Component({
   selector: 'app-configuracion',
-  imports: [CommonModule, FormsModule],
+  imports: [NgClass, FormsModule, RouterLink],
   templateUrl: './configuracion.html',
   styles: `
     .ios-toggle {
@@ -58,7 +58,7 @@ export class Configuracion implements OnInit, OnDestroy {
   private settingsApi = inject(SettingsApiService);
   private professionalApi = inject(ProfessionalApiService);
   authService = inject(AuthService);
-  UserRole = UserRole;
+  readonly isAdmin = computed(() => this.authService.hasRole([UserRole.ADMIN]));
   private notification = inject(NotificationService);
 
   availableColors: { name: PrimaryColor, label: string, hex: string }[] = [

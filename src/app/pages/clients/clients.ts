@@ -1,15 +1,14 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { ClientApiService } from '../../core/services/client-api.service';
 import { Client } from '../../core/models/client.model';
-import { finalize } from 'rxjs';
 import { PaginationComponent } from '../../shared/components/pagination/pagination';
 
 @Component({
   selector: 'app-clients',
-  imports: [CommonModule, RouterModule, FormsModule, PaginationComponent],
+  imports: [NgClass, RouterLink, FormsModule, PaginationComponent],
   templateUrl: './clients.html',
 })
 export class Clients implements OnInit {
@@ -22,11 +21,6 @@ export class Clients implements OnInit {
   totalElements = 0;
   totalPages = 0;
   isLoading = false;
-
-
-
-  Math = Math;
-
   private clientApi = inject(ClientApiService);
   private cdr = inject(ChangeDetectorRef);
 
@@ -65,10 +59,6 @@ export class Clients implements OnInit {
         this.cdr.detectChanges();
       }
     });
-  }
-
-  get pagesArray(): number[] {
-    return Array.from({ length: this.totalPages }, (_, i) => i);
   }
 
   onSearch() {

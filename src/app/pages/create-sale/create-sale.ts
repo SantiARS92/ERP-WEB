@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { SaleApiService } from '../../core/services/sale-api.service';
 import { ServiceApiService } from '../../core/services/service-api.service';
@@ -27,7 +27,7 @@ interface SaleLine {
 
 @Component({
   selector: 'app-create-sale',
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [DecimalPipe, FormsModule, RouterLink],
   templateUrl: './create-sale.html',
   styles: ``,
 })

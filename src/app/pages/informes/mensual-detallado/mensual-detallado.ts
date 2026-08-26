@@ -1,6 +1,6 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
-import { CommonModule, DecimalPipe } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { DecimalPipe } from '@angular/common';
+import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { ReportApiService } from '../../../core/services/report-api.service';
 import { MonthlyDetailedReport } from '../../../core/models/report.model';
 
@@ -8,8 +8,7 @@ import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-informe-mensual-detallado',
-  imports: [CommonModule, RouterModule, FormsModule],
-  providers: [DecimalPipe],
+  imports: [DecimalPipe, RouterLink, FormsModule],
   templateUrl: './mensual-detallado.html',
 })
 export class InformeMensualDetallado implements OnInit {
@@ -27,7 +26,8 @@ export class InformeMensualDetallado implements OnInit {
   isDownloadingPdf = false;
   downloadSuccess = false;
 
-  constructor(private reportApi: ReportApiService, private cdr: ChangeDetectorRef) {}
+  private reportApi = inject(ReportApiService);
+  private cdr = inject(ChangeDetectorRef);
 
   ngOnInit() {
     this.loadData();

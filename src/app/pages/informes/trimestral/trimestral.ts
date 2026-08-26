@@ -1,6 +1,6 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { DecimalPipe, NgClass, SlicePipe } from '@angular/common';
+import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { ReportApiService } from '../../../core/services/report-api.service';
 import { QuarterlyDetailedReport } from '../../../core/models/report.model';
 
@@ -8,7 +8,7 @@ import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-informe-trimestral',
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [DecimalPipe, SlicePipe, NgClass, RouterLink, FormsModule],
   templateUrl: './trimestral.html',
 })
 export class InformeTrimestral implements OnInit {
@@ -27,7 +27,8 @@ export class InformeTrimestral implements OnInit {
   downloadSuccess = false;
   maxProfitToScaleChart = 20000;
 
-  constructor(private reportApi: ReportApiService, private cdr: ChangeDetectorRef) {}
+  private reportApi = inject(ReportApiService);
+  private cdr = inject(ChangeDetectorRef);
 
   ngOnInit() { this.loadData(); }
 

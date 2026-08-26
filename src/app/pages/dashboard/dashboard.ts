@@ -1,6 +1,6 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { NgClass } from '@angular/common';
+import { ChangeDetectorRef, Component, OnInit, computed, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { AppointmentApiService } from '../../core/services/appointment-api.service';
 import { ClientApiService } from '../../core/services/client-api.service';
 import { ProductApiService } from '../../core/services/product-api.service';
@@ -14,37 +14,35 @@ import { catchError, mergeMap, toArray } from 'rxjs/operators';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CommonModule, RouterModule],
-  providers: [DatePipe],
+  imports: [NgClass, RouterLink],
   templateUrl: './dashboard.html',
 })
 export class Dashboard implements OnInit {
   private appointmentApi = inject(AppointmentApiService);
   private clientApi = inject(ClientApiService);
   private productApi = inject(ProductApiService);
-  private datePipe = inject(DatePipe);
   public themeService = inject(ThemeService);
   private cdr = inject(ChangeDetectorRef);
   public authService = inject(AuthService);
-  UserRole = UserRole;
+  readonly canCreateAppointments = computed(() => this.authService.currentUser()?.role !== UserRole.GUEST);
 
   // Stats Resumen Operativo
-  citasHoyCount: number = 0;
-  porConfirmarCount: number = 0;
-  clientesNuevosCount: number = 0;
-  topService: string = 'Limpieza Facial';
-  topServicePercentage: string = '45%';
+  citasHoyCount = 0;
+  porConfirmarCount = 0;
+  clientesNuevosCount = 0;
+  topService = 'Limpieza Facial';
+  topServicePercentage = '45%';
 
   // Alertas
-  sinStockCount: number = 0;
-  pocoStockCount: number = 0;
-  stockSuficienteCount: number = 0;
+  sinStockCount = 0;
+  pocoStockCount = 0;
+  stockSuficienteCount = 0;
 
   // Próximas Citas Table
   proximasCitas: Appointment[] = [];
   
   // Date tracking
-  todayStr: string = '';
+  todayStr = '';
 
   ngOnInit() {
     const today = new Date();
@@ -192,7 +190,7 @@ export class Dashboard implements OnInit {
     if (!time) return '';
     const [h, m] = time.split(':').map(Number);
     const ampm = h >= 12 ? 'PM' : 'AM';
-    let hour = h % 12 || 12;
+    const hour = h % 12 || 12;
     return `${String(hour).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
   }
 }

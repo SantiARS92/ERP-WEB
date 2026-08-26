@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { SaleApiService } from '../../core/services/sale-api.service';
 import { ClientApiService } from '../../core/services/client-api.service';
 import { ServiceApiService } from '../../core/services/service-api.service';
@@ -14,7 +14,7 @@ import { NotificationService } from '../../core/services/notification.service';
 
 @Component({
   selector: 'app-edit-sale',
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [DecimalPipe, FormsModule, RouterLink],
   templateUrl: './edit-sale.html',
   styles: ``,
 })

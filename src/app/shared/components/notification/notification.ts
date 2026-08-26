@@ -1,10 +1,10 @@
+import { NgClass } from '@angular/common';
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { NotificationService } from '../../../core/services/notification.service';
 
 @Component({
   selector: 'app-notification',
-  imports: [CommonModule],
+  imports: [NgClass],
   template: `
     <div class="fixed top-6 right-6 z-[9999] flex flex-col gap-3 pointer-events-none w-full max-w-[400px]">
       @for (n of notificationService.notifications(); track n.id) {

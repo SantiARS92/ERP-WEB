@@ -1,12 +1,12 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { DecimalPipe, NgClass, SlicePipe } from '@angular/common';
+import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { ReportApiService } from '../../../core/services/report-api.service';
 import { MonthlySimpleReport } from '../../../core/models/report.model';
 
 @Component({
   selector: 'app-informe-mensual-simple',
-  imports: [CommonModule, RouterModule],
+  imports: [DecimalPipe, SlicePipe, NgClass, RouterLink],
   templateUrl: './mensual-simple.html',
 })
 export class InformeMensualSimple implements OnInit {
@@ -15,13 +15,12 @@ export class InformeMensualSimple implements OnInit {
   selectedMonth: number = new Date().getMonth() + 1;
   isDownloadingPdf = false;
   downloadSuccess = false;
-  
-  Math = Math;
   hasError = false;
-  maxIncomeExpense: number = 0;
-  maxTopServiceCount: number = 0;
+  maxIncomeExpense = 0;
+  maxTopServiceCount = 0;
 
-  constructor(private reportApi: ReportApiService, private cdr: ChangeDetectorRef) {}
+  private reportApi = inject(ReportApiService);
+  private cdr = inject(ChangeDetectorRef);
 
   ngOnInit() {
     this.loadData();
@@ -59,7 +58,7 @@ export class InformeMensualSimple implements OnInit {
   }
 
   getDayTranslate(englishDay: string): string {
-    const dayMap: { [key: string]: string } = {
+    const dayMap: Record<string, string> = {
       'MONDAY': 'Lun', 'TUESDAY': 'Mar', 'WEDNESDAY': 'Mié',
       'THURSDAY': 'Jue', 'FRIDAY': 'Vie', 'SATURDAY': 'Sáb', 'SUNDAY': 'Dom'
     };
@@ -70,7 +69,7 @@ export class InformeMensualSimple implements OnInit {
     return Math.abs(value || 0);
   }
 
-  onMonthChange(event: any) {
+  onMonthChange() {
     this.loadData();
   }
 

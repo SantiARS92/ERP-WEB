@@ -1,6 +1,7 @@
-import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, computed, inject } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { Category } from '../../core/models/category.model';
 import { CategoryApiService } from '../../core/services/category-api.service';
 import { PaginationComponent } from '../../shared/components/pagination/pagination';
@@ -9,7 +10,7 @@ import { UserRole } from '../../core/models/user.model';
 
 @Component({
   selector: 'app-manage-categories',
-  imports: [FormsModule, PaginationComponent],
+  imports: [FormsModule, RouterLink, PaginationComponent],
   templateUrl: './manage-categories.html',
   styles: ``,
 })
@@ -38,7 +39,7 @@ export class ManageCategories implements OnInit {
   totalPages = 0;
 
   public authService = inject(AuthService);
-  public UserRole = UserRole;
+  readonly isAdmin = computed(() => this.authService.hasRole([UserRole.ADMIN]));
   private categoryApi = inject(CategoryApiService);
   private cdr = inject(ChangeDetectorRef);
 

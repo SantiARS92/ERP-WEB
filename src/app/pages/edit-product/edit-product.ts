@@ -1,7 +1,7 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, computed, inject } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
-import { RouterModule, ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ProductApiService } from '../../core/services/product-api.service';
 import { CategoryApiService } from '../../core/services/category-api.service';
 import { Product, InventoryVariant } from '../../core/models/product.model';
@@ -13,13 +13,13 @@ import { NotificationService } from '../../core/services/notification.service';
 
 @Component({
   selector: 'app-edit-product',
-  imports: [RouterModule, FormsModule, VariantConfigComponent],
+  imports: [RouterLink, FormsModule, VariantConfigComponent],
   templateUrl: './edit-product.html',
   styles: ``,
 })
 export class EditProduct implements OnInit {
   public authService = inject(AuthService);
-  public UserRole = UserRole;
+  readonly isAdmin = computed(() => this.authService.hasRole([UserRole.ADMIN]));
   private productApi = inject(ProductApiService);
   private categoryApi = inject(CategoryApiService);
   private route = inject(ActivatedRoute);
@@ -149,7 +149,7 @@ export class EditProduct implements OnInit {
       name: this.product.name.trim(),
       description: this.product.description?.trim() || undefined,
       sku: this.product.hasVariants ? undefined : (this.product.sku?.trim() || undefined),
-      stock: this.product.hasVariants ? 0 : this.product.stock,
+      stock: this.product.hasVariants ? this.product.variants?.reduce((acc, v) => acc + v.stock, 0) || 0 : this.product.stock,
       minimumStock: this.product.hasVariants ? 0 : this.product.minimumStock,
       purchasePrice: this.product.hasVariants ? undefined : this.product.purchasePrice,
       productType: this.product.hasVariants ? 'VARIANT' : 'SIMPLE',
@@ -201,6 +201,4 @@ export class EditProduct implements OnInit {
     if (v.stock <= v.minimumStock) return { label: 'Bajo Stock', cls: 'text-orange-500' };
     return { label: 'En Stock', cls: 'text-emerald-500' };
   }
-
-  trackByIndex(i: number) { return i; }
 }

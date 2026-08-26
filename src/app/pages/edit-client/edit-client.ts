@@ -1,14 +1,14 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule, ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ClientApiService } from '../../core/services/client-api.service';
 import { Client } from '../../core/models/client.model';
 import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-edit-client',
-  imports: [FormsModule, RouterModule],
+  imports: [FormsModule, RouterLink],
   templateUrl: './edit-client.html',
 })
 export class EditClient implements OnInit {

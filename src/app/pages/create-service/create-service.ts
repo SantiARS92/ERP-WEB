@@ -1,7 +1,7 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { ServiceApiService } from '../../core/services/service-api.service';
 import { CategoryApiService } from '../../core/services/category-api.service';
 import { Service } from '../../core/models/service.model';
@@ -9,11 +9,11 @@ import { Category } from '../../core/models/category.model';
 
 @Component({
   selector: 'app-create-service',
-  imports: [FormsModule, RouterModule],
+  imports: [FormsModule, RouterLink],
   templateUrl: './create-service.html',
   styles: ``,
 })
-export class CreateService {
+export class CreateService implements OnInit {
   service: Service = {
     name: '',
     description: '',

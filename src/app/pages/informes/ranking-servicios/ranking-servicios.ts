@@ -1,6 +1,6 @@
-import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { DecimalPipe, NgClass } from '@angular/common';
+import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { ReportApiService } from '../../../core/services/report-api.service';
 import { RankingResponse } from '../../../core/models/report.model';
 
@@ -8,7 +8,7 @@ import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-ranking-servicios',
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [DecimalPipe, NgClass, RouterLink, FormsModule],
   templateUrl: './ranking-servicios.html',
 })
 export class InformeRankingServicios implements OnInit {
@@ -23,10 +23,10 @@ export class InformeRankingServicios implements OnInit {
     { value: 10, label: 'Octubre' }, { value: 11, label: 'Noviembre' }, { value: 12, label: 'Diciembre' }
   ];
   hasError = false;
-  currentPage: number = 0;
-  maxCitas: number = 0;
+  currentPage = 0;
+  maxCitas = 0;
   private reportApi = inject(ReportApiService);
-  constructor(private cdr: ChangeDetectorRef) {}
+  private cdr = inject(ChangeDetectorRef);
 
   ngOnInit() { this.loadData(); }
 

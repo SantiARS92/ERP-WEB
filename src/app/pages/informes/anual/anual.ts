@@ -1,6 +1,6 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { CurrencyPipe, DecimalPipe, NgClass, SlicePipe } from '@angular/common';
+import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { ReportApiService } from '../../../core/services/report-api.service';
 import { AnnualConsolidatedReport } from '../../../core/models/report.model';
 
@@ -8,7 +8,7 @@ import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-informe-anual',
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CurrencyPipe, DecimalPipe, SlicePipe, NgClass, RouterLink, FormsModule],
   templateUrl: './anual.html',
 })
 export class InformeAnual implements OnInit {
@@ -18,9 +18,10 @@ export class InformeAnual implements OnInit {
   hasError = false;
   isDownloadingPdf = false;
   downloadSuccess = false;
-  maxMonthlyValue: number = 1000;
+  maxMonthlyValue = 1000;
 
-  constructor(private reportApi: ReportApiService, private cdr: ChangeDetectorRef) {}
+  private reportApi = inject(ReportApiService);
+  private cdr = inject(ChangeDetectorRef);
 
   ngOnInit() { this.loadData(); }
 

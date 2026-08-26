@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule, Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { ProductApiService } from '../../core/services/product-api.service';
 import { CategoryApiService } from '../../core/services/category-api.service';
 import { Product, ProductPage, InventoryVariant } from '../../core/models/product.model';
@@ -13,7 +13,7 @@ import { catchError, mergeMap, toArray } from 'rxjs/operators';
 @Component({
   selector: 'app-inventory',
   changeDetection: ChangeDetectionStrategy.Default,
-  imports: [CommonModule, RouterModule, FormsModule, PaginationComponent],
+  imports: [NgClass, RouterLink, FormsModule, PaginationComponent],
   templateUrl: './inventory.html',
   styles: ``,
 })
@@ -105,8 +105,7 @@ export class Inventory implements OnInit {
           }
         });
         this.cdr.detectChanges();
-      },
-      error: () => {} // Silent fail, we still have basic data
+      }
     });
   }
 
@@ -116,7 +115,11 @@ export class Inventory implements OnInit {
 
   toggleCategoryFilter(categoryId: number) {
     const index = this.selectedCategoryIds.indexOf(categoryId);
-    index === -1 ? this.selectedCategoryIds.push(categoryId) : this.selectedCategoryIds.splice(index, 1);
+    if (index === -1) {
+      this.selectedCategoryIds.push(categoryId);
+    } else {
+      this.selectedCategoryIds.splice(index, 1);
+    }
   }
 
   applyFilters() {
@@ -206,7 +209,4 @@ export class Inventory implements OnInit {
       error: (err) => console.error('Error exporting PDF:', err)
     });
   }
-
-  trackProduct(_: number, p: Product) { return p.id; }
-  trackVariant(_: number, v: InventoryVariant) { return v.id ?? v.variantLabel; }
 }

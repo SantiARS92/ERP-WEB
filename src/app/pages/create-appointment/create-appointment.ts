@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, HostListener, ElementRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AppointmentApiService } from '../../core/services/appointment-api.service';
 import { ClientApiService } from '../../core/services/client-api.service';
@@ -14,10 +14,10 @@ import { Professional } from '../../core/models/professional.model';
 
 @Component({
   selector: 'app-create-appointment',
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [NgClass, FormsModule, RouterLink],
   templateUrl: './create-appointment.html',
 })
-export class CreateAppointment {
+export class CreateAppointment implements OnInit {
   
   appointment: Partial<Appointment> = {
     clientName: '',

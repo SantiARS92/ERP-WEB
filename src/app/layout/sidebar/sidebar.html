@@ -7,7 +7,7 @@
          [class.shadow-sm]="!settings()?.businessLogo"
          [class.shadow-blue-200]="!settings()?.businessLogo">
       @if (settings()?.businessLogo) {
-        <img [src]="settings()?.businessLogo" class="w-full h-full object-contain">
+        <img [src]="settings()?.businessLogo" [alt]="settings()?.businessName || 'Logotipo del negocio'" class="w-full h-full object-contain">
       } @else {
         <span class="material-symbols-outlined text-white text-[18px] [font-variation-settings:'FILL'_1,'wght'_300]">diamond</span>
       }
@@ -39,7 +39,7 @@
       Agenda
     </a>
 
-    @if (authService.hasRole([UserRole.ADMIN, UserRole.PROFESSIONAL])) {
+    @if (canManage()) {
       <!-- Servicios (Professional, Admin) -->
       <a routerLink="/servicios" routerLinkActive="!bg-blue-50 !text-blue-600 font-semibold" [routerLinkActiveOptions]="{exact:false}"
          class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors">
@@ -74,7 +74,7 @@
         Inventario
       </a>
 
-      @if (authService.hasRole([UserRole.ADMIN])) {
+      @if (isAdmin()) {
         <a routerLink="/informes" routerLinkActive="!bg-blue-50 !text-blue-600 font-semibold" [routerLinkActiveOptions]="{exact:false}"
            class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors">
           <span class="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-gray-600 transition-colors">insights</span>
@@ -83,7 +83,7 @@
       }
     }
 
-    @if (authService.hasRole([UserRole.ADMIN, UserRole.PROFESSIONAL])) {
+    @if (canManage()) {
       <p class="px-3 pt-4 pb-2 text-[10px] font-semibold tracking-widest uppercase text-gray-400">Sistema</p>
 
       <a routerLink="/configuracion" routerLinkActive="!bg-blue-50 !text-blue-600 font-semibold" [routerLinkActiveOptions]="{exact:false}"
@@ -120,7 +120,7 @@
           {{ authService.currentUser()?.name }}
         </p>
         <p class="text-[11px] text-gray-400">
-          {{ authService.currentUser()?.role === UserRole.ADMIN ? 'Administrador' : (authService.currentUser()?.role === UserRole.PROFESSIONAL ? 'Profesional' : 'Invitado') }}
+          {{ roleLabel() }}
         </p>
       </div>
       <button 

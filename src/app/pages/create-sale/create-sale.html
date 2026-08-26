@@ -29,7 +29,7 @@
               <select [(ngModel)]="sharedData.clientId" name="clientId" required
                 class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
                 <option [ngValue]="undefined" disabled>Selecciona un cliente...</option>
-                @for (c of clients; track c) {
+                @for (c of clients; track c.id) {
                   <option [value]="c.id">{{ c.fullName }} — {{ c.phone }}</option>
                 }
               </select>
@@ -67,7 +67,7 @@
                       <select [(ngModel)]="line.inventoryProductId" [name]="'product-' + i" (change)="onProductChange(i)" required
                         class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
                         <option [ngValue]="undefined" disabled>Selecciona un producto...</option>
-                        @for (p of products; track p) {
+                        @for (p of products; track p.id) {
                           <option [value]="p.id">
                             {{ p.name }} {{ p.hasVariants ? '(' + (p.variants?.length || p.variantCount || 0) + ' variantes)' : '' }}
                           </option>
@@ -85,7 +85,7 @@
                         <select [(ngModel)]="line.inventoryProductVariantId" [name]="'variant-' + i" (change)="onVariantChange(i)" required
                           class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
                           <option [ngValue]="null" disabled>Selecciona producto a reponer...</option>
-                          @for (v of line.selectedProduct?.variants; track v) {
+                          @for (v of line.selectedProduct?.variants; track v.id) {
                             <option [value]="v.id">
                               {{ v.variantLabel }} — Stock: {{ v.stock }}
                             </option>
@@ -106,7 +106,7 @@
                     <select [(ngModel)]="line.serviceId" [name]="'service-' + i" (change)="onServiceChange(i)" required
                       class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
                       <option [ngValue]="undefined" disabled>Selecciona un servicio...</option>
-                      @for (s of services; track s) {
+                      @for (s of services; track s.id) {
                         <option [value]="s.id">{{ s.name }} ({{ s.price }}€)</option>
                       }
                     </select>

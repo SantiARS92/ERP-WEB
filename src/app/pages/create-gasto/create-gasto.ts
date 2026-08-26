@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { ExpenseApiService } from '../../core/services/expense-api.service';
 import { ProductApiService } from '../../core/services/product-api.service';
 import { NotificationService } from '../../core/services/notification.service';
@@ -10,7 +10,7 @@ import { Product, InventoryVariant } from '../../core/models/product.model';
 
 @Component({
   selector: 'app-create-gasto',
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [DecimalPipe, FormsModule, RouterLink],
   templateUrl: './create-gasto.html',
   styles: ``,
 })

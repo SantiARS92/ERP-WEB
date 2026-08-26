@@ -1,14 +1,14 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DecimalPipe, NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { ExpenseApiService } from '../../core/services/expense-api.service';
-import { ExpenseResponse, ExpenseRequest, ExpenseCategory, ExpensePage } from '../../core/models/expense.model';
+import { ExpenseResponse, ExpenseCategory } from '../../core/models/expense.model';
 import { PaginationComponent } from '../../shared/components/pagination/pagination';
 
 @Component({
   selector: 'app-gastos',
-  imports: [CommonModule, RouterModule, FormsModule, PaginationComponent],
+  imports: [DecimalPipe, NgClass, RouterLink, FormsModule, PaginationComponent],
   templateUrl: './gastos.html',
   styles: ``,
 })
@@ -156,7 +156,4 @@ export class Gastos implements OnInit {
     }
   }
 
-  get pageNumbers(): number[] {
-    return Array.from({ length: this.totalPages }, (_, i) => i);
-  }
 }

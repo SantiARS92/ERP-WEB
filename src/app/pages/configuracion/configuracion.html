@@ -54,7 +54,7 @@
     <div class="space-y-4">
 
       <!-- 1. Perfil del Negocio -->
-      @if (authService.hasRole([UserRole.ADMIN])) {
+      @if (isAdmin()) {
         <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)] transition-all duration-300">
           <!-- Accordion Header -->
           <button (click)="toggleSection('perfil')" class="w-full flex items-center justify-between px-6 py-5 bg-white hover:bg-slate-50/50 transition-colors">
@@ -283,7 +283,7 @@
       </div>
 
       <!-- 3. Reglas de Reserva -->
-      @if (authService.hasRole([UserRole.ADMIN])) {
+      @if (isAdmin()) {
         <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)] transition-all duration-300">
           <button (click)="toggleSection('reglas')" class="w-full flex items-center justify-between px-6 py-5 bg-white hover:bg-slate-50/50 transition-colors">
             <div class="flex items-center gap-3">
@@ -368,7 +368,7 @@
       }
 
       <!-- 4. Gestión del Equipo -->
-      @if (authService.hasRole([UserRole.ADMIN])) {
+      @if (isAdmin()) {
         <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)] transition-all duration-300">
           <button (click)="toggleSection('equipo')" class="w-full flex items-center justify-between px-6 py-5 bg-white hover:bg-slate-50/50 transition-colors">
             <div class="flex items-center gap-3">
@@ -393,7 +393,7 @@
           @if (expandedSection === 'equipo') {
             <div class="px-6 pb-6 border-t border-slate-100 pt-6 animate-in slide-in-from-top-2 duration-300">
               <div class="space-y-3">
-                @for (member of professionals; track member) {
+                @for (member of professionals; track member.id) {
                   <div class="flex items-center justify-between border border-slate-200 rounded-xl p-4 hover:border-slate-300 transition-colors group" [class.opacity-50]="!member.active">
                     <div class="flex items-center gap-4">
                       <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center font-bold text-[14px] text-slate-600">

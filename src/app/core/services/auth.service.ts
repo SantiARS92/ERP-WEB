@@ -1,7 +1,7 @@
-import { Injectable, signal, inject } from '@angular/core';
+import { computed, Injectable, signal, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap, of, catchError, BehaviorSubject } from 'rxjs';
+import { Observable, tap, BehaviorSubject } from 'rxjs';
 import { User, UserRole } from '../models/user.model';
 import { environment } from '../../../environments/environment';
 
@@ -14,10 +14,14 @@ export class AuthService {
   private readonly baseUrl = `${environment.apiUrl}/api/auth`;
   
   // Use a signal for reactive authentication state
-  isLoggedIn = signal<boolean>(false);
+  readonly isLoggedIn = signal<boolean>(false);
   
   // Current user signal
-  currentUser = signal<User | null>(null);
+  readonly currentUser = signal<User | null>(null);
+  readonly isAdmin = computed(() => this.currentUser()?.role === UserRole.ADMIN);
+  readonly isProfessional = computed(() => this.currentUser()?.role === UserRole.PROFESSIONAL);
+  readonly isGuest = computed(() => this.currentUser()?.role === UserRole.GUEST);
+  readonly canManage = computed(() => this.isAdmin() || this.isProfessional());
 
   private isInitializedSubject = new BehaviorSubject<boolean>(false);
   isInitialized$ = this.isInitializedSubject.asObservable();

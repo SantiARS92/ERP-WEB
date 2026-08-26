@@ -1,14 +1,14 @@
 import { Component, inject, ChangeDetectorRef } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { ClientApiService } from '../../core/services/client-api.service';
 import { Client } from '../../core/models/client.model';
 import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-create-client',
-  imports: [FormsModule, RouterModule],
+  imports: [FormsModule, RouterLink],
   templateUrl: './create-client.html',
 })
 export class CreateClient {

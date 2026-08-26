@@ -13,7 +13,7 @@
         <h1 class="text-[28px] font-bold text-slate-900 leading-tight">Gestionar Categorías</h1>
         <p class="text-[14px] text-slate-500 mt-1">Organice sus servicios en categorías para una mejor visibilidad.</p>
       </div>
-      @if (authService.hasRole([UserRole.ADMIN])) {
+      @if (isAdmin()) {
         <button (click)="openModal()" class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-semibold text-[14px] transition-colors shadow-sm whitespace-nowrap mt-1">
           <span class="material-symbols-outlined text-[20px]">add</span>
           Nueva Categoría
@@ -32,11 +32,11 @@
     
     <!-- Table Header -->
     <div class="grid gap-4 px-6 py-4 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider"
-         [class.grid-cols-[1fr_200px_100px]]="authService.hasRole([UserRole.ADMIN])"
-         [class.grid-cols-[1fr_200px]]="!authService.hasRole([UserRole.ADMIN])">
+         [class.grid-cols-[1fr_200px_100px]]="isAdmin()"
+         [class.grid-cols-[1fr_200px]]="!isAdmin()">
       <div>NOMBRE DE CATEGORÍA</div>
       <div class="text-center">SERVICIOS ASIGNADOS</div>
-      @if (authService.hasRole([UserRole.ADMIN])) {
+      @if (isAdmin()) {
         <div class="text-right">ACCIONES</div>
       }
     </div>
@@ -45,8 +45,8 @@
     <div class="divide-y divide-slate-100">
       @for (cat of categories; track cat.id) {
       <div class="grid gap-4 px-6 py-4 items-center hover:bg-slate-50 transition-colors group cursor-pointer"
-           [class.grid-cols-[1fr_200px_100px]]="authService.hasRole([UserRole.ADMIN])"
-           [class.grid-cols-[1fr_200px]]="!authService.hasRole([UserRole.ADMIN])">
+           [class.grid-cols-[1fr_200px_100px]]="isAdmin()"
+           [class.grid-cols-[1fr_200px]]="!isAdmin()">
         <div class="flex items-center gap-4">
           <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" [style.background-color]="cat.color">
             <span class="material-symbols-outlined text-[20px] text-slate-700">{{ cat.icon }}</span>
@@ -56,7 +56,7 @@
         <div class="text-center">
           <span class="text-[13px] font-bold text-slate-700">{{ cat.servicesCount }} servicios</span>
         </div>
-        @if (authService.hasRole([UserRole.ADMIN])) {
+        @if (isAdmin()) {
           <div class="flex justify-end gap-2">
             <button (click)="openModal(cat)" class="w-8 h-8 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 flex items-center justify-center transition-colors">
               <span class="material-symbols-outlined text-[18px]">edit</span>
@@ -80,8 +80,7 @@
     [pageSize]="pageSize" 
     [currentPage]="currentPage" 
     [itemsLabel]="'categorías'"
-    (pageChange)="goToPage($event)">
-  </app-pagination>
+    (pageChange)="goToPage($event)" />
 
   <div class="mt-8 text-center text-[12px] text-slate-400 font-medium">
     Los datos mostrados son únicamente para fines de control comercial interno.

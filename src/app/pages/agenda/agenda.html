@@ -15,7 +15,7 @@
       </div>
 
       <!-- Action Button in line with title -->
-      @if (authService.currentUser()?.role !== UserRole.GUEST) {
+      @if (canManageAppointments()) {
         <a routerLink="/agenda/crear" class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-semibold text-[14px] transition-colors shadow-[0_2px_10px_rgba(59,130,246,0.3)] cursor-pointer whitespace-nowrap mt-1">
           <span class="material-symbols-outlined text-[20px]">add</span>
           Nueva Cita
@@ -116,7 +116,7 @@
               
               <!-- Client Name - Smaller font if multiple in slot -->
               <div class="font-bold leading-tight mb-0.5 truncate shrink-0"
-                   [ngClass]="getAppointmentStyle(app)['width.%'] < 40 ? 'text-[11px]' : 'text-[13px]'">
+                   [ngClass]="getAppointmentWidth(app) < 40 ? 'text-[11px]' : 'text-[13px]'">
                 {{ app.clientName }}
               </div>
               
@@ -124,31 +124,31 @@
               <div class="flex flex-wrap gap-1 mb-1 shrink-0">
                 @if (app.status === 'CANCELLED') {
                   <div class="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-200/50 text-slate-500 text-[9px] font-bold uppercase tracking-wider w-fit">
-                    {{ getAppointmentStyle(app)['width.%'] < 30 ? 'C' : 'Cancelada' }}
+                    {{ getAppointmentWidth(app) < 30 ? 'C' : 'Cancelada' }}
                   </div>
                 }
                 @if (app.status === 'PENDING') {
                   <div class="inline-flex items-center px-1.5 py-0.5 rounded bg-orange-200/50 text-orange-500 text-[9px] font-bold uppercase tracking-wider w-fit whitespace-nowrap">
-                    {{ getAppointmentStyle(app)['width.%'] < 30 ? 'P' : 'S. Conf' }}
+                    {{ getAppointmentWidth(app) < 30 ? 'P' : 'S. Conf' }}
                   </div>
                 }
                 @if (app.status === 'CONFIRMED') {
                   <div class="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-200/50 text-blue-500 text-[9px] font-bold uppercase tracking-wider w-fit">
-                    {{ getAppointmentStyle(app)['width.%'] < 30 ? 'OK' : 'Confirmada' }}
+                    {{ getAppointmentWidth(app) < 30 ? 'OK' : 'Confirmada' }}
                   </div>
                 }
               </div>
               
               <!-- Service - Hide if very narrow -->
-              @if (app.serviceName && getAppointmentStyle(app)['width.%'] >= 40) {
+              @if (app.serviceName && getAppointmentWidth(app) >= 40) {
                 <div class="text-[11px] leading-tight opacity-80 truncate shrink-0">{{ app.serviceName }}</div>
               }
               
               <!-- Time - Always show but potentially smaller -->
               <div class="flex items-center gap-1 mt-auto font-semibold opacity-70 shrink-0"
-                   [ngClass]="getAppointmentStyle(app)['width.%'] < 30 ? 'text-[9px]' : 'text-[11px]'">
+                   [ngClass]="getAppointmentWidth(app) < 30 ? 'text-[9px]' : 'text-[11px]'">
                 <span class="material-symbols-outlined shrink-0" 
-                      [ngStyle]="{'font-size': getAppointmentStyle(app)['width.%'] < 30 ? '10px' : '12px'}">schedule</span>
+                      [ngStyle]="{'font-size': getAppointmentWidth(app) < 30 ? '10px' : '12px'}">schedule</span>
                 {{ app.appointmentTime | slice:0:5 }}
               </div>
             </div>
@@ -350,7 +350,7 @@
 
         <!-- Modal Footer -->
         <div class="px-8 py-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-4">
-          @if (authService.currentUser()?.role !== UserRole.GUEST) {
+          @if (canManageAppointments()) {
             <button (click)="deleteAppointment()"
                     [disabled]="isSubmitting"
                     class="flex items-center gap-2 px-6 py-3 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 font-bold text-[14px] transition-all disabled:opacity-50">

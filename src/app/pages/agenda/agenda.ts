@@ -1,7 +1,7 @@
-import { Component, OnInit, inject, ChangeDetectorRef, DestroyRef } from '@angular/core';
+import { Component, OnInit, computed, inject, ChangeDetectorRef, DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { CommonModule, DatePipe } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { DatePipe, NgClass, NgStyle, SlicePipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { finalize, interval } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { UserRole } from '../../core/models/user.model';
@@ -11,13 +11,11 @@ import { ClientApiService } from '../../core/services/client-api.service';
 import { ServiceApiService } from '../../core/services/service-api.service';
 import { ProfessionalApiService } from '../../core/services/professional-api.service';
 import { FormsModule } from '@angular/forms';
-import { Client } from '../../core/models/client.model';
-import { Service } from '../../core/models/service.model';
 import { Professional } from '../../core/models/professional.model';
 
 @Component({
   selector: 'app-agenda',
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [DatePipe, SlicePipe, NgClass, NgStyle, RouterLink, FormsModule],
   providers: [DatePipe],
   templateUrl: './agenda.html',
 })
@@ -33,7 +31,7 @@ export class Agenda implements OnInit {
   isEditModalOpen = false;
   selectedAppointment: Partial<Appointment> = {};
   isSubmitting = false;
-  UserRole = UserRole;
+  readonly canManageAppointments = computed(() => this.authService.currentUser()?.role !== UserRole.GUEST);
   
   // For the modal select/autocomplete
   allClients: any[] = [];
@@ -74,7 +72,7 @@ export class Agenda implements OnInit {
       });
   }
 
-  appointmentStyles: { [id: number]: any } = {};
+  appointmentStyles: Record<number, Record<string, string | number>> = {};
 
   initCurrentWeek() {
     const today = this.selectedDate;
@@ -280,7 +278,7 @@ export class Agenda implements OnInit {
     }
   }
 
-  getAppointmentStyle(app: Appointment): any {
+  getAppointmentStyle(app: Appointment): Record<string, string | number> {
     if (app.id && this.appointmentStyles[app.id]) {
       return this.appointmentStyles[app.id];
     }
@@ -292,6 +290,10 @@ export class Agenda implements OnInit {
       'width.%': 90,
       'left.%': 5
     };
+  }
+
+  getAppointmentWidth(app: Appointment): number {
+    return Number(this.getAppointmentStyle(app)['width.%'] ?? 90);
   }
 
   getAppointmentClass(app: Appointment): string {
@@ -411,7 +413,7 @@ export class Agenda implements OnInit {
     if (!time) return '';
     const [h, m] = time.split(':').map(Number);
     const ampm = h >= 12 ? 'PM' : 'AM';
-    let hour = h % 12 || 12;
+    const hour = h % 12 || 12;
     return `${String(hour).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
   }
 

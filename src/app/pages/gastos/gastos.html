@@ -75,7 +75,7 @@
                 </td>
               </tr>
             }
-            @for (expense of expenses; track expense) {
+            @for (expense of expenses; track expense.id) {
               <tr class="hover:bg-slate-50/50 transition-colors group">
                 <td class="px-6 py-4">
                   <span class="font-bold text-slate-700 text-[14px]">{{ expense.expenseDate }}</span>
@@ -117,8 +117,7 @@
       [pageSize]="pageSize"
       [currentPage]="currentPage"
       [itemsLabel]="'gastos'"
-      (pageChange)="goToPage($event)">
-    </app-pagination>
+      (pageChange)="goToPage($event)" />
 
     <p class="text-[12px] text-center text-slate-400 font-medium mt-6 italic">Datos generados automáticamente basándose en los registros de facturación del periodo seleccionado.</p>
   </div>
