@@ -8,7 +8,7 @@
 | Angular | 21.1.x |
 | Gestor de paquetes | pnpm 10.33.0 |
 | Fecha de análisis | 2026-08-25 |
-| Estado global | 🟡 Fase 6 en curso |
+| Estado global | 🔴 Fase 7 pendiente |
 
 ---
 
@@ -25,8 +25,9 @@
 9. [Fase 6 — Reactividad](#fase-6--reactividad-núcleo)
 10. [Fase 7 — Arquitectura](#fase-7--arquitectura)
 11. [Fase 8 — Refactor profundo](#fase-8--refactor-profundo)
-12. [Métricas objetivo](#métricas-objetivo)
-13. [Trazabilidad](#trazabilidad)
+12. [Fase 9 — Limpieza y linting](#fase-9--limpieza-y-linting)
+13. [Métricas objetivo](#métricas-objetivo)
+14. [Trazabilidad](#trazabilidad)
 
 ---
 
@@ -202,7 +203,7 @@ Ejecutar en orden, revisando el diff de cada una:
 
 ## FASE 5 — Limpieza
 
-> **Riesgo:** bajo · **Estado:** 🟡 en curso
+> **Riesgo:** bajo · **Estado:** 🟢 completada
 
 | # | Acción | Alcance |
 |---|---|---|
@@ -217,7 +218,7 @@ Ejecutar en orden, revisando el diff de cada una:
 
 ## FASE 6 — Reactividad (núcleo)
 
-> **Riesgo:** medio · **Mayor volumen** · **Estado:** 🔴 pendiente
+> **Riesgo:** medio · **Mayor volumen** · **Estado:** 🟢 completada
 
 Corrige los bugs de renderizado derivados del modo zoneless.
 
@@ -394,6 +395,32 @@ aplicar `font-display: swap` y precarga selectiva.
 
 ---
 
+## FASE 9 — Limpieza y linting
+
+> **Riesgo:** bajo/medio · **Estado:** 🔴 pendiente
+
+La fase 9 recoge la deuda residual de calidad que quedó fuera del cierre funcional de las fases 5 y 6.
+
+### 9.1 Accesibilidad y plantilla
+
+- Corregir los restos de `label-has-associated-control`, `click-events-have-key-events`,
+  `interactive-supports-focus` y `alt-text` que siguen concentrados en pantallas amplias y legacy.
+- Revisar formularios y componentes interactivos con `ngModel` para no duplicar deuda de accesibilidad.
+
+### 9.2 Tipado y limpieza fina
+
+- Eliminar `no-empty-constructor` en servicios API restantes.
+- Reducir `no-inferrable-types`, `no-unused-vars` y `any` restantes donde siga habiendo ruido real.
+- Mover a signals cualquier estado todavía mutado por conveniencia, si aporta claridad y no complica Fase 8.
+
+### 9.3 Cierre de lint
+
+- Ejecutar `pnpm lint` con el árbol ya estabilizado.
+- Clasificar deuda heredada vs. regresión nueva.
+- Dejar el proyecto en verde o, como mínimo, con un baseline explícito y acotado.
+
+---
+
 ## Métricas objetivo
 
 | Métrica | Antes | Después |
@@ -435,10 +462,11 @@ Cada fase completada genera un documento en `plan/fases/` siguiendo la plantilla
 | 2 — Eliminación SSR | `fases/fase-02-eliminacion-ssr.md` | 🟢 Completada | 2026-08-26 | `8b761dc` |
 | 3 — Tooling | `fases/fase-03-tooling.md` | 🟢 Completada | 2026-08-26 | `2544e63` |
 | 4 — Migraciones automáticas | `fases/fase-04-migraciones-automaticas.md` | 🟢 Completada | 2026-08-26 | `f058dfb` |
-| 5 — Limpieza | `fases/fase-05-limpieza.md` | 🟡 En curso | 2026-08-26 | — |
-| 6 — Reactividad | `fases/fase-06-reactividad.md` | 🟡 En curso | 2026-08-26 | — |
+| 5 — Limpieza | `fases/fase-05-limpieza.md` | 🟢 Completada | 2026-08-26 | `3546a2d` |
+| 6 — Reactividad | `fases/fase-06-reactividad.md` | 🟢 Completada | 2026-08-26 | `ec30348` |
 | 7 — Arquitectura | `fases/fase-07-arquitectura.md` | 🔴 Pendiente | — | — |
 | 8 — Refactor profundo | `fases/fase-08-refactor-profundo.md` | 🔴 Pendiente | — | — |
+| 9 — Limpieza y linting | `fases/fase-09-limpieza-y-linting.md` | 🔴 Pendiente | — | — |
 
 **Leyenda:** 🔴 Pendiente · 🟡 En curso · 🟢 Completada · ⏸️ Bloqueada
 
