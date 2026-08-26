@@ -17,8 +17,6 @@ export class ReportApiService {
   private http = inject(HttpClient);
   private apiUrl = `${environment.apiUrl}/api/reports`;
 
-  constructor() {}
-
   getMonthlySimple(year: number, month: number): Observable<MonthlySimpleReport> {
     const params = new HttpParams({ fromObject: { year: String(year), month: String(month) } });
     return this.http.get<MonthlySimpleReport>(`${this.apiUrl}/monthly/simple`, { params });
@@ -54,7 +52,7 @@ export class ReportApiService {
     return this.http.get(`${this.apiUrl}/annual/consolidated/pdf`, { params, responseType: 'blob' });
   }
 
-  getRanking(type: 'SERVICE' | 'PRODUCT', year: number, month: number, page: number = 0, size: number = 10): Observable<RankingResponse> {
+  getRanking(type: 'SERVICE' | 'PRODUCT', year: number, month: number, page = 0, size = 10): Observable<RankingResponse> {
     const params = new HttpParams({ fromObject: {
       type,
       year: String(year),

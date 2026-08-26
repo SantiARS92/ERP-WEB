@@ -1,88 +1,64 @@
 import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 
-import { FormsModule } from '@angular/forms';
+import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ServiceApiService } from '../../core/services/service-api.service';
-import { Service } from '../../core/models/service.model';
 import { Category } from '../../core/models/category.model';
 import { NotificationService } from '../../core/services/notification.service';
 import { CategoriesStore } from '../../core/state/categories.store';
 import { ServicesStore } from '../../core/state/services.store';
+import { buildServicePayload, createServiceForm } from '../../shared/forms/service-form';
 
 @Component({
   selector: 'app-create-service',
-  imports: [FormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './create-service.html',
-  styles: ``,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CreateService implements OnInit {
-  private readonly serviceSignal = signal<Service>({
-    name: '',
-    description: '',
-    durationMinutes: 60,
-    price: 0,
-    active: true,
-    categoryId: 0
-  });
-
-  private readonly categoriesSignal = signal<Category[]>([]);
-
   private serviceApi = inject(ServiceApiService);
   private categoriesStore = inject(CategoriesStore);
   private servicesStore = inject(ServicesStore);
   private router = inject(Router);
   private notification = inject(NotificationService);
 
-  get service() { return this.serviceSignal(); }
-  set service(value: Service) { this.serviceSignal.set(value); }
-
-  get categories() { return this.categoriesSignal(); }
-  set categories(value: Category[]) { this.categoriesSignal.set(value); }
+  readonly form = createServiceForm(inject(NonNullableFormBuilder));
+  readonly categories = signal<Category[]>([]);
 
   ngOnInit() {
     this.categoriesStore.ensureLoaded().subscribe((cats: Category[]) => {
-      this.categories = cats;
-      // Ensure we select the first category if none is selected
-      if (this.categories.length > 0 && (this.service.categoryId === 0 || !this.service.categoryId)) {
-        this.service.categoryId = this.categories[0].id!;
+      this.categories.set(cats);
+      if (cats.length > 0 && !this.form.controls.categoryId.value) {
+        this.form.controls.categoryId.setValue(cats[0].id!);
       }
     });
   }
 
   toggleStatus() {
-    this.service.active = !this.service.active;
+    const control = this.form.controls.active;
+    control.setValue(!control.value);
   }
 
   saveService() {
-    // Ensure categoryId is treated as a number
-    this.service.categoryId = Number(this.service.categoryId);
-
-    if (!this.service.name || this.service.durationMinutes <= 0 || this.service.price <= 0 || !this.service.categoryId) {
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
       this.notification.warning('Por favor, rellene todos los campos obligatorios: Nombre, Categoría, Duración (>0) y Precio (>0).');
       return;
     }
 
-    this.serviceApi.createService(this.service).subscribe({
+    this.serviceApi.createService(buildServicePayload(this.form.getRawValue())).subscribe({
       next: () => {
         this.servicesStore.refresh().subscribe();
         this.router.navigate(['/servicios']);
       },
       error: (err: { status: number; error?: unknown; message: string }) => {
-        let errorMsg = 'Error al crear el servicio.\n\n';
-        
         if (err.status === 400) {
-          errorMsg += 'El servidor rechazó los datos (400 Bad Request).\n';
-          if (err.error) {
-            errorMsg += 'Detalle: ' + JSON.stringify(err.error, null, 2);
-          }
+          this.notification.error('El servidor rechazó los datos del servicio. Revisa nombre, categoría, duración y precio.');
         } else if (err.status === 0) {
-          errorMsg += 'No se pudo conectar con el servidor. Verifique que la API esté encendida.';
+          this.notification.error('No se pudo conectar con el servidor.');
         } else {
-          errorMsg += `Código: ${err.status}\nMensaje: ${err.message}`;
+          this.notification.error(`No se pudo crear el servicio (${err.status}).`);
         }
-        
-        this.notification.error(errorMsg.replace(/\n+/g, ' '));
       }
     });
   }

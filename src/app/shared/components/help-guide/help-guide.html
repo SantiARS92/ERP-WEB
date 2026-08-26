@@ -18,10 +18,12 @@
   <div class="fixed inset-0 z-50 flex justify-end">
     
     <!-- Backdrop backdrop blur -->
-    <div 
+    <button
+      type="button"
       class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
-      (click)="closeGuide()">
-    </div>
+      (click)="closeGuide()"
+      aria-label="Cerrar guía">
+    </button>
 
     <!-- Info Drawer -->
     <div 

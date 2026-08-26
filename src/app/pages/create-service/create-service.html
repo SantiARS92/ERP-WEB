@@ -15,28 +15,28 @@
   <!-- Form Card -->
   <div class="bg-white rounded-2xl border border-slate-200 p-8 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] max-w-2xl">
     
-    <div class="space-y-6">
-      
+    <form [formGroup]="form" (ngSubmit)="saveService()" class="space-y-6">
+
       <!-- Service Name -->
       <div>
-        <label class="block text-[13px] font-bold text-slate-800 mb-2">Nombre del Servicio</label>
-        <input type="text" [(ngModel)]="service.name" name="name" placeholder="Ej. Corte de Cabello Básico" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
+        <label for="service-name" class="block text-[13px] font-bold text-slate-800 mb-2">Nombre del Servicio</label>
+        <input type="text" id="service-name" formControlName="name" placeholder="Ej. Corte de Cabello Básico" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
       </div>
 
       <!-- Description -->
       <div>
-        <label class="block text-[13px] font-bold text-slate-800 mb-2">Descripción</label>
-        <textarea rows="4" [(ngModel)]="service.description" name="description" placeholder="Describa los detalles del servicio..." class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow resize-y"></textarea>
+        <label for="service-description" class="block text-[13px] font-bold text-slate-800 mb-2">Descripción</label>
+        <textarea rows="4" id="service-description" formControlName="description" placeholder="Describa los detalles del servicio..." class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow resize-y"></textarea>
       </div>
 
       <div class="grid grid-cols-2 gap-6">
         <!-- Category -->
         <div>
-          <label class="block text-[13px] font-bold text-slate-800 mb-2">Categoría</label>
+          <label for="service-categoryId" class="block text-[13px] font-bold text-slate-800 mb-2">Categoría</label>
           <div class="relative">
-            <select [(ngModel)]="service.categoryId" name="categoryId" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow appearance-none cursor-pointer">
+            <select id="service-categoryId" formControlName="categoryId" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow appearance-none cursor-pointer">
               <option [value]="0">Seleccionar categoría</option>
-              @for (cat of categories; track cat.id) {
+              @for (cat of categories(); track cat.id) {
                 <option [value]="cat.id">{{ cat.name }}</option>
               }
             </select>
@@ -46,10 +46,10 @@
 
         <!-- Duration -->
         <div>
-          <label class="block text-[13px] font-bold text-slate-800 mb-2">Duración (minutos)</label>
+          <label for="service-durationMinutes" class="block text-[13px] font-bold text-slate-800 mb-2">Duración (minutos)</label>
           <div class="relative">
             <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">schedule</span>
-            <input type="number" [(ngModel)]="service.durationMinutes" name="durationMinutes" placeholder="60" class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
+            <input type="number" id="service-durationMinutes" formControlName="durationMinutes" placeholder="60" class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
           </div>
         </div>
       </div>
@@ -57,27 +57,27 @@
       <div class="grid grid-cols-2 gap-6 pb-6 border-b border-slate-100">
         <!-- Price -->
         <div>
-          <label class="block text-[13px] font-bold text-slate-800 mb-2">Precio</label>
+          <label for="service-price" class="block text-[13px] font-bold text-slate-800 mb-2">Precio</label>
           <div class="relative">
             <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-medium">€</span>
-            <input type="number" [(ngModel)]="service.price" name="price" placeholder="0.00" class="w-full pl-8 pr-12 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
+            <input type="number" id="service-price" formControlName="price" placeholder="0.00" class="w-full pl-8 pr-12 py-3 rounded-xl border border-slate-200 text-[15px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
             <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-[13px] font-medium uppercase">EUR</span>
           </div>
         </div>
 
         <!-- Status Toggle -->
         <div class="flex flex-col justify-start">
-          <label class="block text-[13px] font-bold text-slate-800 mb-3">Estado</label>
+          <span class="block text-[13px] font-bold text-slate-800 mb-3">Estado</span>
           <div class="flex items-center gap-3">
-            <button (click)="toggleStatus()" 
-                    [class.bg-blue-500]="service.active" 
-                    [class.bg-slate-200]="!service.active"
+            <button type="button" (click)="toggleStatus()"
+                    [class.bg-blue-500]="form.controls.active.value"
+                    [class.bg-slate-200]="!form.controls.active.value"
                     class="relative w-11 h-6 rounded-full transition-colors flex shrink-0">
-              <span [class.translate-x-6]="service.active" 
-                    [class.translate-x-1]="!service.active"
+              <span [class.translate-x-6]="form.controls.active.value"
+                    [class.translate-x-1]="!form.controls.active.value"
                     class="absolute top-1 left-0 w-4 h-4 rounded-full bg-white transition-transform shadow-sm"></span>
             </button>
-            <span class="text-[14px] font-medium text-slate-500">{{ service.active ? 'Activo' : 'Inactivo' }}</span>
+            <span class="text-[14px] font-medium text-slate-500">{{ form.controls.active.value ? 'Activo' : 'Inactivo' }}</span>
           </div>
         </div>
       </div>
@@ -87,13 +87,13 @@
         <a [routerLink]="['/servicios']" class="px-6 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-[14px] transition-colors shadow-sm cursor-pointer">
           Cancelar
         </a>
-        <button (click)="saveService()" class="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-[14px] transition-colors shadow-sm cursor-pointer">
+        <button type="submit" class="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-[14px] transition-colors shadow-sm cursor-pointer">
           <span class="material-symbols-outlined text-[18px]">save</span>
           Guardar Servicio
         </button>
       </div>
 
-    </div>
+    </form>
   </div>
 
   <div class="mt-8 text-center text-[12px] text-slate-400 font-medium">

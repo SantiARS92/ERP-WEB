@@ -11,7 +11,7 @@
         </div>
         <h1 class="text-[32px] font-bold text-slate-900 leading-none">Modificar Registro</h1>
       </div>
-      <button (click)="deleteSale()" [disabled]="isSubmitting"
+      <button type="button" (click)="deleteSale()" [disabled]="isSubmitting()"
         class="flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-[13px] rounded-lg border border-red-100 transition-colors uppercase">
         <span class="material-symbols-outlined text-[18px]">delete</span>
         Eliminar
@@ -19,7 +19,7 @@
     </div>
 
     <!-- Appointment Alert -->
-    @if (originalSale?.sourceType === 'APPOINTMENT') {
+    @if (isFromAppointment()) {
       <div class="mb-6 p-4 rounded-xl bg-blue-50 border border-blue-100 flex gap-3 text-blue-700 max-w-[800px]">
         <span class="material-symbols-outlined text-[20px] pt-0.5">info</span>
         <div class="text-[13px]">
@@ -32,8 +32,9 @@
     <div class="max-w-[800px]">
 
       <div class="bg-white rounded-[16px] border border-slate-200 overflow-hidden"
-        [class.opacity-60]="originalSale?.sourceType === 'APPOINTMENT'"
-        [class.pointer-events-none]="originalSale?.sourceType === 'APPOINTMENT'">
+        [class.opacity-60]="isFromAppointment()"
+        [class.pointer-events-none]="isFromAppointment()">
+        <form [formGroup]="form" (ngSubmit)="saveSale()">
         <div class="p-8 space-y-6">
 
           <div class="mb-4">
@@ -43,13 +44,13 @@
 
           <!-- Client Selector -->
           <div class="space-y-1.5">
-            <label class="text-[13px] font-bold text-slate-900">Cliente *</label>
+            <label for="sale-client" class="text-[13px] font-bold text-slate-900">Cliente *</label>
             <div class="relative">
               <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">person</span>
-              <select [(ngModel)]="sale.clientId" name="clientId" (change)="onClientChange()" required
+              <select id="sale-client" formControlName="clientId"
                 class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
-                <option [ngValue]="undefined" disabled>Seleccione el destinatario...</option>
-                @for (c of clients; track c.id) {
+                <option [ngValue]="null" disabled>Seleccione el destinatario...</option>
+                @for (c of clients(); track c.id) {
                   <option [value]="c.id">{{ c.fullName }} — {{ c.phone }}</option>
                 }
               </select>
@@ -59,28 +60,28 @@
 
           <!-- Type Toggle -->
           <div class="flex items-center gap-6 py-2">
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="radio" name="itemType" value="SERVICE" [(ngModel)]="sale.itemType" (change)="calculateSummary()" class="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer">
+            <label for="sale-type-service" class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" id="sale-type-service" value="SERVICE" formControlName="itemType" class="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer">
               <span class="text-[14px] font-medium text-slate-700">Servicio</span>
             </label>
 
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="radio" name="itemType" value="PRODUCT" [(ngModel)]="sale.itemType" (change)="calculateSummary()" class="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer">
+            <label for="sale-type-product" class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" id="sale-type-product" value="PRODUCT" formControlName="itemType" class="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer">
               <span class="text-[14px] font-medium text-slate-700">Producto</span>
             </label>
           </div>
 
           <!-- Product Flow -->
-          @if (sale.itemType === 'PRODUCT') {
+          @if (form.controls.itemType.value === 'PRODUCT') {
             <div class="space-y-6">
               <div class="space-y-1.5">
-                <label class="text-[13px] font-bold text-slate-900">Producto *</label>
+                <label for="sale-product" class="text-[13px] font-bold text-slate-900">Producto *</label>
                 <div class="relative">
                   <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">inventory_2</span>
-                  <select [(ngModel)]="sale.inventoryProductId" name="inventoryProductId" (change)="onProductChange()" required
+                  <select id="sale-product" formControlName="inventoryProductId" (change)="onProductChange()"
                     class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
-                    <option [ngValue]="undefined" disabled>Selecciona el producto...</option>
-                    @for (p of products; track p.id) {
+                    <option [ngValue]="null" disabled>Selecciona el producto...</option>
+                    @for (p of products(); track p.id) {
                       <option [value]="p.id">
                         {{ p.name }} {{ p.hasVariants ? '(' + (p.variants?.length || p.variantCount || 0) + ' variantes)' : '' }}
                       </option>
@@ -90,15 +91,15 @@
                 </div>
               </div>
               <!-- Variant Selection -->
-              @if (selectedProduct?.hasVariants) {
+              @if (selectedProduct()?.hasVariants) {
                 <div class="space-y-1.5">
-                  <label class="text-[13px] font-bold text-slate-900">Variante del Producto *</label>
+                  <label for="sale-variant" class="text-[13px] font-bold text-slate-900">Variante del Producto *</label>
                   <div class="relative">
                     <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">layers</span>
-                    <select [(ngModel)]="sale.inventoryProductVariantId" name="inventoryProductVariantId" (change)="onVariantChange()" required
+                    <select id="sale-variant" formControlName="inventoryProductVariantId" (change)="onVariantChange()"
                       class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
                       <option [ngValue]="null" disabled>Selecciona producto a reponer...</option>
-                      @for (v of selectedProduct?.variants; track v.id) {
+                      @for (v of selectedProduct()?.variants; track v.id) {
                         <option [value]="v.id">
                           {{ v.variantLabel }} — Stock: {{ v.stock }}
                         </option>
@@ -112,15 +113,15 @@
           }
 
           <!-- Service Selection -->
-          @if (sale.itemType === 'SERVICE') {
+          @if (form.controls.itemType.value === 'SERVICE') {
             <div class="space-y-1.5">
-              <label class="text-[13px] font-bold text-slate-900">Servicio *</label>
+              <label for="sale-service" class="text-[13px] font-bold text-slate-900">Servicio *</label>
               <div class="relative">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">local_florist</span>
-                <select [(ngModel)]="sale.serviceId" name="serviceId" (change)="onServiceChange()" required
+                <select id="sale-service" formControlName="serviceId" (change)="onServiceChange()"
                   class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
-                  <option [ngValue]="undefined" disabled>Seleccione el servicio...</option>
-                  @for (s of services; track s.id) {
+                  <option [ngValue]="null" disabled>Seleccione el servicio...</option>
+                  @for (s of services(); track s.id) {
                     <option [value]="s.id">{{ s.name }} ({{ s.price }}€)</option>
                   }
                 </select>
@@ -132,41 +133,39 @@
           <!-- Price and Quantity Grid -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="space-y-1.5">
-              <label class="text-[13px] font-bold text-slate-900">Precio Unitario (€)</label>
+              <label for="sale-price" class="text-[13px] font-bold text-slate-900">Precio Unitario (€)</label>
               <div class="relative">
                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-[14px]">€</span>
-                <input type="number" [(ngModel)]="sale.unitPrice" name="unitPrice" (input)="calculateSummary()" step="0.01"
+                <input type="number" id="sale-price" formControlName="unitPrice" step="0.01"
                   class="w-full pl-8 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700">
               </div>
             </div>
             <div class="space-y-1.5">
-              <label class="text-[13px] font-bold text-slate-900">Cantidad *</label>
-              <input type="number" [(ngModel)]="sale.quantity" name="quantity" (input)="calculateSummary()" min="1" required
+              <label for="sale-quantity" class="text-[13px] font-bold text-slate-900">Cantidad *</label>
+              <input type="number" id="sale-quantity" formControlName="quantity" min="1"
                 class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700">
             </div>
           </div>
 
           <!-- Date -->
           <div class="space-y-1.5">
-            <label class="text-[13px] font-bold text-slate-900">Fecha</label>
+            <label for="sale-date" class="text-[13px] font-bold text-slate-900">Fecha</label>
             <div class="relative">
-              <input type="date" [(ngModel)]="sale.saleDate" name="saleDate" required
+              <input type="date" id="sale-date" formControlName="saleDate"
                 class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700">
             </div>
           </div>
 
           <!-- Payment Method -->
           <div class="space-y-1.5">
-            <label class="text-[13px] font-bold text-slate-900">Método de Pago</label>
+            <label for="sale-payment" class="text-[13px] font-bold text-slate-900">Método de Pago</label>
             <div class="relative">
               <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">payments</span>
-              <select [(ngModel)]="sale.paymentMethod" name="paymentMethod" required
+              <select id="sale-payment" formControlName="paymentMethod"
                 class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
-                <option value="CASH">Efectivo 💵</option>
-                <option value="DEBIT_CARD">Tarjeta de Débito 💳</option>
-                <option value="CREDIT_CARD">Tarjeta de Crédito 💳</option>
-                <option value="BIZUM">Bizum 📱</option>
-                <option value="BANK_TRANSFER">Transferencia 🏦</option>
+                @for (method of paymentMethods; track method.value) {
+                  <option [value]="method.value">{{ method.label }}</option>
+                }
               </select>
               <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
             </div>
@@ -174,8 +173,8 @@
 
           <!-- Notes -->
           <div class="space-y-1.5">
-            <label class="text-[13px] font-bold text-slate-900">Notas</label>
-            <textarea [(ngModel)]="sale.notes" name="notes" placeholder="Detalles de la compra, proveedor, etc..." rows="3"
+            <label for="sale-notes" class="text-[13px] font-bold text-slate-900">Notas</label>
+            <textarea id="sale-notes" formControlName="notes" placeholder="Detalles de la compra, proveedor, etc..." rows="3"
             class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 resize-none"></textarea>
           </div>
 
@@ -185,23 +184,24 @@
         <div class="bg-slate-50 border-t border-slate-200 p-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div class="flex items-center gap-2">
             <span class="text-[14px] font-semibold text-slate-600">Total Estimado:</span>
-            <span class="text-[18px] font-bold text-blue-600">€{{ totalEstimado | number:'1.2-2' }}</span>
+            <span class="text-[18px] font-bold text-blue-600">€{{ totalEstimado() | number:'1.2-2' }}</span>
           </div>
 
           <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-            <button [routerLink]="['/ventas']"
+            <button type="button" [routerLink]="['/ventas']"
               class="px-5 py-2.5 text-slate-600 hover:bg-slate-200 font-semibold text-[14px] rounded-xl transition-all text-center">
               Cancelar
             </button>
-            <button [disabled]="isSubmitting || !sale.clientId" (click)="saveSale()"
+            <button type="submit" [disabled]="isSubmitting() || !form.controls.clientId.value"
               class="flex items-center justify-center gap-2 px-6 py-2.5 bg-[#0f172a] hover:bg-slate-800 disabled:opacity-50 text-white font-semibold text-[14px] rounded-xl transition-all shadow-sm min-w-[140px]">
-              @if (isSubmitting) {
+              @if (isSubmitting()) {
                 <span class="material-symbols-outlined text-[18px]">progress_activity</span>
               }
-              {{ isSubmitting ? 'Guardando...' : 'Guardar Cambios' }}
+              {{ isSubmitting() ? 'Guardando...' : 'Guardar Cambios' }}
             </button>
           </div>
         </div>
+      </form>
 
       </div>
     </div>

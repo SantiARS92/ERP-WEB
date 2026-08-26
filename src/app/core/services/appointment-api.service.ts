@@ -11,8 +11,6 @@ export class AppointmentApiService {
   private http = inject(HttpClient);
   private apiUrl = `${environment.apiUrl}/api/appointments`;
 
-  constructor() {}
-
   getAppointments(fromDate: string, toDate: string): Observable<Appointment[]> {
     const params = new HttpParams()
       .set('fromDate', fromDate)

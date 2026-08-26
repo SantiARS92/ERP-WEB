@@ -1,19 +1,23 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { DecimalPipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ExpenseApiService } from '../../core/services/expense-api.service';
 import { ProductApiService } from '../../core/services/product-api.service';
 import { NotificationService } from '../../core/services/notification.service';
-import { ExpenseRequest, ExpenseCategory } from '../../core/models/expense.model';
-import { Product, InventoryVariant } from '../../core/models/product.model';
+import { Product } from '../../core/models/product.model';
 import { ProductsStore } from '../../core/state/products.store';
+import {
+  EXPENSE_CATEGORIES,
+  buildExpensePayload,
+  createExpenseForm,
+} from '../../shared/forms/expense-form';
 
 @Component({
   selector: 'app-create-gasto',
-  imports: [DecimalPipe, FormsModule, RouterLink],
+  imports: [DecimalPipe, ReactiveFormsModule, RouterLink],
   templateUrl: './create-gasto.html',
-  styles: ``,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CreateGasto implements OnInit {
@@ -23,171 +27,110 @@ export class CreateGasto implements OnInit {
   private notification = inject(NotificationService);
   private productsStore = inject(ProductsStore);
 
-  private readonly productsSignal = signal<Product[]>([]);
-  private readonly selectedProductSignal = signal<Product | null>(null);
-  private readonly selectedVariantSignal = signal<InventoryVariant | null>(null);
-  
-  totalGasto = 0;
-  stockFinal = 0;
-  
-  readonly categories: { value: ExpenseCategory; label: string }[] = [
-    { value: 'SUPPLIES', label: 'Suministros' },
-    { value: 'SERVICES', label: 'Servicios'   },
-    { value: 'OTHER',    label: 'Otros'        },
-  ];
+  readonly categories = EXPENSE_CATEGORIES;
+  readonly form = createExpenseForm(inject(NonNullableFormBuilder));
+  readonly products = signal<Product[]>([]);
+  readonly isSubmitting = signal(false);
 
-  newExpense: ExpenseRequest = {
-    concept: '',
-    category: 'SUPPLIES',
-    amount: 0,
-    quantity: 1,
-    expenseDate: new Date().toISOString().split('T')[0],
-    notes: ''
-  };
+  private readonly value = toSignal(this.form.valueChanges, { initialValue: this.form.getRawValue() });
 
-  private readonly isSubmittingSignal = signal(false);
+  readonly selectedProduct = computed<Product | null>(() => {
+    const id = Number(this.value().inventoryProductId ?? 0);
+    if (!id) return null;
+    return this.products().find(p => p.id === id) ?? null;
+  });
 
-  get products() { return this.productsSignal(); }
-  set products(value: Product[]) { this.productsSignal.set(value); }
+  readonly selectedVariant = computed(() => {
+    const id = Number(this.value().inventoryProductVariantId ?? 0);
+    if (!id) return null;
+    return this.selectedProduct()?.variants?.find(v => v.id === id) ?? null;
+  });
 
-  get selectedProduct() { return this.selectedProductSignal(); }
-  set selectedProduct(value: Product | null) { this.selectedProductSignal.set(value); }
+  readonly totalGasto = computed(() => {
+    const v = this.value();
+    const amount = Number(v.amount ?? 0);
+    const qty = Number(v.quantity ?? 1) || 1;
+    return v.category === 'SUPPLIES' && v.inventoryProductId ? qty * amount : amount;
+  });
 
-  get selectedVariant() { return this.selectedVariantSignal(); }
-  set selectedVariant(value: InventoryVariant | null) { this.selectedVariantSignal.set(value); }
-
-  get isSubmitting() { return this.isSubmittingSignal(); }
-  set isSubmitting(value: boolean) { this.isSubmittingSignal.set(value); }
+  readonly stockFinal = computed(() => {
+    const v = this.value();
+    if (v.category !== 'SUPPLIES') return 0;
+    const variant = this.selectedVariant();
+    const product = this.selectedProduct();
+    if (!variant && !product) return 0;
+    const currentStock = variant ? variant.stock : (product?.stock ?? 0);
+    return currentStock + (Number(v.quantity ?? 1) || 1);
+  });
 
   ngOnInit(): void {
-    this.productsStore.ensureLoaded().subscribe((products) => {
-      this.products = products;
-    });
+    this.productsStore.ensureLoaded().subscribe(products => this.products.set(products));
   }
 
   onCategoryChange() {
-    if (this.newExpense.category !== 'SUPPLIES') {
-      this.selectedProduct = null;
-      this.selectedVariant = null;
-      this.newExpense.inventoryProductId = undefined;
-      this.newExpense.inventoryProductVariantId = undefined;
+    if (this.form.controls.category.value !== 'SUPPLIES') {
+      this.form.patchValue({ inventoryProductId: null, inventoryProductVariantId: null });
     }
-    this.calculateSummary();
   }
 
   onProductChange() {
-    const productId = Number(this.newExpense.inventoryProductId);
-    if (!productId) {
-      this.selectedProduct = null;
-      this.selectedVariant = null;
-      this.newExpense.inventoryProductVariantId = undefined;
-      return;
+    this.form.controls.inventoryProductVariantId.setValue(null);
+
+    const product = this.selectedProduct();
+    if (!product) return;
+
+    if (!this.form.controls.concept.value) {
+      this.form.controls.concept.setValue(product.name);
     }
 
-    const product = this.products.find(p => p.id === productId);
-    if (product) {
-      this.selectedProduct = product;
-      this.selectedVariant = null;
-      this.newExpense.inventoryProductVariantId = undefined;
-      
-      // Auto-set concept if empty
-      if (!this.newExpense.concept) {
-        this.newExpense.concept = product.name;
-      }
-
-      if (product.hasVariants && (!product.variants || product.variants.length === 0)) {
-        this.productApi.getProductById(productId).subscribe({
-          next: (fullProduct) => {
-            product.variants = fullProduct.variants;
-          },
-          error: (err) => console.error('Error loading product details:', err)
-        });
-      }
+    if (product.hasVariants && !product.variants?.length && product.id) {
+      this.productApi.getProductById(product.id).subscribe({
+        next: (full) => {
+          this.products.update(list =>
+            list.map(p => (p.id === product.id ? { ...p, variants: full.variants } : p))
+          );
+        },
+        error: () => this.notification.error('No se pudieron cargar las variantes del producto.'),
+      });
     }
-    this.calculateSummary();
   }
 
   onVariantChange() {
-    const variantId = Number(this.newExpense.inventoryProductVariantId);
-    if (this.selectedProduct && variantId) {
-      this.selectedVariant = this.selectedProduct.variants?.find(v => v.id === variantId) || null;
-      if (this.selectedVariant) {
-        // Auto-set purchase price if 0
-        if (!this.newExpense.amount && this.selectedVariant.purchasePrice) {
-          this.newExpense.amount = this.selectedVariant.purchasePrice;
-        }
-      }
-    } else {
-      this.selectedVariant = null;
-    }
-    this.calculateSummary();
-  }
-
-  calculateSummary() {
-    const qty = Number(this.newExpense.quantity || 1);
-    const amount = Number(this.newExpense.amount || 0);
-    
-    if (this.newExpense.category === 'SUPPLIES' && this.newExpense.inventoryProductId) {
-      this.totalGasto = qty * amount;
-    } else {
-      this.totalGasto = amount;
-    }
-
-    if (this.newExpense.category === 'SUPPLIES' && (this.selectedProduct || this.selectedVariant)) {
-      const currentStock = this.selectedVariant ? this.selectedVariant.stock : (this.selectedProduct?.stock || 0);
-      this.stockFinal = currentStock + qty;
-    } else {
-      this.stockFinal = 0;
+    const variant = this.selectedVariant();
+    if (variant && !this.form.controls.amount.value && variant.purchasePrice) {
+      this.form.controls.amount.setValue(variant.purchasePrice);
     }
   }
 
   registerExpense() {
-    if (this.newExpense.category === 'SUPPLIES') {
-      if (!this.newExpense.inventoryProductId) {
+    const product = this.selectedProduct();
+
+    if (this.form.controls.category.value === 'SUPPLIES') {
+      if (!this.form.controls.inventoryProductId.value) {
         this.notification.warning('Para suministros, debe seleccionar un producto del inventario.');
         return;
       }
-      if (this.selectedProduct?.hasVariants && !this.newExpense.inventoryProductVariantId) {
+      if (product?.hasVariants && !this.form.controls.inventoryProductVariantId.value) {
         this.notification.warning('Debe seleccionar una variante del producto.');
         return;
       }
-      
-      // Auto-set concept if still empty or just sync with product name
-      if (this.selectedProduct) {
-        let concept = this.selectedProduct.name;
-        if (this.selectedVariant) {
-          concept += ` - ${this.selectedVariant.variantLabel}`;
-        }
-        this.newExpense.concept = concept;
+      if (product) {
+        const variant = this.selectedVariant();
+        this.form.controls.concept.setValue(
+          variant ? `${product.name} - ${variant.variantLabel}` : product.name
+        );
       }
     }
 
-    if (!this.newExpense.amount || this.newExpense.amount <= 0) {
-      this.notification.warning('El importe debe ser mayor a 0.');
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      this.notification.warning('Revise el concepto, el importe (>0) y la fecha.');
       return;
     }
 
-    const payload: any = {
-      ...this.newExpense,
-      amount: Number(this.newExpense.amount),
-      quantity: Number(this.newExpense.quantity || 1)
-    };
+    this.isSubmitting.set(true);
 
-    if (this.newExpense.category === 'SUPPLIES') {
-      payload.inventoryProductId = Number(this.newExpense.inventoryProductId);
-      if (this.selectedProduct?.hasVariants) {
-        payload.inventoryProductVariantId = Number(this.newExpense.inventoryProductVariantId);
-      } else {
-        // Simple product
-        payload.inventoryProductVariantId = null;
-      }
-    } else {
-      // SERVICES or OTHER: NO inventory IDs
-      delete payload.inventoryProductId;
-      delete payload.inventoryProductVariantId;
-    }
-
-    this.isSubmitting = true;
+    const payload = buildExpensePayload(this.form.getRawValue(), product?.hasVariants ?? false);
 
     this.expenseApi.createExpense(payload).subscribe({
       next: () => {
@@ -195,10 +138,7 @@ export class CreateGasto implements OnInit {
         this.notification.success('Gasto registrado correctamente.', '¡Éxito!');
         this.router.navigate(['/gastos']);
       },
-      error: (err) => {
-        console.error('Error creando gasto:', err);
-        this.isSubmitting = false;
-      }
+      error: () => this.isSubmitting.set(false),
     });
   }
 }

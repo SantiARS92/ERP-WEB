@@ -14,6 +14,7 @@
     <div class="max-w-[800px]">
 
       <div class="bg-white rounded-[16px] border border-slate-200 overflow-hidden">
+        <form [formGroup]="form" (ngSubmit)="registerSale()">
         <div class="p-8 space-y-6">
 
           <div class="mb-4">
@@ -23,13 +24,13 @@
 
           <!-- Client Selector -->
           <div class="space-y-1.5">
-            <label class="text-[13px] font-bold text-slate-900">Cliente *</label>
+            <label for="sale-client" class="text-[13px] font-bold text-slate-900">Cliente *</label>
             <div class="relative">
               <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">person</span>
-              <select [(ngModel)]="sharedData.clientId" name="clientId" required
+              <select id="sale-client" formControlName="clientId"
                 class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
-                <option [ngValue]="undefined" disabled>Selecciona un cliente...</option>
-                @for (c of clients; track c.id) {
+                <option [ngValue]="null" disabled>Selecciona un cliente...</option>
+                @for (c of clients(); track c.id) {
                   <option [value]="c.id">{{ c.fullName }} — {{ c.phone }}</option>
                 }
               </select>
@@ -38,101 +39,105 @@
           </div>
 
           <!-- ===== Bloque repetible: una iteración por línea de venta ===== -->
-          @for (line of saleLines; track line; let i = $index) {
-            <div class="border border-slate-200 rounded-xl p-5 space-y-5 relative">
-              @if (saleLines.length > 1) {
-                <button type="button" (click)="removeLine(i)"
-                  class="absolute top-3 right-3 text-slate-400 hover:text-red-500">
-                  <span class="material-symbols-outlined text-[20px]">delete</span>
-                </button>
-              }
-              <!-- Type Toggle -->
-              <div class="flex items-center gap-6 py-2">
-                <label class="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" [name]="'itemType-' + i" value="SERVICE" [(ngModel)]="line.itemType" (change)="calculateSummary()" class="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer">
-                  <span class="text-[14px] font-medium text-slate-700">Servicio</span>
-                </label>
-                <label class="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" [name]="'itemType-' + i" value="PRODUCT" [(ngModel)]="line.itemType" (change)="calculateSummary()" class="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer">
-                  <span class="text-[14px] font-medium text-slate-700">Producto</span>
-                </label>
-              </div>
-              <!-- Product Flow -->
-              @if (line.itemType === 'PRODUCT') {
-                <div class="space-y-6">
-                  <div class="space-y-1.5">
-                    <label class="text-[13px] font-bold text-slate-900">Producto *</label>
-                    <div class="relative">
-                      <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">inventory_2</span>
-                      <select [(ngModel)]="line.inventoryProductId" [name]="'product-' + i" (change)="onProductChange(i)" required
-                        class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
-                        <option [ngValue]="undefined" disabled>Selecciona un producto...</option>
-                        @for (p of products; track p.id) {
-                          <option [value]="p.id">
-                            {{ p.name }} {{ p.hasVariants ? '(' + (p.variants?.length || p.variantCount || 0) + ' variantes)' : '' }}
-                          </option>
-                        }
-                      </select>
-                      <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
-                    </div>
-                  </div>
-                  <!-- Variant Selection -->
-                  @if (line.selectedProduct?.hasVariants) {
+          <div formArrayName="lines" class="space-y-6">
+            @for (line of lines.controls; track line; let i = $index) {
+              <div [formGroupName]="i" class="border border-slate-200 rounded-xl p-5 space-y-5 relative">
+                @if (lines.length > 1) {
+                  <button type="button" (click)="removeLine(i)"
+                    class="absolute top-3 right-3 text-slate-400 hover:text-red-500">
+                    <span class="material-symbols-outlined text-[20px]">delete</span>
+                  </button>
+                }
+                <!-- Type Toggle -->
+                <div class="flex items-center gap-6 py-2">
+                  <label [attr.for]="'itemType-service-' + i" class="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" [id]="'itemType-service-' + i" value="SERVICE" formControlName="itemType" class="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer">
+                    <span class="text-[14px] font-medium text-slate-700">Servicio</span>
+                  </label>
+                  <label [attr.for]="'itemType-product-' + i" class="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" [id]="'itemType-product-' + i" value="PRODUCT" formControlName="itemType" class="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer">
+                    <span class="text-[14px] font-medium text-slate-700">Producto</span>
+                  </label>
+                </div>
+                <!-- Product Flow -->
+                @if (line.controls.itemType.value === 'PRODUCT') {
+                  <div class="space-y-6">
                     <div class="space-y-1.5">
-                      <label class="text-[13px] font-bold text-slate-900">Variante del Producto *</label>
+                      <label [attr.for]="'product-' + i" class="text-[13px] font-bold text-slate-900">Producto *</label>
                       <div class="relative">
-                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">layers</span>
-                        <select [(ngModel)]="line.inventoryProductVariantId" [name]="'variant-' + i" (change)="onVariantChange(i)" required
+                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">inventory_2</span>
+                        <select [id]="'product-' + i" formControlName="inventoryProductId" (change)="onProductChange(line)"
                           class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
-                          <option [ngValue]="null" disabled>Selecciona producto a reponer...</option>
-                          @for (v of line.selectedProduct?.variants; track v.id) {
-                            <option [value]="v.id">
-                              {{ v.variantLabel }} — Stock: {{ v.stock }}
+                          <option [ngValue]="null" disabled>Selecciona un producto...</option>
+                          @for (p of products(); track p.id) {
+                            <option [value]="p.id">
+                              {{ p.name }} {{ p.hasVariants ? '(' + (p.variants?.length || p.variantCount || 0) + ' variantes)' : '' }}
                             </option>
                           }
                         </select>
                         <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
                       </div>
                     </div>
-                  }
-                </div>
-              }
-              <!-- Service Selection -->
-              @if (line.itemType === 'SERVICE') {
-                <div class="space-y-1.5">
-                  <label class="text-[13px] font-bold text-slate-900">Servicio *</label>
-                  <div class="relative">
-                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">local_florist</span>
-                    <select [(ngModel)]="line.serviceId" [name]="'service-' + i" (change)="onServiceChange(i)" required
-                      class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
-                      <option [ngValue]="undefined" disabled>Selecciona un servicio...</option>
-                      @for (s of services; track s.id) {
-                        <option [value]="s.id">{{ s.name }} ({{ s.price }}€)</option>
+                    <!-- Variant Selection -->
+                    @if (productOf(line); as product) {
+                      @if (product.hasVariants) {
+                        <div class="space-y-1.5">
+                          <label [attr.for]="'variant-' + i" class="text-[13px] font-bold text-slate-900">Variante del Producto *</label>
+                          <div class="relative">
+                            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">layers</span>
+                            <select [id]="'variant-' + i" formControlName="inventoryProductVariantId" (change)="onVariantChange(line)"
+                              class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
+                              <option [ngValue]="null" disabled>Selecciona la variante...</option>
+                              @for (v of product.variants; track v.id) {
+                                <option [value]="v.id">
+                                  {{ v.variantLabel }} — Stock: {{ v.stock }}
+                                </option>
+                              }
+                            </select>
+                            <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+                          </div>
+                        </div>
                       }
-                    </select>
-                    <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+                    }
                   </div>
-                </div>
-              }
-              <!-- Price and Quantity Grid -->
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="space-y-1.5">
-                  <label class="text-[13px] font-bold text-slate-900">Precio Unitario (€)</label>
-                  <div class="relative">
-                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-[14px]">€</span>
-                    <input type="number" [(ngModel)]="line.unitPrice" [name]="'price-' + i" (input)="calculateSummary()" step="0.01" placeholder="0.00"
-                      class="w-full pl-8 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700">
+                }
+                <!-- Service Selection -->
+                @if (line.controls.itemType.value === 'SERVICE') {
+                  <div class="space-y-1.5">
+                    <label [attr.for]="'service-' + i" class="text-[13px] font-bold text-slate-900">Servicio *</label>
+                    <div class="relative">
+                      <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">local_florist</span>
+                      <select [id]="'service-' + i" formControlName="serviceId" (change)="onServiceChange(line)"
+                        class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
+                        <option [ngValue]="null" disabled>Selecciona un servicio...</option>
+                        @for (s of services(); track s.id) {
+                          <option [value]="s.id">{{ s.name }} ({{ s.price }}€)</option>
+                        }
+                      </select>
+                      <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+                    </div>
                   </div>
-                  <p class="text-[11px] text-slate-400 mt-1">Si se deja vacío, se usará el precio del servicio.</p>
-                </div>
-                <div class="space-y-1.5">
-                  <label class="text-[13px] font-bold text-slate-900">Cantidad *</label>
-                  <input type="number" [(ngModel)]="line.quantity" [name]="'qty-' + i" (input)="calculateSummary()" min="1" required
-                    class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700">
+                }
+                <!-- Price and Quantity Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="space-y-1.5">
+                    <label [attr.for]="'price-' + i" class="text-[13px] font-bold text-slate-900">Precio Unitario (€)</label>
+                    <div class="relative">
+                      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-[14px]">€</span>
+                      <input type="number" [id]="'price-' + i" formControlName="unitPrice" step="0.01" placeholder="0.00"
+                        class="w-full pl-8 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700">
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-1">Si se deja vacío, se usará el precio del servicio.</p>
+                  </div>
+                  <div class="space-y-1.5">
+                    <label [attr.for]="'qty-' + i" class="text-[13px] font-bold text-slate-900">Cantidad *</label>
+                    <input type="number" [id]="'qty-' + i" formControlName="quantity" min="1"
+                      class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700">
+                  </div>
                 </div>
               </div>
-            </div>
-          }
+            }
+          </div>
           <!-- ===== Fin bloque repetible ===== -->
 
           <button type="button" (click)="addLine()"
@@ -142,26 +147,23 @@
 
           <!-- Date -->
           <div class="space-y-1.5">
-            <label class="text-[13px] font-bold text-slate-900">Fecha</label>
+            <label for="sale-date" class="text-[13px] font-bold text-slate-900">Fecha</label>
             <div class="relative">
-              <input type="date" [(ngModel)]="sharedData.saleDate" name="saleDate" required
+              <input type="date" id="sale-date" formControlName="saleDate"
                 class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700">
             </div>
           </div>
 
           <!-- Payment Method -->
           <div class="space-y-1.5">
-            <label class="text-[13px] font-bold text-slate-900">Método de Pago</label>
+            <label for="sale-payment" class="text-[13px] font-bold text-slate-900">Método de Pago</label>
             <div class="relative">
               <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">payments</span>
-              <select [(ngModel)]="sharedData.paymentMethod" name="paymentMethod" required
+              <select id="sale-payment" formControlName="paymentMethod"
                 class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
-                <option [ngValue]="undefined" disabled>Seleccione método...</option>
-                <option value="CASH">Efectivo</option>
-                <option value="DEBIT_CARD">Tarjeta de Débito</option>
-                <option value="CREDIT_CARD">Tarjeta de Crédito</option>
-                <option value="BIZUM">Bizum</option>
-                <option value="BANK_TRANSFER">Transferencia</option>
+                @for (method of paymentMethods; track method.value) {
+                  <option [value]="method.value">{{ method.label }}</option>
+                }
               </select>
               <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
             </div>
@@ -169,8 +171,8 @@
 
           <!-- Notes -->
           <div class="space-y-1.5">
-            <label class="text-[13px] font-bold text-slate-900">Notas</label>
-            <textarea [(ngModel)]="sharedData.notes" name="notes" placeholder="Añade cualquier detalle aquí..." rows="3"
+            <label for="sale-notes" class="text-[13px] font-bold text-slate-900">Notas</label>
+            <textarea id="sale-notes" formControlName="notes" placeholder="Añade cualquier detalle aquí..." rows="3"
             class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 resize-none"></textarea>
           </div>
 
@@ -180,23 +182,24 @@
         <div class="bg-slate-50 border-t border-slate-200 p-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div class="flex items-center gap-2">
             <span class="text-[14px] font-semibold text-slate-600">Total Estimado:</span>
-            <span class="text-[18px] font-bold text-blue-600">€{{ totalEstimado | number:'1.2-2' }}</span>
+            <span class="text-[18px] font-bold text-blue-600">€{{ totalEstimado() | number:'1.2-2' }}</span>
           </div>
 
           <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-            <button [routerLink]="['/ventas']"
+            <button type="button" [routerLink]="['/ventas']"
               class="px-5 py-2.5 text-slate-600 hover:bg-slate-200 font-semibold text-[14px] rounded-xl transition-all text-center">
               Cancelar
             </button>
-            <button [disabled]="isSubmitting || !sharedData.clientId" (click)="registerSale()"
+            <button type="submit" [disabled]="isSubmitting() || !form.controls.clientId.value"
               class="flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-[14px] rounded-xl transition-all shadow-sm">
-              @if (isSubmitting) {
+              @if (isSubmitting()) {
                 <span class="material-symbols-outlined text-[18px]">progress_activity</span>
               }
-              {{ isSubmitting ? 'Guardando...' : 'Registrar Venta' }}
+              {{ isSubmitting() ? 'Guardando...' : 'Registrar Venta' }}
             </button>
           </div>
         </div>
+      </form>
 
       </div>
     </div>

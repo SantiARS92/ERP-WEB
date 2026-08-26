@@ -13,58 +13,56 @@
     </div>
 
   <!-- Loading State -->
-  @if (isLoading) {
+  @if (isLoading()) {
     <div class="flex justify-center p-12">
       <span class="material-symbols-outlined animate-spin text-blue-500 text-4xl">progress_activity</span>
     </div>
   } @else {
     <!-- Form Card -->
     <div class="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-8 flex flex-col items-center">
-      <form (ngSubmit)="onSubmit()" #clientForm="ngForm" class="w-full space-y-6">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="w-full space-y-6">
 
         <!-- Name Field -->
         <div>
-          <label class="block text-[14px] font-bold text-slate-800 mb-2">Nombre completo <span class="text-red-500">*</span></label>
+          <label for="client-fullName" class="block text-[14px] font-bold text-slate-800 mb-2">Nombre completo <span class="text-red-500">*</span></label>
           <input 
             type="text" 
-            name="fullName" 
-            [(ngModel)]="client.fullName" 
-            required 
+            id="client-fullName"
+            formControlName="fullName"
             placeholder="Ej. Ana García" 
             class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-colors text-[15px] text-slate-800 placeholder-slate-400">
         </div>
 
         <!-- Phone Field -->
         <div>
-          <label class="block text-[14px] font-bold text-slate-800 mb-2">Teléfono <span class="text-red-500">*</span></label>
+          <label for="client-phone" class="block text-[14px] font-bold text-slate-800 mb-2">Teléfono <span class="text-red-500">*</span></label>
           <input 
             type="tel" 
-            name="phone" 
-            [(ngModel)]="client.phone" 
-            required
+            id="client-phone"
+            formControlName="phone"
             placeholder="Ej. (555) 123-4567" 
             class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-colors text-[15px] text-slate-800 placeholder-slate-400">
         </div>
 
         <!-- Email Field -->
         <div>
-          <label class="block text-[14px] font-bold text-slate-800 mb-2">Correo electrónico</label>
+          <label for="client-email" class="block text-[14px] font-bold text-slate-800 mb-2">Correo electrónico</label>
           <input 
             type="email" 
-            name="email" 
-            [(ngModel)]="client.email" 
+            id="client-email"
+            formControlName="email"
             placeholder="Ej. ana.garcia@example.com" 
             class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-colors text-[15px] text-slate-800 placeholder-slate-400">
         </div>
 
         <!-- Admite Facturas Checkbox -->
         <div class="pt-1">
-          <label class="inline-flex items-center gap-3 cursor-pointer select-none group">
+          <label for="client-admiteFacturas" class="inline-flex items-center gap-3 cursor-pointer select-none group">
             <div class="relative">
               <input
                 type="checkbox"
-                name="admiteFacturas"
-                [(ngModel)]="client.admiteFacturas"
+                id="client-admiteFacturas"
+                formControlName="admiteFacturas"
                 class="sr-only peer">
               <div class="w-10 h-6 bg-slate-200 peer-checked:bg-blue-500 rounded-full transition-colors duration-200 ease-in-out group-hover:ring-2 group-hover:ring-blue-100"></div>
               <div class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ease-in-out peer-checked:translate-x-4"></div>
@@ -77,41 +75,39 @@
         </div>
 
         <!-- Billing Fields (conditional) -->
-        @if (client.admiteFacturas) {
+        @if (form.controls.admiteFacturas.value) {
           <div class="space-y-5 rounded-xl border border-blue-100 bg-blue-50/40 p-5 transition-all duration-200">
 
             <!-- Identificador Visual (Read Only) -->
-            @if (client.identificador) {
+            @if (identificador(); as identificador) {
               <div class="flex items-center justify-between bg-white border border-slate-200 px-4 py-3 rounded-xl shadow-sm">
                  <div class="text-[13px] font-bold text-slate-500">Nº Cliente Facturación:</div>
-                 <div class="text-[14px] font-mono font-bold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded">{{ client.identificador }}</div>
+                 <div class="text-[14px] font-mono font-bold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded">{{ identificador }}</div>
               </div>
             }
 
             <!-- Dirección -->
             <div>
-              <label class="block text-[14px] font-bold text-slate-800 mb-2">
+              <label for="client-direccion" class="block text-[14px] font-bold text-slate-800 mb-2">
                 Dirección <span class="text-red-500">*</span>
               </label>
               <input
                 type="text"
-                name="direccion"
-                [(ngModel)]="client.direccion"
-                required
+                id="client-direccion"
+                formControlName="direccion"
                 placeholder="Ej. Calle Mayor 12, 28001 Madrid"
                 class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-colors text-[15px] text-slate-800 placeholder-slate-400 bg-white">
             </div>
 
             <!-- CIF / NIF -->
             <div>
-              <label class="block text-[14px] font-bold text-slate-800 mb-2">
+              <label for="client-cifNif" class="block text-[14px] font-bold text-slate-800 mb-2">
                 CIF / NIF <span class="text-red-500">*</span>
               </label>
               <input
                 type="text"
-                name="cifNif"
-                [(ngModel)]="client.cifNif"
-                required
+                id="client-cifNif"
+                formControlName="cifNif"
                 placeholder="Ej. B12345678 o 12345678A"
                 class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-colors text-[15px] text-slate-800 placeholder-slate-400 bg-white">
             </div>
@@ -120,10 +116,10 @@
         }
 
         <!-- Error Message -->
-        @if (errorMessage) {
+        @if (errorMessage(); as error) {
           <div class="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-[14px] font-medium">
             <span class="material-symbols-outlined text-[18px] shrink-0">error</span>
-            {{ errorMessage }}
+            {{ error }}
           </div>
         }
 
@@ -137,8 +133,8 @@
             <button type="button" (click)="cancel()" class="px-6 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-[14px] transition-colors shadow-sm cursor-pointer">
               Cancelar
             </button>
-            <button type="submit" [disabled]="clientForm.invalid || isSubmitting" class="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 active:bg-blue-700 disabled:opacity-75 disabled:cursor-not-allowed text-white font-bold text-[14px] transition-colors shadow-sm cursor-pointer">
-              @if (isSubmitting) {
+            <button type="submit" [disabled]="form.invalid || isSubmitting()" class="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 active:bg-blue-700 disabled:opacity-75 disabled:cursor-not-allowed text-white font-bold text-[14px] transition-colors shadow-sm cursor-pointer">
+              @if (isSubmitting()) {
                 <span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
               } @else {
                 <span class="material-symbols-outlined text-[18px]">save</span>

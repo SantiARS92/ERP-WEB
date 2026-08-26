@@ -13,6 +13,8 @@ import { NotificationService } from '../../core/services/notification.service';
 import { SettingsStore } from '../../core/state/settings.store';
 import { ConfirmService } from '../../core/services/confirm.service';
 
+type ProfessionalDraft = Professional & { accessPassword?: string };
+
 @Component({
   selector: 'app-configuracion',
   imports: [NgClass, FormsModule, RouterLink],
@@ -94,11 +96,11 @@ export class Configuracion implements OnInit, OnDestroy {
   private readonly professionalsSignal = signal<Professional[]>([]);
   private readonly isSubmittingSignal = signal(false);
   private readonly saveStatusSignal = signal<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  private saveResetTimer: any = null;
+  private saveResetTimer: ReturnType<typeof setTimeout> | null = null;
 
   // For adding/editing professional (Modal mini-state)
   private readonly isProfessionalModalOpenSignal = signal(false);
-  private readonly editingProfessionalSignal = signal<Professional & { accessPassword?: string }>({ fullName: '', specialty: '', active: true, accessPassword: '' });
+  private readonly editingProfessionalSignal = signal<ProfessionalDraft>({ fullName: '', specialty: '', active: true, accessPassword: '' });
 
   dayNamesMap: Record<DayOfWeek, string> = {
     MONDAY: 'Lunes',
@@ -125,7 +127,7 @@ export class Configuracion implements OnInit, OnDestroy {
   get isProfessionalModalOpen() { return this.isProfessionalModalOpenSignal(); }
   set isProfessionalModalOpen(value: boolean) { this.isProfessionalModalOpenSignal.set(value); }
   get editingProfessional() { return this.editingProfessionalSignal(); }
-  set editingProfessional(value: Professional & { accessPassword?: string }) { this.editingProfessionalSignal.set(value); }
+  set editingProfessional(value: ProfessionalDraft) { this.editingProfessionalSignal.set(value); }
 
   ngOnInit(): void {
     this.loadAll();
@@ -319,9 +321,17 @@ export class Configuracion implements OnInit, OnDestroy {
       return;
     }
 
-    const obs = this.editingProfessional.id 
-      ? this.professionalApi.updateProfessional(this.editingProfessional.id, this.editingProfessional as any)
-      : this.professionalApi.createProfessional(this.editingProfessional as any);
+    const payload = this.editingProfessional;
+    const obs = payload.id
+      ? this.professionalApi.updateProfessional(payload.id, payload)
+      : this.professionalApi.createProfessional({
+          fullName: payload.fullName,
+          specialty: payload.specialty,
+          phone: payload.phone,
+          email: payload.email,
+          active: payload.active,
+          accessPassword: payload.accessPassword ?? '',
+        });
 
     obs.subscribe({
       next: () => {

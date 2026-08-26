@@ -2,8 +2,11 @@
 
 @import 'tailwindcss';
 
+/* Fuentes self-hosted (fase 8.5): sin CDN bloqueante ni preconnect a terceros. */
+@import '@fontsource-variable/inter/wght.css';
+
 @theme {
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
   --color-primary-base: var(--primary-color, #3b82f6);
   --color-primary-hover: var(--primary-hover, #2563eb);
   --color-primary-light: var(--primary-light, #eff6ff);
@@ -22,6 +25,14 @@
 * {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+@font-face {
+  font-family: 'Material Symbols Outlined';
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url('material-symbols/material-symbols-outlined.woff2') format('woff2');
 }
 
 .material-symbols-outlined {

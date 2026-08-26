@@ -39,8 +39,8 @@ module.exports = defineConfig([
       "@angular-eslint/use-lifecycle-interface": "error",
       "@angular-eslint/no-empty-lifecycle-method": "error",
       "@angular-eslint/prefer-signals": "warn",
-      // Sube a "error" en Fase 8 (§8.3)
-      "@typescript-eslint/no-explicit-any": "warn",
+      // Fase 8 (§8.3) — tipado estricto
+      "@typescript-eslint/no-explicit-any": "error",
     },
   },
   {

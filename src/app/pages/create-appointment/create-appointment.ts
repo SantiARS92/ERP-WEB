@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, ElementRef, HostListener, inject, OnInit, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AppointmentApiService } from '../../core/services/appointment-api.service';
@@ -12,27 +12,17 @@ import { Professional } from '../../core/models/professional.model';
 import { NotificationService } from '../../core/services/notification.service';
 import { ClientsStore } from '../../core/state/clients.store';
 import { ServicesStore } from '../../core/state/services.store';
+import { buildAppointmentPayload, createAppointmentForm, todayIsoDate } from '../../shared/forms/appointment-form';
 
 @Component({
   selector: 'app-create-appointment',
-  imports: [NgClass, FormsModule, RouterLink],
+  imports: [NgClass, ReactiveFormsModule, RouterLink],
   templateUrl: './create-appointment.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CreateAppointment implements OnInit {
-  
-  private readonly appointmentSignal = signal<Partial<Appointment>>({
-    clientName: '',
-    serviceName: '',
-    professionalName: '',
-    appointmentDate: this.getTodayDateString(),
-    appointmentTime: '09:30:00', // Default format HH:mm:ss
-    status: 'PENDING',
-    price: 0,
-    internalNotes: ''
-  });
-
   private readonly isSubmittingSignal = signal(false);
+  readonly form = createAppointmentForm(inject(NonNullableFormBuilder));
   isTimeDropdownOpen = false;
   isStatusDropdownOpen = false;
   isClientDropdownOpen = false;
@@ -56,8 +46,6 @@ export class CreateAppointment implements OnInit {
   private clientsStore = inject(ClientsStore);
   private servicesStore = inject(ServicesStore);
 
-  get appointment() { return this.appointmentSignal(); }
-  set appointment(value: Partial<Appointment>) { this.appointmentSignal.set(value); }
   get isSubmitting() { return this.isSubmittingSignal(); }
   set isSubmitting(value: boolean) { this.isSubmittingSignal.set(value); }
   get clients() { return this.clientsSignal(); }
@@ -106,34 +94,29 @@ export class CreateAppointment implements OnInit {
     this.isClientDropdownOpen = false;
   }
 
-  getTodayDateString(): string {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  }
-
   onServiceChange() {
-    const srv = this.services.find(s => s.name === this.appointment.serviceName);
+    const serviceName = this.form.controls.serviceName.value;
+    const srv = this.services.find(s => s.name === serviceName);
     if (srv) {
-      this.appointment.serviceId = srv.id;
-      this.appointment.price = srv.price;
+      this.form.patchValue({ serviceId: srv.id ?? null, price: srv.price });
     }
   }
 
   // --- Client Search Autocomplete ---
   onClientSearch() {
-    if (!this.appointment.clientName) {
+    const clientName = this.form.controls.clientName.value;
+    if (!clientName) {
       this.filteredClients = [];
       this.isClientDropdownOpen = false;
       return;
     }
-    const query = this.appointment.clientName.toLowerCase();
+    const query = clientName.toLowerCase();
     this.filteredClients = this.clients.filter(c => c.fullName.toLowerCase().includes(query));
     this.isClientDropdownOpen = this.filteredClients.length > 0;
   }
 
   selectClient(client: Client) {
-    this.appointment.clientName = client.fullName;
-    this.appointment.clientId = client.id;
+    this.form.patchValue({ clientName: client.fullName, clientId: client.id ?? null });
     this.isClientDropdownOpen = false;
   }
 
@@ -150,7 +133,7 @@ export class CreateAppointment implements OnInit {
 
   selectTime(time: string, event: Event) {
     event.stopPropagation();
-    this.appointment.appointmentTime = time + ':00'; // Add seconds for the contract
+    this.form.controls.appointmentTime.setValue(`${time}:00`);
     this.isTimeDropdownOpen = false;
   }
 
@@ -170,17 +153,19 @@ export class CreateAppointment implements OnInit {
 
   selectStatus(status: 'PENDING' | 'CONFIRMED' | 'CANCELLED', event: Event) {
     event.stopPropagation();
-    this.appointment.status = status;
+    this.form.controls.status.setValue(status);
     this.isStatusDropdownOpen = false;
   }
 
   onSubmit() {
-    if (!this.appointment.clientName || !this.appointment.serviceName) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
 
     this.isSubmitting = true;
 
-    // Send the appointment object to the API
-    this.appointmentApi.createAppointment(this.appointment)
+    this.appointmentApi.createAppointment(buildAppointmentPayload(this.form.getRawValue()))
       .pipe(finalize(() => {
         this.isSubmitting = false;
       }))
@@ -193,6 +178,8 @@ export class CreateAppointment implements OnInit {
         }
       });
   }
+
+  protected readonly todayIsoDate = todayIsoDate;
 
   cancel() {
     this.router.navigate(['/agenda']);

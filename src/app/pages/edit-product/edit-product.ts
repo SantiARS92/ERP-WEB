@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 
-import { FormsModule } from '@angular/forms';
+import { FormsModule, NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ProductApiService } from '../../core/services/product-api.service';
 import { Product, InventoryVariant } from '../../core/models/product.model';
@@ -12,10 +12,11 @@ import { NotificationService } from '../../core/services/notification.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { CategoriesStore } from '../../core/state/categories.store';
 import { ProductsStore } from '../../core/state/products.store';
+import { buildProductPayload, createProductForm, productToFormValue } from '../../shared/forms/product-form';
 
 @Component({
   selector: 'app-edit-product',
-  imports: [RouterLink, FormsModule, VariantConfigComponent],
+  imports: [RouterLink, FormsModule, ReactiveFormsModule, VariantConfigComponent],
   templateUrl: './edit-product.html',
   styles: ``,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -23,6 +24,7 @@ import { ProductsStore } from '../../core/state/products.store';
 export class EditProduct implements OnInit {
   public authService = inject(AuthService);
   readonly isAdmin = computed(() => this.authService.hasRole([UserRole.ADMIN]));
+  private readonly fb = inject(NonNullableFormBuilder);
   private productApi = inject(ProductApiService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -37,6 +39,7 @@ export class EditProduct implements OnInit {
   private readonly selectedVariantToEditSignal = signal<InventoryVariant | null>(null);
   private readonly editingVariantDraftSignal = signal<InventoryVariant | null>(null);
 
+  readonly form = createProductForm(this.fb);
   private readonly productSignal = signal<Product>({
     name: '',
     categoryId: 0,
@@ -66,6 +69,9 @@ export class EditProduct implements OnInit {
 
   get categories() { return this.categoriesSignal(); }
   set categories(value: Category[]) { this.categoriesSignal.set(value); }
+
+  get variants(): InventoryVariant[] { return this.product.variants ?? []; }
+  set variants(value: InventoryVariant[]) { this.product = { ...this.product, variants: value }; }
 
   get statusLabel(): { label: string; cls: string } {
     if (this.product.hasVariants) return { label: 'Gestionado por Variantes', cls: 'text-blue-600' };
@@ -108,6 +114,7 @@ export class EditProduct implements OnInit {
           ...data,
           variants: data.variants ? data.variants.map(v => ({ ...v })) : []
         };
+        this.form.setValue(productToFormValue(this.product));
       },
       error: (err) => {
         console.error('Error loading product:', err);
@@ -117,11 +124,15 @@ export class EditProduct implements OnInit {
   }
 
   onToggleVariants() {
-    if (this.product.hasVariants && this.isEditMode && this.product.id && !this.product.hasVariants && this.product.stock > 0) {
+    const hasVariants = this.form.controls.hasVariants.value;
+
+    if (hasVariants && this.isEditMode && this.product.id && !this.product.hasVariants && this.product.stock > 0) {
       this.notification.warning('No se puede convertir un producto simple con stock a un producto con variantes.');
-      this.product.hasVariants = false;
+      this.form.controls.hasVariants.setValue(false);
       return;
     }
+
+    this.product = { ...this.product, hasVariants };
   }
 
   openVariantEditor(v: InventoryVariant) {
@@ -143,37 +154,20 @@ export class EditProduct implements OnInit {
   }
 
   saveProduct() {
-    if (!this.product.name.trim()) {
-      this.notification.warning('Debe introducir un nombre para el producto.');
-      return;
-    }
-    if (!this.product.categoryId) {
-      this.notification.warning('Debe seleccionar una categoría.');
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      this.notification.warning('Debe introducir un nombre para el producto y seleccionar una categoría.');
       return;
     }
 
-    if (this.product.hasVariants && (!this.product.variants || this.product.variants.length === 0)) {
+    if (this.form.controls.hasVariants.value && this.variants.length === 0) {
       this.notification.warning('Debe configurar al menos una variante si el producto tiene variantes.');
       return;
     }
 
     this.isSubmitting = true;
 
-    // Prepare payload (match modal logic)
-    const payload: Product = {
-      ...this.product,
-      name: this.product.name.trim(),
-      description: this.product.description?.trim() || undefined,
-      sku: this.product.hasVariants ? undefined : (this.product.sku?.trim() || undefined),
-      stock: this.product.hasVariants ? this.product.variants?.reduce((acc, v) => acc + v.stock, 0) || 0 : this.product.stock,
-      minimumStock: this.product.hasVariants ? 0 : this.product.minimumStock,
-      purchasePrice: this.product.hasVariants ? undefined : this.product.purchasePrice,
-      productType: this.product.hasVariants ? 'VARIANT' : 'SIMPLE',
-      variants: this.product.hasVariants ? this.product.variants?.map(v => ({
-        ...v,
-        active: v.active ?? true
-      })) : [],
-    };
+    const payload = buildProductPayload(this.product, this.form.getRawValue(), this.variants);
 
     const obs = this.isEditMode && this.product.id
       ? this.productApi.updateProduct(this.product.id, payload)

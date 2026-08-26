@@ -28,7 +28,7 @@ export class ExpenseApiService {
     return this.http.get<ExpensePage>(this.baseUrl, { params });
   }
 
-  getRecentExpenses(limit: number = 5): Observable<ExpenseResponse[]> {
+  getRecentExpenses(limit = 5): Observable<ExpenseResponse[]> {
     let params = new HttpParams();
     params = params.set('limit', limit.toString());
     return this.http.get<ExpenseResponse[]>(`${this.baseUrl}/recent`, { params });
@@ -58,7 +58,7 @@ export class ExpenseApiService {
     });
   }
 
-  getSuggestions(query: string, category?: string, limit: number = 5): Observable<string[]> {
+  getSuggestions(query: string, category?: string, limit = 5): Observable<string[]> {
     let params = new HttpParams();
     params = params.set('query', query);
     if (category) {

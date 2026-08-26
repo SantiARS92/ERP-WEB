@@ -1,39 +1,35 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { DecimalPipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { SaleApiService } from '../../core/services/sale-api.service';
 import { ProductApiService } from '../../core/services/product-api.service';
 import { NotificationService } from '../../core/services/notification.service';
-import { PaymentMethod } from '../../core/models/sale.model';
 import { Service } from '../../core/models/service.model';
-import { Product, InventoryVariant } from '../../core/models/product.model';
+import { Product } from '../../core/models/product.model';
 import { Client } from '../../core/models/client.model';
 import { ClientsStore } from '../../core/state/clients.store';
 import { ServicesStore } from '../../core/state/services.store';
 import { ProductsStore } from '../../core/state/products.store';
-
-interface SaleLine {
-  itemType: 'SERVICE' | 'PRODUCT';
-  serviceId?: number;
-  inventoryProductId?: number;
-  inventoryProductVariantId?: number | null;
-  unitPrice?: number;
-  quantity: number;
-  selectedService?: Service | null;
-  selectedProduct?: Product | null;
-  selectedVariant?: InventoryVariant | null;
-}
+import {
+  PAYMENT_METHODS,
+  SaleLineGroup,
+  buildSalePayload,
+  computeSaleTotal,
+  createSaleForm,
+  createSaleLineGroup,
+} from '../../shared/forms/sale-form';
 
 @Component({
   selector: 'app-create-sale',
-  imports: [DecimalPipe, FormsModule, RouterLink],
+  imports: [DecimalPipe, ReactiveFormsModule, RouterLink],
   templateUrl: './create-sale.html',
-  styles: ``,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CreateSale implements OnInit {
+  private fb = inject(NonNullableFormBuilder);
   private saleApi = inject(SaleApiService);
   private productApi = inject(ProductApiService);
   private router = inject(Router);
@@ -42,186 +38,117 @@ export class CreateSale implements OnInit {
   private servicesStore = inject(ServicesStore);
   private productsStore = inject(ProductsStore);
 
-  private readonly servicesSignal = signal<Service[]>([]);
-  private readonly productsSignal = signal<Product[]>([]);
-  private readonly clientsSignal = signal<Client[]>([]);
+  readonly paymentMethods = PAYMENT_METHODS;
+  readonly form = createSaleForm(this.fb);
 
-  totalEstimado = 0;
+  readonly services = signal<Service[]>([]);
+  readonly products = signal<Product[]>([]);
+  readonly clients = signal<Client[]>([]);
+  readonly isSubmitting = signal(false);
 
-  sharedData = {
-    clientId: undefined as number | undefined,
-    paymentMethod: 'CASH' as PaymentMethod,
-    saleDate: new Date().toISOString().split('T')[0], // YYYY-MM-DD
-    notes: '',
-  };
+  private readonly value = toSignal(this.form.valueChanges, { initialValue: this.form.getRawValue() });
 
-  saleLines: SaleLine[] = [this.createEmptyLine()];
-  
-  createEmptyLine(): SaleLine {
-    return { itemType: 'SERVICE', quantity: 1 };
+  readonly totalEstimado = computed(() =>
+    computeSaleTotal(this.value().lines ?? [], (id) =>
+      this.services().find(s => s.id === Number(id))?.price ?? 0
+    )
+  );
+
+  get lines() { return this.form.controls.lines; }
+
+  ngOnInit(): void {
+    this.clientsStore.ensureLoaded().subscribe(clients => this.clients.set(clients));
+    this.servicesStore.ensureLoaded().subscribe(services => this.services.set(services.filter(s => s.active)));
+    this.productsStore.ensureLoaded().subscribe(products => this.products.set(products));
   }
-  
+
   addLine() {
-    this.saleLines.push(this.createEmptyLine());
+    this.lines.push(createSaleLineGroup(this.fb));
   }
 
   removeLine(index: number) {
-    if (this.saleLines.length === 1) return; //siempre debe quedar al menos 1
-    this.saleLines.splice(index, 1);
-    this.calculateSummary();
+    if (this.lines.length === 1) return;
+    this.lines.removeAt(index);
   }
 
-  constructor() {
-    // Add watcher for quantities and prices if they change manually
+  productOf(line: SaleLineGroup): Product | null {
+    const id = Number(line.controls.inventoryProductId.value ?? 0);
+    if (!id) return null;
+    return this.products().find(p => p.id === id) ?? null;
   }
 
-  private readonly isSubmittingSignal = signal(false);
+  onProductChange(line: SaleLineGroup) {
+    line.controls.inventoryProductVariantId.setValue(null);
 
-  get services() { return this.servicesSignal(); }
-  set services(value: Service[]) { this.servicesSignal.set(value); }
+    const product = this.productOf(line);
+    if (!product?.hasVariants || product.variants?.length || !product.id) return;
 
-  get products() { return this.productsSignal(); }
-  set products(value: Product[]) { this.productsSignal.set(value); }
-
-  get clients() { return this.clientsSignal(); }
-  set clients(value: Client[]) { this.clientsSignal.set(value); }
-
-  get isSubmitting() { return this.isSubmittingSignal(); }
-  set isSubmitting(value: boolean) { this.isSubmittingSignal.set(value); }
-
-  ngOnInit(): void {
-    this.clientsStore.ensureLoaded().subscribe((clients) => { this.clients = clients; });
-    this.servicesStore.ensureLoaded().subscribe((services) => { this.services = services.filter((service) => service.active); });
-    this.productsStore.ensureLoaded().subscribe((products) => { this.products = products; });
+    this.productApi.getProductById(product.id).subscribe({
+      next: (full) => {
+        this.products.update(list =>
+          list.map(p => (p.id === product.id ? { ...p, variants: full.variants } : p))
+        );
+      },
+      error: () => this.notification.error('No se pudieron cargar las variantes del producto.'),
+    });
   }
 
-  onProductChange(index: number) {
-    const line = this.saleLines[index];
-    const productId = Number(line.inventoryProductId);
-    if (!productId) {
-      line.selectedProduct = null;
-      line.selectedVariant = null;
-      line.inventoryProductVariantId = null;
-      return;
-    }
-    
-    const product = this.products.find(p => p.id === productId);
-    if (product) {
-      line.selectedProduct = product;
-      line.selectedVariant = null;
-      line.inventoryProductVariantId = null;
-
-      // If it has variants but they aren't loaded (backend might return variants: [] in list)
-      if (product.hasVariants && (!product.variants || product.variants.length === 0)) {
-        this.productApi.getProductById(productId).subscribe({
-          next: (fullProduct) => {
-            product.variants = fullProduct.variants;
-          },
-          error: (err) => console.error('Error loading product details:', err)
-        });
-      }
-    }
-    this.calculateSummary();
+  onVariantChange(line: SaleLineGroup) {
+    const product = this.productOf(line);
+    const variantId = Number(line.controls.inventoryProductVariantId.value ?? 0);
+    const variant = product?.variants?.find(v => v.id === variantId) ?? null;
+    const price = variant?.purchasePrice ?? product?.purchasePrice;
+    if (price) line.controls.unitPrice.setValue(price);
   }
 
-  onVariantChange(index: number) {
-    const line = this.saleLines[index];
-    const variantId = Number(line.inventoryProductVariantId);
-    if (line.selectedProduct && variantId) {
-      line.selectedVariant = line.selectedProduct.variants?.find(v => v.id === variantId) || null;
-      if (line.selectedVariant?.purchasePrice) {
-          line.unitPrice = line.selectedVariant.purchasePrice;
-      } else if (line.selectedProduct.purchasePrice) {
-          line.unitPrice = line.selectedProduct.purchasePrice;
-      }
-    } else {
-      line.selectedVariant = null;
-    }
-    this.calculateSummary();
+  onServiceChange(line: SaleLineGroup) {
+    const service = this.services().find(s => s.id === Number(line.controls.serviceId.value));
+    if (service) line.controls.unitPrice.setValue(service.price);
   }
 
-  onServiceChange(index: number) {
-    const line = this.saleLines[index];
-    line.selectedService = this.services.find(s => s.id === Number(line.serviceId)) || null;
-    if (line.selectedService) {
-        line.unitPrice = line.selectedService.price;
-    }
-    this.calculateSummary();
-  }
-
-  calculateSummary() {
-    this.totalEstimado = this.saleLines.reduce((sum, line) => {;
-    const qty = line.quantity || 0;
-    let price = line.unitPrice || 0;
-
-    if (!line.unitPrice && line.itemType === 'SERVICE' && line.selectedService) {
-        price = line.selectedService.price;
-    }
-    return sum + (qty * price);
-    }, 0);
-  }
-  
   registerSale() {
-    if (!this.sharedData.clientId) {
+    const shared = this.form.getRawValue();
+
+    if (!shared.clientId) {
       this.notification.warning('Debe seleccionar un cliente.');
       return;
     }
 
-    for (const line of this.saleLines) {
-      if (line.itemType === 'SERVICE' && !line.serviceId) {
+    for (const line of this.lines.controls) {
+      const v = line.getRawValue();
+      if (v.itemType === 'SERVICE' && !v.serviceId) {
         this.notification.warning('Debe seleccionar un servicio en todas las líneas.');
         return;
       }
-      if (line.itemType === 'PRODUCT') {
-        if (!line.inventoryProductId) {
+      if (v.itemType === 'PRODUCT') {
+        if (!v.inventoryProductId) {
           this.notification.warning('Debe seleccionar un producto del inventario en todas las líneas.');
           return;
         }
-        if (line.selectedProduct?.hasVariants && !line.inventoryProductVariantId) {
+        if (this.productOf(line)?.hasVariants && !v.inventoryProductVariantId) {
           this.notification.warning('Debe seleccionar una variante del producto en todas las líneas.');
           return;
         }
       }
-      if (line.quantity <= 0) {
+      if (v.quantity <= 0) {
         this.notification.warning('La cantidad debe ser mayor a 0 en todas las líneas.');
         return;
       }
     }
 
-    const requests = this.saleLines.map(line => {
-      const payLoad: any = {
-        clientId: Number(this.sharedData.clientId),
-        itemType: line.itemType,
-        quantity: Number(line.quantity),
-        paymentMethod: this.sharedData.paymentMethod,
-        saleDate: this.sharedData.saleDate,
-        saleTime: '00:00:00',
-        notes: this.sharedData.notes,
-      };
-      if (line.unitPrice) payLoad.unitPrice = Number(line.unitPrice);
+    const requests = this.lines.controls.map(line =>
+      this.saleApi.createSale(buildSalePayload(shared, line.getRawValue(), this.productOf(line)))
+    );
 
-      if (line.itemType === 'SERVICE') {
-        payLoad.serviceId = Number(line.serviceId);
-      } else {
-        payLoad.inventoryProductId = Number(line.inventoryProductId);
-        payLoad.inventoryProductVariantId = line.selectedProduct?.hasVariants ? Number(line.inventoryProductVariantId) : null;
-      }
-      return this.saleApi.createSale(payLoad);
-    });
+    this.isSubmitting.set(true);
 
-    this.isSubmitting = true;
-    
-    // Execute all requests in parallel
     forkJoin(requests).subscribe({
       next: () => {
         this.productsStore.refresh().subscribe();
         this.notification.success(`${requests.length} venta(s) registrada(s) correctamente.`, '¡Éxito!');
         this.router.navigate(['/ventas']);
       },
-      error: (err) => {
-        console.error('Error creando venta:', err);
-        this.isSubmitting = false;
-      }
+      error: () => this.isSubmitting.set(false),
     });
   }
 }
