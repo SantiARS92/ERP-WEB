@@ -464,7 +464,7 @@ Cada fase completada genera un documento en `plan/fases/` siguiendo la plantilla
 | 4 — Migraciones automáticas | `fases/fase-04-migraciones-automaticas.md` | 🟢 Completada | 2026-08-26 | `f058dfb` |
 | 5 — Limpieza | `fases/fase-05-limpieza.md` | 🟢 Completada | 2026-08-26 | `3546a2d` |
 | 6 — Reactividad | `fases/fase-06-reactividad.md` | 🟢 Completada | 2026-08-26 | `ec30348` |
-| 7 — Arquitectura | `fases/fase-07-arquitectura.md` | 🟡 En curso | 2026-08-26 | — |
+| 7 — Arquitectura | `fases/fase-07-arquitectura.md` | 🟢 Completada | 2026-08-26 | `9416f80` |
 | 8 — Refactor profundo | `fases/fase-08-refactor-profundo.md` | 🔴 Pendiente | — | — |
 | 9 — Limpieza y linting | `fases/fase-09-limpieza-y-linting.md` | 🔴 Pendiente | — | — |
 

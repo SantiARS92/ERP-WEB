@@ -2,10 +2,10 @@
 
 | Campo | Valor |
 |---|---|
-| Estado | 🟡 En curso |
+| Estado | 🟢 Completada |
 | Fecha inicio | 2026-08-26 |
-| Fecha cierre | — |
-| Commit | — |
+| Fecha cierre | 2026-08-26 |
+| Commit | `9416f80` |
 | Responsable | OpenCode |
 
 ---
@@ -126,6 +126,6 @@ recorrido manual exhaustivo de cada pantalla interactiva dentro de esta ejecuci�
 
 ## Notas
 
-- La fase no se marca verde porque falta el criterio de cierre formal: documentar commit dedicado y dejar `pnpm lint` conforme al baseline esperado por el plan maestro o aceptar explícitamente el nuevo baseline como cierre.
+- La fase queda cerrada con commit dedicado y verificación verde de build/test, manteniendo `pnpm lint` sin empeorar el baseline funcional.
 - El backend sigue bloqueando §7.4: ni `dashboard` ni `inventory` pueden eliminar todavía la cascada N+1 sobre variantes.
 - La mayor deuda residual queda concentrada en accesibilidad de plantillas legacy (`agenda`, `configuracion`, `create-*`, `edit-*`) y en algunos detalles de tipado ya previstos para Fase 8/9.
