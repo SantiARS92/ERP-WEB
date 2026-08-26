@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { ServiceApiService } from '../../core/services/service-api.service';
@@ -9,8 +9,7 @@ import { Category } from '../../core/models/category.model';
 
 @Component({
   selector: 'app-create-service',
-  standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [FormsModule, RouterModule],
   templateUrl: './create-service.html',
   styles: ``,
 })

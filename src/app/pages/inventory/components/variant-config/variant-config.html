@@ -27,7 +27,7 @@
 
   <!-- Attr Values Config -->
   <div class="space-y-4 mb-6">
-    @for (attr of attributes; track attr.name) {
+    @for (attr of attributes(); track attr.name) {
       <div class="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-2">
@@ -63,10 +63,10 @@
   </div>
 
   <!-- Generate Button -->
-  @if (attributes.length > 0 && combinationCount > 0) {
+  @if (attributes().length > 0 && combinationCount() > 0) {
     <div class="bg-blue-600/5 border border-blue-200 rounded-xl p-5 mb-6 text-center">
       <div class="text-[14px] text-blue-800 font-medium mb-3">
-        Se van a generar <span class="font-black underline">{{ combinationCount }}</span> combinaciones de variantes.
+        Se van a generar <span class="font-black underline">{{ combinationCount() }}</span> combinaciones de variantes.
       </div>
       <button type="button" (click)="generateVariants()"
         class="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-[13px] shadow-lg shadow-blue-200 transition-all active:scale-95">
@@ -76,7 +76,7 @@
   }
 
   <!-- Variants Table -->
-  @if (variantsGenerated && generatedVariants.length > 0) {
+  @if (variantsGenerated() && variants().length > 0) {
     <div class="overflow-x-auto">
       <table class="w-full text-[13px]">
         <thead>
@@ -89,7 +89,7 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100">
-          @for (v of generatedVariants; track trackByIndex($index, $index)) {
+          @for (v of variants(); track v.variantLabel) {
             <tr>
               <td class="py-3 pr-3 font-semibold text-slate-700">{{ v.variantLabel }}</td>
               <td class="py-3 pr-3">

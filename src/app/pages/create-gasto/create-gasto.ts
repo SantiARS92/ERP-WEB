@@ -10,7 +10,6 @@ import { Product, InventoryVariant } from '../../core/models/product.model';
 
 @Component({
   selector: 'app-create-gasto',
-  standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './create-gasto.html',
   styles: ``,

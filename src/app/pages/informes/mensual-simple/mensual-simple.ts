@@ -6,7 +6,6 @@ import { MonthlySimpleReport } from '../../../core/models/report.model';
 
 @Component({
   selector: 'app-informe-mensual-simple',
-  standalone: true,
   imports: [CommonModule, RouterModule],
   templateUrl: './mensual-simple.html',
 })

@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Category } from '../../core/models/category.model';
 import { CategoryApiService } from '../../core/services/category-api.service';
@@ -9,8 +9,7 @@ import { UserRole } from '../../core/models/user.model';
 
 @Component({
   selector: 'app-manage-categories',
-  standalone: true,
-  imports: [CommonModule, FormsModule, PaginationComponent],
+  imports: [FormsModule, PaginationComponent],
   templateUrl: './manage-categories.html',
   styles: ``,
 })

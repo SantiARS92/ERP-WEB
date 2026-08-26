@@ -1,5 +1,5 @@
 import { Component, inject, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { ClientApiService } from '../../core/services/client-api.service';
@@ -8,8 +8,7 @@ import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-create-client',
-  standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [FormsModule, RouterModule],
   templateUrl: './create-client.html',
 })
 export class CreateClient {

@@ -8,7 +8,6 @@ import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-informe-trimestral',
-  standalone: true,
   imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './trimestral.html',
 })

@@ -14,7 +14,6 @@ import { NotificationService } from '../../core/services/notification.service';
 
 @Component({
   selector: 'app-configuracion',
-  standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './configuracion.html',
   styles: `

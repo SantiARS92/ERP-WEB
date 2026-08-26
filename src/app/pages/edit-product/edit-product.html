@@ -14,19 +14,21 @@
         </h1>
       </div>
 
-      <button *ngIf="isEditMode && authService.hasRole([UserRole.ADMIN])"
-              (click)="deleteProduct()"
-              class="flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-[13px] rounded-lg border border-red-100 transition-colors uppercase">
-        <span class="material-symbols-outlined text-[18px]">delete</span>
-        Eliminar
-      </button>
+      @if (isEditMode && authService.hasRole([UserRole.ADMIN])) {
+        <button
+          (click)="deleteProduct()"
+          class="flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-[13px] rounded-lg border border-red-100 transition-colors uppercase">
+          <span class="material-symbols-outlined text-[18px]">delete</span>
+          Eliminar
+        </button>
+      }
     </div>
 
     <div class="max-w-[800px]">
-      
+
       <div class="bg-white rounded-[16px] border border-slate-200 overflow-hidden">
         <div class="p-8 space-y-6">
-          
+
           <div class="mb-4">
             <h2 class="text-[16px] font-bold text-slate-900">Detalles del Inventario</h2>
             <p class="text-[13px] text-slate-500">
@@ -40,7 +42,7 @@
             <div class="relative">
               <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">inventory_2</span>
               <input type="text" [(ngModel)]="product.name" name="name" required placeholder="Ej: Champú Profesional, Camiseta Básica..."
-                     class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700">
+                class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700">
             </div>
           </div>
 
@@ -51,9 +53,11 @@
               <div class="relative">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">category</span>
                 <select [(ngModel)]="product.categoryId" name="categoryId" required
-                        class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
+                  class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
                   <option [value]="0" disabled>Selecciona categoría...</option>
-                  <option *ngFor="let cat of categories" [value]="cat.id">{{ cat.name }}</option>
+                  @for (cat of categories; track cat) {
+                    <option [value]="cat.id">{{ cat.name }}</option>
+                  }
                 </select>
                 <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
               </div>
@@ -64,7 +68,7 @@
               <div class="relative">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">qr_code</span>
                 <input type="text" [(ngModel)]="product.sku" name="sku" placeholder="Ej: SHP-001" [disabled]="!!product.hasVariants"
-                       class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 font-mono disabled:opacity-50 disabled:bg-slate-50">
+                  class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 font-mono disabled:opacity-50 disabled:bg-slate-50">
               </div>
             </div>
           </div>
@@ -73,7 +77,7 @@
           <div class="space-y-1.5">
             <label class="text-[13px] font-bold text-slate-900">Descripción breve</label>
             <textarea [(ngModel)]="product.description" name="description" placeholder="Descripción opcional del producto..." rows="3"
-                      class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 resize-none"></textarea>
+            class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 resize-none"></textarea>
           </div>
 
           <!-- Variant Toggle Panel -->
@@ -95,142 +99,152 @@
           </div>
 
           <!-- Simple Product Stock Info -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4" *ngIf="!product.hasVariants">
-            <div class="space-y-1.5">
-              <label class="text-[13px] font-bold text-slate-900">Stock actual</label>
-              <input type="number" [(ngModel)]="product.stock" name="stock" 
-                     class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700">
-            </div>
-            <div class="space-y-1.5">
-              <label class="text-[13px] font-bold text-slate-900">Stock mínimo</label>
-              <input type="number" [(ngModel)]="product.minimumStock" name="minimumStock"
-                     class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700">
-            </div>
-            <div class="space-y-1.5">
-              <label class="text-[13px] font-bold text-slate-900">Estado</label>
-              <div class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-[14px] bg-slate-50 flex items-center gap-1.5 h-[42px] font-bold"
-                   [class]="statusLabel.cls">
-                <span class="text-[12px] text-slate-400 font-normal mr-1">(auto)</span>
-                {{ statusLabel.label }}
+          @if (!product.hasVariants) {
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="space-y-1.5">
+                <label class="text-[13px] font-bold text-slate-900">Stock actual</label>
+                <input type="number" [(ngModel)]="product.stock" name="stock"
+                  class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700">
+              </div>
+              <div class="space-y-1.5">
+                <label class="text-[13px] font-bold text-slate-900">Stock mínimo</label>
+                <input type="number" [(ngModel)]="product.minimumStock" name="minimumStock"
+                  class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700">
+              </div>
+              <div class="space-y-1.5">
+                <label class="text-[13px] font-bold text-slate-900">Estado</label>
+                <div class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-[14px] bg-slate-50 flex items-center gap-1.5 h-[42px] font-bold"
+                  [class]="statusLabel.cls">
+                  <span class="text-[12px] text-slate-400 font-normal mr-1">(auto)</span>
+                  {{ statusLabel.label }}
+                </div>
               </div>
             </div>
-          </div>
+          }
 
-          <div class="space-y-1.5" *ngIf="!product.hasVariants">
-            <label class="text-[13px] font-bold text-slate-900">Precio de compra (€)</label>
-            <div class="relative group w-full md:w-1/3">
-              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-[14px]">€</span>
-              <input type="number" [(ngModel)]="product.purchasePrice" name="purchasePrice" step="0.01" placeholder="0.00"
-                     class="w-full pl-8 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700">
+          @if (!product.hasVariants) {
+            <div class="space-y-1.5">
+              <label class="text-[13px] font-bold text-slate-900">Precio de compra (€)</label>
+              <div class="relative group w-full md:w-1/3">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-[14px]">€</span>
+                <input type="number" [(ngModel)]="product.purchasePrice" name="purchasePrice" step="0.01" placeholder="0.00"
+                  class="w-full pl-8 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700">
+              </div>
             </div>
-          </div>
+          }
 
           <!-- Variant Configuration (Child Component) -->
-          <div *ngIf="product.hasVariants" class="pt-2">
-            <app-variant-config [variants]="product.variants || []" (variantsChange)="onVariantsChange($event)"></app-variant-config>
-            
-            <!-- Summary of variants -->
-            <div class="mt-6 pt-6 border-t border-slate-100" *ngIf="product.variants && product.variants.length > 0">
-                <div class="flex items-center justify-between px-1 mb-4">
+          @if (product.hasVariants) {
+            <div class="pt-2">
+              <app-variant-config [(variants)]="product.variants!"></app-variant-config>
+              <!-- Summary of variants -->
+              @if (product.variants && product.variants.length > 0) {
+                <div class="mt-6 pt-6 border-t border-slate-100">
+                  <div class="flex items-center justify-between px-1 mb-4">
                     <span class="text-[13px] font-bold text-slate-900">Resumen de Variantes ({{ product.variants.length }})</span>
-                </div>
-                
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div *ngFor="let v of product.variants; trackBy: trackByIndex" 
-                         class="p-4 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-between">
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    @for (v of product.variants; track $index) {
+                      <div
+                        class="p-4 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-between">
                         <div class="space-y-0.5">
-                            <span class="text-[14px] font-medium text-slate-900 block">{{ v.variantLabel }}</span>
-                            <span class="text-[12px] text-slate-500 font-mono">{{ v.sku || 'Sin SKU' }}</span>
+                          <span class="text-[14px] font-medium text-slate-900 block">{{ v.variantLabel }}</span>
+                          <span class="text-[12px] text-slate-500 font-mono">{{ v.sku || 'Sin SKU' }}</span>
                         </div>
                         <div class="flex flex-col items-end gap-1">
-                            <div class="flex items-center gap-2">
-                                <span class="text-[13px] font-bold text-slate-800">{{ v.stock }} unid.</span>
-                                <button (click)="openVariantEditor(v)" class="w-6 h-6 flex items-center justify-center rounded-md bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-colors" title="Editar Variante">
-                                    <span class="material-symbols-outlined text-[14px]">edit</span>
-                                </button>
-                            </div>
-                            <span class="text-[11px] font-semibold px-2 py-0.5 rounded border" 
-                                  [class]="getVariantStatus(v).cls.replace('text-', 'bg-').replace('500', '50') + ' ' + getVariantStatus(v).cls + ' border-' + getVariantStatus(v).cls.split('-')[1] + '-200'">
-                                {{ getVariantStatus(v).label }}
-                            </span>
+                          <div class="flex items-center gap-2">
+                            <span class="text-[13px] font-bold text-slate-800">{{ v.stock }} unid.</span>
+                            <button (click)="openVariantEditor(v)" class="w-6 h-6 flex items-center justify-center rounded-md bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-colors" title="Editar Variante">
+                              <span class="material-symbols-outlined text-[14px]">edit</span>
+                            </button>
+                          </div>
+                          <span class="text-[11px] font-semibold px-2 py-0.5 rounded border"
+                            [class]="getVariantStatus(v).cls.replace('text-', 'bg-').replace('500', '50') + ' ' + getVariantStatus(v).cls + ' border-' + getVariantStatus(v).cls.split('-')[1] + '-200'">
+                            {{ getVariantStatus(v).label }}
+                          </span>
                         </div>
-                    </div>
+                      </div>
+                    }
+                  </div>
                 </div>
+              }
             </div>
-          </div>
+          }
 
         </div>
 
         <!-- Integrated Summary & Actions Section -->
         <div class="bg-slate-50 border-t border-slate-200 p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div class="flex items-center gap-2" *ngIf="product.hasVariants">
-            <span class="text-[14px] font-semibold text-slate-600">Stock Integrado:</span>
-            <span class="text-[18px] font-bold text-blue-600">{{ totalVariantStock }} unid.</span>
-          </div>
-          <div *ngIf="!product.hasVariants"></div> <!-- Placeholder for flex -->
+          @if (product.hasVariants) {
+            <div class="flex items-center gap-2">
+              <span class="text-[14px] font-semibold text-slate-600">Stock Integrado:</span>
+              <span class="text-[18px] font-bold text-blue-600">{{ totalVariantStock }} unid.</span>
+            </div>
+          }
+          @if (!product.hasVariants) {
+            <div></div>
+          } <!-- Placeholder for flex -->
 
           <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-            <button (click)="cancel()" 
-                    class="px-5 py-2.5 text-slate-600 hover:bg-slate-200 font-semibold text-[14px] rounded-xl transition-all text-center">
+            <button (click)="cancel()"
+              class="px-5 py-2.5 text-slate-600 hover:bg-slate-200 font-semibold text-[14px] rounded-xl transition-all text-center">
               Cancelar
             </button>
             <button [disabled]="isSubmitting" (click)="saveProduct()"
-                    class="flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-[14px] rounded-xl transition-all shadow-sm min-w-[140px]">
-              <span class="material-symbols-outlined text-[18px]" *ngIf="isSubmitting">progress_activity</span>
+              class="flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-[14px] rounded-xl transition-all shadow-sm min-w-[140px]">
+              @if (isSubmitting) {
+                <span class="material-symbols-outlined text-[18px]">progress_activity</span>
+              }
               {{ isSubmitting ? 'Guardando...' : (isEditMode ? 'Guardar Cambios' : 'Registrar Producto') }}
             </button>
           </div>
-        </div>
 
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-<!-- Modal Editar Variante -->
-<div *ngIf="editingVariantDraft" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
-  <!-- Backdrop -->
-  <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" (click)="closeVariantEditor()"></div>
-  
-  <!-- Content -->
-  <div class="relative bg-white rounded-2xl w-full max-w-[400px] shadow-xl overflow-hidden animate-fade-in-up">
-    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-      <h3 class="text-[15px] font-bold text-slate-900 truncate">Editar: {{ editingVariantDraft.variantLabel }}</h3>
-      <button (click)="closeVariantEditor()" class="text-slate-400 hover:text-slate-600 transition-colors">
-        <span class="material-symbols-outlined text-[20px]">close</span>
-      </button>
-    </div>
-    
-    <div class="p-6 space-y-4 bg-white">
-      <div class="space-y-1.5">
-        <label class="text-[12px] font-bold text-slate-500 uppercase tracking-wider">SKU</label>
-        <input type="text" [(ngModel)]="editingVariantDraft.sku"
-               class="w-full px-3 py-2 rounded-xl border border-slate-200 text-[13px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-mono">
-      </div>
-      
-      <div class="grid grid-cols-2 gap-4">
-        <div class="space-y-1.5">
-          <label class="text-[12px] font-bold text-slate-500 uppercase tracking-wider">Stock Actual</label>
-          <input type="number" [(ngModel)]="editingVariantDraft.stock"
-                 class="w-full px-3 py-2 rounded-xl border border-slate-200 text-[13px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-semibold text-center">
+  <!-- Modal Editar Variante -->
+  @if (editingVariantDraft) {
+    <div class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <!-- Backdrop -->
+      <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" (click)="closeVariantEditor()"></div>
+      <!-- Content -->
+      <div class="relative bg-white rounded-2xl w-full max-w-[400px] shadow-xl overflow-hidden animate-fade-in-up">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <h3 class="text-[15px] font-bold text-slate-900 truncate">Editar: {{ editingVariantDraft.variantLabel }}</h3>
+          <button (click)="closeVariantEditor()" class="text-slate-400 hover:text-slate-600 transition-colors">
+            <span class="material-symbols-outlined text-[20px]">close</span>
+          </button>
         </div>
-        <div class="space-y-1.5">
-          <label class="text-[12px] font-bold text-slate-500 uppercase tracking-wider">Mínimo</label>
-          <input type="number" [(ngModel)]="editingVariantDraft.minimumStock"
-                 class="w-full px-3 py-2 rounded-xl border border-slate-200 text-[13px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-semibold text-center">
+        <div class="p-6 space-y-4 bg-white">
+          <div class="space-y-1.5">
+            <label class="text-[12px] font-bold text-slate-500 uppercase tracking-wider">SKU</label>
+            <input type="text" [(ngModel)]="editingVariantDraft.sku"
+              class="w-full px-3 py-2 rounded-xl border border-slate-200 text-[13px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-mono">
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-1.5">
+              <label class="text-[12px] font-bold text-slate-500 uppercase tracking-wider">Stock Actual</label>
+              <input type="number" [(ngModel)]="editingVariantDraft.stock"
+                class="w-full px-3 py-2 rounded-xl border border-slate-200 text-[13px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-semibold text-center">
+            </div>
+            <div class="space-y-1.5">
+              <label class="text-[12px] font-bold text-slate-500 uppercase tracking-wider">Mínimo</label>
+              <input type="number" [(ngModel)]="editingVariantDraft.minimumStock"
+                class="w-full px-3 py-2 rounded-xl border border-slate-200 text-[13px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-semibold text-center">
+            </div>
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-[12px] font-bold text-slate-500 uppercase tracking-wider">P. Compra (€)</label>
+            <input type="number" step="0.01" [(ngModel)]="editingVariantDraft.purchasePrice"
+              class="w-full px-3 py-2 rounded-xl border border-slate-200 text-[13px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-semibold text-center">
+          </div>
+        </div>
+        <div class="p-4 border-t border-slate-100 flex items-center justify-end gap-2 bg-slate-50/50">
+          <button (click)="closeVariantEditor()" class="px-4 py-2 text-[13px] font-bold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">Cancelar</button>
+          <button (click)="saveVariantEditor()" class="px-5 py-2 text-[13px] font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-md hover:shadow-lg transition-all active:scale-95">Guardar</button>
         </div>
       </div>
-      
-      <div class="space-y-1.5">
-        <label class="text-[12px] font-bold text-slate-500 uppercase tracking-wider">P. Compra (€)</label>
-        <input type="number" step="0.01" [(ngModel)]="editingVariantDraft.purchasePrice"
-               class="w-full px-3 py-2 rounded-xl border border-slate-200 text-[13px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-semibold text-center">
-      </div>
     </div>
-    
-    <div class="p-4 border-t border-slate-100 flex items-center justify-end gap-2 bg-slate-50/50">
-      <button (click)="closeVariantEditor()" class="px-4 py-2 text-[13px] font-bold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">Cancelar</button>
-      <button (click)="saveVariantEditor()" class="px-5 py-2 text-[13px] font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-md hover:shadow-lg transition-all active:scale-95">Guardar</button>
-    </div>
-  </div>
-</div>
+  }

@@ -1,5 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { ServiceApiService } from '../../core/services/service-api.service';
@@ -9,8 +9,7 @@ import { Category } from '../../core/models/category.model';
 
 @Component({
   selector: 'app-edit-service',
-  standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [FormsModule, RouterModule],
   templateUrl: './edit-service.html',
   styles: ``,
 })

@@ -14,7 +14,6 @@ import { Professional } from '../../core/models/professional.model';
 
 @Component({
   selector: 'app-create-appointment',
-  standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './create-appointment.html',
 })

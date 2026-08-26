@@ -10,7 +10,6 @@ import { Product, InventoryVariant } from '../../core/models/product.model';
 
 @Component({
   selector: 'app-edit-gasto',
-  standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './edit-gasto.html',
   styles: ``,

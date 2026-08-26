@@ -8,7 +8,6 @@ import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-ranking-servicios',
-  standalone: true,
   imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './ranking-servicios.html',
 })

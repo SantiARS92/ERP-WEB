@@ -14,7 +14,6 @@ import { NotificationService } from '../../core/services/notification.service';
 
 @Component({
   selector: 'app-edit-sale',
-  standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './edit-sale.html',
   styles: ``,

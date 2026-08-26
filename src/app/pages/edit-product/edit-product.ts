@@ -1,5 +1,5 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { ProductApiService } from '../../core/services/product-api.service';
@@ -13,8 +13,7 @@ import { NotificationService } from '../../core/services/notification.service';
 
 @Component({
   selector: 'app-edit-product',
-  standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, VariantConfigComponent],
+  imports: [RouterModule, FormsModule, VariantConfigComponent],
   templateUrl: './edit-product.html',
   styles: ``,
 })
@@ -106,11 +105,6 @@ export class EditProduct implements OnInit {
       this.product.hasVariants = false;
       return;
     }
-  }
-
-  onVariantsChange(variants: InventoryVariant[]) {
-    this.product.variants = variants;
-    this.cdr.detectChanges();
   }
 
   openVariantEditor(v: InventoryVariant) {

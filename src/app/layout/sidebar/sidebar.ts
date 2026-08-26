@@ -6,7 +6,6 @@ import { UserRole } from '../../core/models/user.model';
 
 @Component({
   selector: 'app-sidebar',
-  standalone: true,
   imports: [RouterLink, RouterLinkActive],
   templateUrl: './sidebar.html',
   styles: ``,

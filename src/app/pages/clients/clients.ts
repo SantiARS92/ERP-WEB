@@ -9,7 +9,6 @@ import { PaginationComponent } from '../../shared/components/pagination/paginati
 
 @Component({
   selector: 'app-clients',
-  standalone: true,
   imports: [CommonModule, RouterModule, FormsModule, PaginationComponent],
   templateUrl: './clients.html',
 })

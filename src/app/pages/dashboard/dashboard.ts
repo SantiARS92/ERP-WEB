@@ -14,7 +14,6 @@ import { catchError, mergeMap, toArray } from 'rxjs/operators';
 
 @Component({
   selector: 'app-dashboard',
-  standalone: true,
   imports: [CommonModule, RouterModule],
   providers: [DatePipe],
   templateUrl: './dashboard.html',

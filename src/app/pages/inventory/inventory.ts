@@ -12,7 +12,6 @@ import { catchError, mergeMap, toArray } from 'rxjs/operators';
 
 @Component({
   selector: 'app-inventory',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.Default,
   imports: [CommonModule, RouterModule, FormsModule, PaginationComponent],
   templateUrl: './inventory.html',

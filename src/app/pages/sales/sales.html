@@ -24,48 +24,49 @@
       </div>
     </div>
 
-      <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
-        
-        <!-- Filter Bar -->
-        <div class="px-6 py-5 border-b border-slate-100 flex flex-col xl:flex-row justify-between xl:items-center gap-4 bg-slate-50/30">
-          
-          <div class="flex p-1 bg-slate-100 rounded-xl w-fit">
-            <button (click)="setQuickFilter('month')" [class]="quickFilter === 'month' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'" class="px-4 py-2 text-[13px] font-bold rounded-lg transition-all">Mes Actual</button>
-            <button (click)="setQuickFilter('quarter')" [class]="quickFilter === 'quarter' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'" class="px-4 py-2 text-[13px] font-bold rounded-lg transition-all">Trimestre</button>
-            <button (click)="setQuickFilter('year')" [class]="quickFilter === 'year' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'" class="px-4 py-2 text-[13px] font-bold rounded-lg transition-all">Anual</button>
-          </div>
-          
-          <div class="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
-            <!-- Custom Date Range -->
-            <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 h-11">
-              <span class="material-symbols-outlined text-slate-400 text-[18px]">calendar_month</span>
-              <input type="date" [(ngModel)]="fromDate" (ngModelChange)="onSearchChange()" class="text-[13px] font-semibold text-slate-600 border-none outline-none focus:ring-0 p-0 bg-transparent min-w-[110px]" title="Desde" />
-              <span class="text-slate-300">-</span>
-              <input type="date" [(ngModel)]="toDate" (ngModelChange)="onSearchChange()" class="text-[13px] font-semibold text-slate-600 border-none outline-none focus:ring-0 p-0 bg-transparent min-w-[110px]" title="Hasta" />
-            </div>
+    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
 
-            <div class="relative flex-1 sm:flex-none sm:w-80">
-              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
-              <input type="text" [(ngModel)]="search" (ngModelChange)="onSearchChange()" placeholder="Buscar por cliente o producto/servicio..." 
-                     class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow text-[14px]">
-            </div>
-          </div>
+      <!-- Filter Bar -->
+      <div class="px-6 py-5 border-b border-slate-100 flex flex-col xl:flex-row justify-between xl:items-center gap-4 bg-slate-50/30">
+
+        <div class="flex p-1 bg-slate-100 rounded-xl w-fit">
+          <button (click)="setQuickFilter('month')" [class]="quickFilter === 'month' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'" class="px-4 py-2 text-[13px] font-bold rounded-lg transition-all">Mes Actual</button>
+          <button (click)="setQuickFilter('quarter')" [class]="quickFilter === 'quarter' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'" class="px-4 py-2 text-[13px] font-bold rounded-lg transition-all">Trimestre</button>
+          <button (click)="setQuickFilter('year')" [class]="quickFilter === 'year' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'" class="px-4 py-2 text-[13px] font-bold rounded-lg transition-all">Anual</button>
         </div>
 
-        <div class="overflow-x-auto min-h-[300px]">
-          <table class="w-full relative">
-            <thead>
-              <tr class="bg-slate-50 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                <th class="px-6 py-3 text-left">FECHA</th>
-                <th class="px-6 py-3 text-left">CLIENTE</th>
-                <th class="px-6 py-3 text-left">SERVICIO / PRODUCTO</th>
-                <th class="px-6 py-3 text-left">MÉTODO PAGO</th>
-                <th class="px-6 py-3 text-right">TOTAL</th>
-                <th class="px-6 py-3 text-center w-20">ACCIONES</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100 relative">
-              <tr *ngIf="sales.length === 0">
+        <div class="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
+          <!-- Custom Date Range -->
+          <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 h-11">
+            <span class="material-symbols-outlined text-slate-400 text-[18px]">calendar_month</span>
+            <input type="date" [(ngModel)]="fromDate" (ngModelChange)="onSearchChange()" class="text-[13px] font-semibold text-slate-600 border-none outline-none focus:ring-0 p-0 bg-transparent min-w-[110px]" title="Desde" />
+            <span class="text-slate-300">-</span>
+            <input type="date" [(ngModel)]="toDate" (ngModelChange)="onSearchChange()" class="text-[13px] font-semibold text-slate-600 border-none outline-none focus:ring-0 p-0 bg-transparent min-w-[110px]" title="Hasta" />
+          </div>
+
+          <div class="relative flex-1 sm:flex-none sm:w-80">
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
+            <input type="text" [(ngModel)]="search" (ngModelChange)="onSearchChange()" placeholder="Buscar por cliente o producto/servicio..."
+              class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow text-[14px]">
+          </div>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto min-h-[300px]">
+        <table class="w-full relative">
+          <thead>
+            <tr class="bg-slate-50 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              <th class="px-6 py-3 text-left">FECHA</th>
+              <th class="px-6 py-3 text-left">CLIENTE</th>
+              <th class="px-6 py-3 text-left">SERVICIO / PRODUCTO</th>
+              <th class="px-6 py-3 text-left">MÉTODO PAGO</th>
+              <th class="px-6 py-3 text-right">TOTAL</th>
+              <th class="px-6 py-3 text-center w-20">ACCIONES</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 relative">
+            @if (sales.length === 0) {
+              <tr>
                 <td colspan="5" class="px-6 py-12 text-center text-slate-500">
                   <div class="flex flex-col items-center justify-center">
                     <span class="material-symbols-outlined text-4xl mb-2 text-slate-300">receipt_long</span>
@@ -73,7 +74,9 @@
                   </div>
                 </td>
               </tr>
-              <tr *ngFor="let sale of sales" class="hover:bg-slate-50/50 transition-colors group">
+            }
+            @for (sale of sales; track sale) {
+              <tr class="hover:bg-slate-50/50 transition-colors group">
                 <td class="px-6 py-4">
                   <div class="flex flex-col">
                     <span class="font-bold text-slate-700 text-[14px]">{{ sale.saleDate }}</span>
@@ -91,24 +94,26 @@
                   <div class="flex flex-col">
                     <div class="flex items-center gap-1.5">
                       <span class="font-bold text-slate-800 text-[14px]">{{ sale.itemName }}</span>
-                      <span *ngIf="sale.sourceType === 'APPOINTMENT'" class="material-symbols-outlined text-[13px] text-blue-500" title="Venta de Cita">event</span>
+                      @if (sale.sourceType === 'APPOINTMENT') {
+                        <span class="material-symbols-outlined text-[13px] text-blue-500" title="Venta de Cita">event</span>
+                      }
                     </div>
                     <span class="px-2 py-0.5 rounded-md text-[10px] font-bold w-fit mt-1"
-                          [ngClass]="sale.itemType === 'SERVICE' ? 'bg-indigo-50 text-indigo-500' : 'bg-orange-50 text-orange-500'">
+                      [ngClass]="sale.itemType === 'SERVICE' ? 'bg-indigo-50 text-indigo-500' : 'bg-orange-50 text-orange-500'">
                       {{ getItemTypeName(sale.itemType) }} x{{ sale.quantity }} @ {{ sale.unitPrice }}€
                     </span>
                   </div>
                 </td>
                 <td class="px-6 py-4">
-                   <div class="flex items-center gap-2 px-3 py-1 rounded-full w-fit text-[11px] font-bold border" 
+                  <div class="flex items-center gap-2 px-3 py-1 rounded-full w-fit text-[11px] font-bold border"
                          [ngClass]="{
                            'bg-emerald-50 text-emerald-600 border-emerald-100': sale.paymentMethod === 'CASH',
                            'bg-blue-50 text-blue-600 border-blue-100': sale.paymentMethod === 'DEBIT_CARD' || sale.paymentMethod === 'CREDIT_CARD',
                            'bg-purple-50 text-purple-600 border-purple-100': sale.paymentMethod === 'BIZUM',
                            'bg-slate-50 text-slate-600 border-slate-200': sale.paymentMethod === 'BANK_TRANSFER' || !sale.paymentMethod
                          }">
-                      {{ getPaymentMethodName(sale.paymentMethod) }}
-                    </div>
+                    {{ getPaymentMethodName(sale.paymentMethod) }}
+                  </div>
                 </td>
                 <td class="px-6 py-4 text-right font-bold text-slate-900 text-[16px]">
                   {{ sale.totalAmount | currency:'EUR' }}
@@ -121,24 +126,25 @@
                   </div>
                 </td>
               </tr>
-            </tbody>
-          </table>
-        </div>
+            }
+          </tbody>
+        </table>
       </div>
+    </div>
 
-      <!-- Page Pagination (Detached Style) -->
-      <app-pagination 
-        [totalElements]="totalElements" 
-        [pageSize]="pageSize" 
-        [currentPage]="currentPage" 
-        [itemsLabel]="'ventas'"
-        (pageChange)="goToPage($event)">
-      </app-pagination>
+    <!-- Page Pagination (Detached Style) -->
+    <app-pagination
+      [totalElements]="totalElements"
+      [pageSize]="pageSize"
+      [currentPage]="currentPage"
+      [itemsLabel]="'ventas'"
+      (pageChange)="goToPage($event)">
+    </app-pagination>
 
   </div>
 
   <div class="mt-12 text-center text-[13px] text-slate-400 font-medium">
     Los datos mostrados son solo para fines de control comercial interno.
   </div>
-  
+
 </div>

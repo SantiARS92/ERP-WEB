@@ -1,82 +1,92 @@
 import {
-  Component, Input, Output, EventEmitter,
-  ChangeDetectionStrategy, signal, computed
+  Component,
+  ChangeDetectionStrategy,
+  computed,
+  model,
+  signal,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { InventoryVariant, VariantAttribute } from '../../../../core/models/product.model';
 
 @Component({
   selector: 'app-variant-config',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './variant-config.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class VariantConfigComponent {
-  @Input() variants: InventoryVariant[] = [];
-  @Output() variantsChange = new EventEmitter<InventoryVariant[]>();
+  readonly variants = model<InventoryVariant[]>([]);
 
   readonly PRESET_ATTRS = ['Tamaño', 'Medida', 'Material', 'Fragancia', 'Volumen'];
 
-  attributes: VariantAttribute[] = [];
+  readonly attributes = signal<VariantAttribute[]>([]);
   newAttrName = '';
   valueInputs: Record<string, string> = {};
 
-  generatedVariants: InventoryVariant[] = [];
-  variantsGenerated = false;
+  readonly variantsGenerated = signal(false);
 
-  get combinationCount(): number {
-    if (this.attributes.length === 0) return 0;
-    const hasValues = this.attributes.every(a => a.values.length > 0);
+  readonly combinationCount = computed(() => {
+    const attributes = this.attributes();
+
+    if (attributes.length === 0) return 0;
+    const hasValues = attributes.every((attribute) => attribute.values.length > 0);
     if (!hasValues) return 0;
-    return this.attributes.reduce((acc, a) => acc * a.values.length, 1);
-  }
+    return attributes.reduce((acc, attribute) => acc * attribute.values.length, 1);
+  });
 
   addPreset(name: string) {
-    if (!this.attributes.find(a => a.name === name)) {
-      this.attributes.push({ name, values: [] });
-      this.valueInputs[name] = '';
-    }
+    if (this.attributes().some((attribute) => attribute.name === name)) return;
+
+    this.attributes.update((attributes) => [...attributes, { name, values: [] }]);
+    this.valueInputs[name] = '';
   }
 
   addCustomAttr() {
     const name = this.newAttrName.trim();
     if (!name) return;
-    if (!this.attributes.find(a => a.name === name)) {
-      this.attributes.push({ name, values: [] });
+
+    if (!this.attributes().some((attribute) => attribute.name === name)) {
+      this.attributes.update((attributes) => [...attributes, { name, values: [] }]);
       this.valueInputs[name] = '';
     }
+
     this.newAttrName = '';
   }
 
   removeAttr(attr: VariantAttribute) {
-    this.attributes = this.attributes.filter(a => a !== attr);
-    this.variantsGenerated = false;
-    this.generatedVariants = [];
-    this.variantsChange.emit([]);
+    this.attributes.update((attributes) => attributes.filter((attribute) => attribute.name !== attr.name));
+    this.resetGeneratedVariants();
   }
 
   addValue(attr: VariantAttribute) {
     const val = (this.valueInputs[attr.name] ?? '').trim();
     if (!val || attr.values.includes(val)) return;
-    attr.values = [...attr.values, val];
+
+    this.attributes.update((attributes) =>
+      attributes.map((attribute) =>
+        attribute.name === attr.name
+          ? { ...attribute, values: [...attribute.values, val] }
+          : attribute,
+      ),
+    );
     this.valueInputs[attr.name] = '';
-    this.variantsGenerated = false;
-    this.generatedVariants = [];
-    this.variantsChange.emit([]);
+    this.resetGeneratedVariants();
   }
 
   removeValue(attr: VariantAttribute, val: string) {
-    attr.values = attr.values.filter(v => v !== val);
-    this.variantsGenerated = false;
-    this.generatedVariants = [];
-    this.variantsChange.emit([]);
+    this.attributes.update((attributes) =>
+      attributes.map((attribute) =>
+        attribute.name === attr.name
+          ? { ...attribute, values: attribute.values.filter((value) => value !== val) }
+          : attribute,
+      ),
+    );
+    this.resetGeneratedVariants();
   }
 
   generateVariants() {
-    const combos = this.cartesian(this.attributes.map(a => a.values));
-    this.generatedVariants = combos.map((combo, i) => ({
+    const variants = this.cartesian(this.attributes().map((attribute) => attribute.values)).map((combo) => ({
       variantLabel: combo.join(' / '),
       sku: '',
       stock: 0,
@@ -84,12 +94,18 @@ export class VariantConfigComponent {
       purchasePrice: 0,
       active: true
     }));
-    this.variantsGenerated = true;
-    this.variantsChange.emit(this.generatedVariants);
+
+    this.variants.set(variants);
+    this.variantsGenerated.set(true);
   }
 
   onVariantChange() {
-    this.variantsChange.emit(this.generatedVariants);
+    this.variants.update((variants) => [...variants]);
+  }
+
+  private resetGeneratedVariants() {
+    this.variantsGenerated.set(false);
+    this.variants.set([]);
   }
 
   private cartesian(arrays: string[][]): string[][] {
@@ -99,8 +115,4 @@ export class VariantConfigComponent {
       [[]]
     );
   }
-
-  trackByIndex(_: number, i: number) { return i; }
-  trackByName(_: number, a: VariantAttribute) { return a.name; }
-  trackByVal(_: number, v: string) { return v; }
 }

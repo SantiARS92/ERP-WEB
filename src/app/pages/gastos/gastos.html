@@ -24,48 +24,49 @@
       </div>
     </div>
 
-      <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
+    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
 
-        <!-- Filter Bar -->
-        <div class="px-6 py-5 border-b border-slate-100 flex flex-col xl:flex-row justify-between xl:items-center gap-4 bg-slate-50/30">
+      <!-- Filter Bar -->
+      <div class="px-6 py-5 border-b border-slate-100 flex flex-col xl:flex-row justify-between xl:items-center gap-4 bg-slate-50/30">
 
-          <div class="flex p-1 bg-slate-100 rounded-xl w-fit">
-            <button (click)="setQuickFilter('month')" [class]="quickFilter === 'month' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'" class="px-4 py-2 text-[13px] font-bold rounded-lg transition-all">Mensual</button>
-            <button (click)="setQuickFilter('quarter')" [class]="quickFilter === 'quarter' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'" class="px-4 py-2 text-[13px] font-bold rounded-lg transition-all">Trimestral</button>
-            <button (click)="setQuickFilter('year')" [class]="quickFilter === 'year' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'" class="px-4 py-2 text-[13px] font-bold rounded-lg transition-all">Anual</button>
-          </div>
-
-          <div class="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
-
-            <!-- Custom Date Range -->
-            <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 h-11">
-              <span class="material-symbols-outlined text-slate-400 text-[18px]">calendar_month</span>
-              <input type="date" [(ngModel)]="fromDate" (ngModelChange)="onSearchChange()" class="text-[13px] font-semibold text-slate-600 border-none outline-none focus:ring-0 p-0 bg-transparent min-w-[110px]" title="Desde" />
-              <span class="text-slate-300">-</span>
-              <input type="date" [(ngModel)]="toDate" (ngModelChange)="onSearchChange()" class="text-[13px] font-semibold text-slate-600 border-none outline-none focus:ring-0 p-0 bg-transparent min-w-[110px]" title="Hasta" />
-            </div>
-
-            <div class="relative flex-1 sm:flex-none sm:w-64">
-              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
-              <input type="text" [(ngModel)]="search" (ngModelChange)="onSearchChange()" placeholder="Buscar por concepto..."
-                     class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow text-[14px]">
-            </div>
-          </div>
+        <div class="flex p-1 bg-slate-100 rounded-xl w-fit">
+          <button (click)="setQuickFilter('month')" [class]="quickFilter === 'month' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'" class="px-4 py-2 text-[13px] font-bold rounded-lg transition-all">Mensual</button>
+          <button (click)="setQuickFilter('quarter')" [class]="quickFilter === 'quarter' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'" class="px-4 py-2 text-[13px] font-bold rounded-lg transition-all">Trimestral</button>
+          <button (click)="setQuickFilter('year')" [class]="quickFilter === 'year' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'" class="px-4 py-2 text-[13px] font-bold rounded-lg transition-all">Anual</button>
         </div>
 
-        <div class="overflow-x-auto min-h-[300px]">
-          <table class="w-full relative">
-            <thead>
-              <tr class="bg-slate-50 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                <th class="px-6 py-3 text-left">FECHA</th>
-                <th class="px-6 py-3 text-left">CONCEPTO</th>
-                <th class="px-6 py-3 text-left">CATEGORÍA</th>
-                <th class="px-6 py-3 text-right">IMPORTE</th>
-                <th class="px-6 py-3 text-center w-16">ACCIONES</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100 relative">
-              <tr *ngIf="expenses.length === 0">
+        <div class="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
+
+          <!-- Custom Date Range -->
+          <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 h-11">
+            <span class="material-symbols-outlined text-slate-400 text-[18px]">calendar_month</span>
+            <input type="date" [(ngModel)]="fromDate" (ngModelChange)="onSearchChange()" class="text-[13px] font-semibold text-slate-600 border-none outline-none focus:ring-0 p-0 bg-transparent min-w-[110px]" title="Desde" />
+            <span class="text-slate-300">-</span>
+            <input type="date" [(ngModel)]="toDate" (ngModelChange)="onSearchChange()" class="text-[13px] font-semibold text-slate-600 border-none outline-none focus:ring-0 p-0 bg-transparent min-w-[110px]" title="Hasta" />
+          </div>
+
+          <div class="relative flex-1 sm:flex-none sm:w-64">
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
+            <input type="text" [(ngModel)]="search" (ngModelChange)="onSearchChange()" placeholder="Buscar por concepto..."
+              class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow text-[14px]">
+          </div>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto min-h-[300px]">
+        <table class="w-full relative">
+          <thead>
+            <tr class="bg-slate-50 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              <th class="px-6 py-3 text-left">FECHA</th>
+              <th class="px-6 py-3 text-left">CONCEPTO</th>
+              <th class="px-6 py-3 text-left">CATEGORÍA</th>
+              <th class="px-6 py-3 text-right">IMPORTE</th>
+              <th class="px-6 py-3 text-center w-16">ACCIONES</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 relative">
+            @if (expenses.length === 0) {
+              <tr>
                 <td colspan="5" class="px-6 py-12 text-center text-slate-500">
                   <div class="flex flex-col items-center justify-center">
                     <span class="material-symbols-outlined text-4xl mb-2 text-slate-300">receipt_long</span>
@@ -73,19 +74,23 @@
                   </div>
                 </td>
               </tr>
-              <tr *ngFor="let expense of expenses" class="hover:bg-slate-50/50 transition-colors group">
+            }
+            @for (expense of expenses; track expense) {
+              <tr class="hover:bg-slate-50/50 transition-colors group">
                 <td class="px-6 py-4">
                   <span class="font-bold text-slate-700 text-[14px]">{{ expense.expenseDate }}</span>
                 </td>
                 <td class="px-6 py-4">
                   <div class="flex flex-col">
                     <span class="font-bold text-slate-800 text-[14px]">{{ expense.concept }}</span>
-                    <span *ngIf="expense.notes" class="text-[11px] text-slate-400 font-medium truncate max-w-[220px]">{{ expense.notes }}</span>
+                    @if (expense.notes) {
+                      <span class="text-[11px] text-slate-400 font-medium truncate max-w-[220px]">{{ expense.notes }}</span>
+                    }
                   </div>
                 </td>
                 <td class="px-6 py-4">
                   <span class="px-2.5 py-1 rounded-full text-[11px] font-bold border"
-                        [ngClass]="getCategoryClasses(expense.category)">
+                    [ngClass]="getCategoryClasses(expense.category)">
                     {{ getCategoryLabel(expense.category) }}
                   </span>
                 </td>
@@ -100,20 +105,21 @@
                   </div>
                 </td>
               </tr>
-            </tbody>
-          </table>
-        </div>
+            }
+          </tbody>
+        </table>
       </div>
+    </div>
 
-      <!-- Page Pagination (Detached Style) -->
-      <app-pagination 
-        [totalElements]="totalElements" 
-        [pageSize]="pageSize" 
-        [currentPage]="currentPage" 
-        [itemsLabel]="'gastos'"
-        (pageChange)="goToPage($event)">
-      </app-pagination>
+    <!-- Page Pagination (Detached Style) -->
+    <app-pagination
+      [totalElements]="totalElements"
+      [pageSize]="pageSize"
+      [currentPage]="currentPage"
+      [itemsLabel]="'gastos'"
+      (pageChange)="goToPage($event)">
+    </app-pagination>
 
-      <p class="text-[12px] text-center text-slate-400 font-medium mt-6 italic">Datos generados automáticamente basándose en los registros de facturación del periodo seleccionado.</p>
+    <p class="text-[12px] text-center text-slate-400 font-medium mt-6 italic">Datos generados automáticamente basándose en los registros de facturación del periodo seleccionado.</p>
   </div>
 </div>

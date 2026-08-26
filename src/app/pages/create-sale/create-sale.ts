@@ -27,7 +27,6 @@ interface SaleLine {
 
 @Component({
   selector: 'app-create-sale',
-  standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './create-sale.html',
   styles: ``,

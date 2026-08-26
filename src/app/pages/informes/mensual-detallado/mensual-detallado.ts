@@ -8,7 +8,6 @@ import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-informe-mensual-detallado',
-  standalone: true,
   imports: [CommonModule, RouterModule, FormsModule],
   providers: [DecimalPipe],
   templateUrl: './mensual-detallado.html',

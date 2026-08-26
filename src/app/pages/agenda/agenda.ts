@@ -17,7 +17,6 @@ import { Professional } from '../../core/models/professional.model';
 
 @Component({
   selector: 'app-agenda',
-  standalone: true,
   imports: [CommonModule, RouterModule, FormsModule],
   providers: [DatePipe],
   templateUrl: './agenda.html',

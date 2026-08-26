@@ -8,7 +8,6 @@ import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-informe-anual',
-  standalone: true,
   imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './anual.html',
 })

@@ -8,7 +8,6 @@ import { PaginationComponent } from '../../shared/components/pagination/paginati
 
 @Component({
   selector: 'app-gastos',
-  standalone: true,
   imports: [CommonModule, RouterModule, FormsModule, PaginationComponent],
   templateUrl: './gastos.html',
   styles: ``,
