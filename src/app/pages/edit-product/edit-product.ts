@@ -3,13 +3,15 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } 
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ProductApiService } from '../../core/services/product-api.service';
-import { CategoryApiService } from '../../core/services/category-api.service';
 import { Product, InventoryVariant } from '../../core/models/product.model';
 import { Category } from '../../core/models/category.model';
 import { AuthService } from '../../core/services/auth.service';
 import { UserRole } from '../../core/models/user.model';
 import { VariantConfigComponent } from '../inventory/components/variant-config/variant-config';
 import { NotificationService } from '../../core/services/notification.service';
+import { ConfirmService } from '../../core/services/confirm.service';
+import { CategoriesStore } from '../../core/state/categories.store';
+import { ProductsStore } from '../../core/state/products.store';
 
 @Component({
   selector: 'app-edit-product',
@@ -22,10 +24,12 @@ export class EditProduct implements OnInit {
   public authService = inject(AuthService);
   readonly isAdmin = computed(() => this.authService.hasRole([UserRole.ADMIN]));
   private productApi = inject(ProductApiService);
-  private categoryApi = inject(CategoryApiService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private notification = inject(NotificationService);
+  private confirm = inject(ConfirmService);
+  private categoriesStore = inject(CategoriesStore);
+  private productsStore = inject(ProductsStore);
 
   isEditMode = false;
   private readonly isSubmittingSignal = signal(false);
@@ -89,11 +93,11 @@ export class EditProduct implements OnInit {
   }
 
   loadCategories() {
-    this.categoryApi.getCategories().subscribe({
+    this.categoriesStore.ensureLoaded().subscribe({
       next: (data) => {
         this.categories = data;
       },
-      error: (err) => console.error('Error loading categories:', err)
+      error: () => this.notification.error('Error al cargar las categorías.')
     });
   }
 
@@ -178,6 +182,7 @@ export class EditProduct implements OnInit {
     obs.subscribe({
       next: () => {
         this.isSubmitting = false;
+        this.productsStore.refresh().subscribe();
         this.notification.success(this.isEditMode ? 'Producto actualizado correctamente.' : 'Producto creado correctamente.', '¡Éxito!');
         this.router.navigate(['/inventario']);
       },
@@ -188,19 +193,31 @@ export class EditProduct implements OnInit {
     });
   }
 
-  deleteProduct() {
-    if (this.product.id && confirm('¿Está seguro de que desea eliminar este producto permanentemente?')) {
-      this.productApi.deleteProduct(this.product.id).subscribe({
-        next: () => {
-          this.notification.success('Producto eliminado del inventario.', 'Eliminado');
-          this.router.navigate(['/inventario']);
-        },
-        error: (err) => {
-          console.error('Error deleting product:', err);
-          this.notification.error('Error al eliminar el producto.');
-        }
-      });
+  async deleteProduct() {
+    if (!this.product.id) {
+      return;
     }
+
+    const confirmed = await this.confirm.ask('¿Está seguro de que desea eliminar este producto permanentemente?', {
+      title: 'Eliminar producto',
+      confirmText: 'Eliminar',
+      danger: true,
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    this.productApi.deleteProduct(this.product.id).subscribe({
+      next: () => {
+        this.productsStore.refresh().subscribe();
+        this.notification.success('Producto eliminado del inventario.', 'Eliminado');
+        this.router.navigate(['/inventario']);
+      },
+      error: () => {
+        this.notification.error('Error al eliminar el producto.');
+      }
+    });
   }
 
   cancel() {

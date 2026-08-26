@@ -9,6 +9,9 @@ import { PaginationComponent } from '../../shared/components/pagination/paginati
 import { AuthService } from '../../core/services/auth.service';
 import { UserRole } from '../../core/models/user.model';
 import { catchError, debounceTime, distinctUntilChanged, map, of, startWith, switchMap } from 'rxjs';
+import { NotificationService } from '../../core/services/notification.service';
+import { CategoriesStore } from '../../core/state/categories.store';
+import { ServicesStore } from '../../core/state/services.store';
 
 @Component({
   selector: 'app-manage-categories',
@@ -40,6 +43,9 @@ export class ManageCategories {
   public authService = inject(AuthService);
   readonly isAdmin = computed(() => this.authService.hasRole([UserRole.ADMIN]));
   private categoryApi = inject(CategoryApiService);
+  private categoriesStore = inject(CategoriesStore);
+  private servicesStore = inject(ServicesStore);
+  private notification = inject(NotificationService);
   private readonly categoriesResponse = toSignal(
     toObservable(computed(() => ({ search: this.searchText(), refreshTick: this.refreshTick() }))).pipe(
       debounceTime(300),
@@ -100,14 +106,16 @@ export class ManageCategories {
 
     request.subscribe({
       next: () => {
+        this.categoriesStore.refresh().subscribe();
+        this.servicesStore.refresh().subscribe();
         this.refreshTick.update((value) => value + 1);
         this.closeModal();
       },
       error: (err) => {
         if (err.status === 409) {
-          alert('Error: Ya existe una categoría con ese nombre.');
+          this.notification.error('Ya existe una categoría con ese nombre.');
         } else {
-          alert('Error al guardar categoría: ' + err.message);
+          this.notification.error(`Error al guardar categoría: ${err.message}`);
         }
       }
     });
@@ -131,14 +139,16 @@ export class ManageCategories {
 
     this.categoryApi.deleteCategory(this.categoryToDelete.id).subscribe({
       next: () => {
+        this.categoriesStore.refresh().subscribe();
+        this.servicesStore.refresh().subscribe();
         this.refreshTick.update((value) => value + 1);
         this.closeDeleteModal();
       },
       error: (err) => {
         if (err.status === 409) {
-          alert('No se puede eliminar: esta categoría tiene servicios asociados.');
+          this.notification.error('No se puede eliminar: esta categoría tiene servicios asociados.');
         } else {
-          alert('Error al eliminar: ' + err.message);
+          this.notification.error(`Error al eliminar: ${err.message}`);
         }
         this.closeDeleteModal();
       }

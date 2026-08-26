@@ -4,13 +4,14 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { Subject, debounceTime, takeUntil } from 'rxjs';
 import { ThemeService, PrimaryColor, ThemeMode } from '../../core/services/theme.service';
-import { SettingsApiService } from '../../core/services/settings-api.service';
 import { ProfessionalApiService } from '../../core/services/professional-api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { UserRole } from '../../core/models/user.model';
 import { BusinessSettings, DayOfWeek, OpeningHour } from '../../core/models/settings.model';
 import { Professional } from '../../core/models/professional.model';
 import { NotificationService } from '../../core/services/notification.service';
+import { SettingsStore } from '../../core/state/settings.store';
+import { ConfirmService } from '../../core/services/confirm.service';
 
 @Component({
   selector: 'app-configuracion',
@@ -56,11 +57,12 @@ export class Configuracion implements OnInit, OnDestroy {
   private autoSave$ = new Subject<void>();
   private router = inject(Router);
   themeService = inject(ThemeService);
-  private settingsApi = inject(SettingsApiService);
+  private settingsStore = inject(SettingsStore);
   private professionalApi = inject(ProfessionalApiService);
   authService = inject(AuthService);
   readonly isAdmin = computed(() => this.authService.hasRole([UserRole.ADMIN]));
   private notification = inject(NotificationService);
+  private confirm = inject(ConfirmService);
 
   availableColors: { name: PrimaryColor, label: string, hex: string }[] = [
     { name: 'blue', label: 'Azul', hex: '#3b82f6' },
@@ -156,37 +158,33 @@ export class Configuracion implements OnInit, OnDestroy {
   }
 
   loadAll() {
-    this.settingsApi.getSettings().subscribe({
-      next: (data) => {
-        // Deep-merge backend response over the current defaults so no field gets wiped by null
-        this.settings = {
-          ...this.settings,        // start with conservative defaults
-          ...data,                 // overwrite with whatever backend returned
-          // Keep local logo if the backend didn't persist it (Base64 too large for some backends)
-          businessLogo: data.businessLogo || localStorage.getItem('fallback_businessLogo') || '',
-          // Ensure arrays are never null
-          openingHours: data.openingHours?.length ? data.openingHours : this.settings.openingHours,
-          specialClosures: data.specialClosures ?? [],
-        };
-        this.ensureOpeningHours();
-      },
-      error: (err) => {
-        console.error('Error loading settings:', err);
-        // Restore from localStorage on API failure
-        const savedName = localStorage.getItem('fallback_businessName');
-        const savedLogo = localStorage.getItem('fallback_businessLogo');
-        this.settings = {
-          ...this.settings,
-          businessName: savedName || this.settings.businessName,
-          businessLogo: savedLogo || this.settings.businessLogo,
-        };
-        this.ensureOpeningHours();
+    const cachedSettings = this.settingsStore.settings();
+    if (cachedSettings) {
+      this.settings = this.buildPersistedSettings(cachedSettings);
+      this.ensureOpeningHours();
+    }
+
+    this.settingsStore.load().then(() => {
+      const loadedSettings = this.settingsStore.settings();
+      if (loadedSettings) {
+        this.settings = this.buildPersistedSettings(loadedSettings);
       }
+      this.ensureOpeningHours();
     });
+
     this.professionalApi.getProfessionals().subscribe({
       next: (data) => { this.professionals = data; },
-      error: (err) => console.error('Error loading professionals:', err)
+      error: () => this.notification.error('Error al cargar los profesionales.')
     });
+  }
+
+  private buildPersistedSettings(data: BusinessSettings): BusinessSettings {
+    return {
+      ...this.settings,
+      ...data,
+      openingHours: data.openingHours?.length ? data.openingHours : this.settings.openingHours,
+      specialClosures: data.specialClosures ?? [],
+    };
   }
 
   // Toggle accordion
@@ -200,17 +198,17 @@ export class Configuracion implements OnInit, OnDestroy {
     if (this.saveResetTimer) clearTimeout(this.saveResetTimer);
     this.saveStatus = 'saving';
     this.isSubmitting = true;
-    this.settingsApi.updateSettings(this.settings).subscribe({
-      next: () => {
+    this.settingsStore.updateSettings(this.settings).subscribe({
+      next: (data) => {
+        this.settings = this.buildPersistedSettings(data);
         this.isSubmitting = false;
         this.saveStatus = 'saved';
         this.saveResetTimer = setTimeout(() => { this.saveStatus = 'idle'; }, 3000);
       },
-      error: (err) => {
+      error: () => {
         this.isSubmitting = false;
         this.saveStatus = 'error';
         this.saveResetTimer = setTimeout(() => { this.saveStatus = 'idle'; }, 5000);
-        console.error('Error auto-saving settings:', err);
       }
     });
   }
@@ -236,7 +234,7 @@ export class Configuracion implements OnInit, OnDestroy {
     reader.onload = (e) => {
       const businessLogo = e.target?.result as string;
       this.settings = { ...this.settings, businessLogo };
-      localStorage.setItem('fallback_businessLogo', businessLogo);
+      this.settingsStore.updateLocalLogo(businessLogo);
       this.onFieldChange(); // triggers auto-save
     };
     reader.readAsDataURL(file);
@@ -244,6 +242,7 @@ export class Configuracion implements OnInit, OnDestroy {
 
   removeLogo() {
     this.settings = { ...this.settings, businessLogo: '' };
+    this.settingsStore.updateLocalLogo('');
     this.onFieldChange();
   }
 
@@ -329,28 +328,34 @@ export class Configuracion implements OnInit, OnDestroy {
         this.loadAll();
         this.closeProfessionalModal();
       },
-      error: (err) => {
-        console.error('Error saving professional:', err);
+      error: () => {
         this.notification.error('Error al guardar el profesional. Compruebe los datos.');
       }
     });
   }
 
-  deleteProfessional() {
+  async deleteProfessional() {
     if (!this.editingProfessional?.id) return;
-    
-    if (confirm('¿Estás seguro de que deseas eliminar este profesional? Esta acción no se puede deshacer.')) {
-      this.professionalApi.deleteProfessional(this.editingProfessional.id).subscribe({
-        next: () => {
-          this.loadAll();
-          this.closeProfessionalModal();
-        },
-        error: (err) => {
-          console.error('Error deleting professional:', err);
-          this.notification.error('Error al eliminar el profesional');
-        }
-      });
+
+    const confirmed = await this.confirm.ask('¿Estás seguro de que deseas eliminar este profesional? Esta acción no se puede deshacer.', {
+      title: 'Eliminar profesional',
+      confirmText: 'Eliminar',
+      danger: true,
+    });
+
+    if (!confirmed) {
+      return;
     }
+
+    this.professionalApi.deleteProfessional(this.editingProfessional.id).subscribe({
+      next: () => {
+        this.loadAll();
+        this.closeProfessionalModal();
+      },
+      error: () => {
+        this.notification.error('Error al eliminar el profesional');
+      }
+    });
   }
 
   toggleProfessionalStatus(p: Professional) {

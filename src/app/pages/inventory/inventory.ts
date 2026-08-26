@@ -10,6 +10,9 @@ import { PaginationComponent } from '../../shared/components/pagination/paginati
 import { from, of } from 'rxjs';
 import { catchError, mergeMap, toArray } from 'rxjs/operators';
 import { createPagedResource } from '../../core/state/paged-resource';
+import { FileDownloadService } from '../../core/services/file-download.service';
+import { NotificationService } from '../../core/services/notification.service';
+import { toIsoDate } from '../../core/utils/date.util';
 
 @Component({
   selector: 'app-inventory',
@@ -21,6 +24,8 @@ import { createPagedResource } from '../../core/state/paged-resource';
 export class Inventory {
   private productApi = inject(ProductApiService);
   private categoryApi = inject(CategoryApiService);
+  private fileDownload = inject(FileDownloadService);
+  private notification = inject(NotificationService);
   readonly pageSize = 10;
   readonly searchText = signal('');
   readonly selectedCategoryIds = signal<number[]>([]);
@@ -206,16 +211,9 @@ export class Inventory {
 
     this.productApi.exportProductsToPdf({ search: this.searchText(), categoryIds: categoryIdsStr }).subscribe({
       next: (blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `inventario_${new Date().toISOString().split('T')[0]}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
+        this.fileDownload.downloadBlob(blob, `inventario_${toIsoDate(new Date())}.pdf`);
       },
-      error: (err) => console.error('Error exporting PDF:', err)
+      error: () => this.notification.error('Error al generar el PDF del inventario.')
     });
   }
 

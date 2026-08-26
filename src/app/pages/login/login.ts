@@ -1,13 +1,13 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
-import { SettingsApiService } from '../../core/services/settings-api.service';
 import { ProfessionalApiService } from '../../core/services/professional-api.service';
 import { Professional } from '../../core/models/professional.model';
 import { HttpContext } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { silentError } from '../../core/http/http-contexts';
+import { SettingsStore } from '../../core/state/settings.store';
 
 @Component({
   selector: 'app-login',
@@ -15,21 +15,21 @@ import { silentError } from '../../core/http/http-contexts';
   templateUrl: './login.html',
   styleUrls: ['./login.css']
 })
-export class Login {
+export class Login implements OnInit {
   authService = inject(AuthService);
-  settingsApi = inject(SettingsApiService);
+  settingsStore = inject(SettingsStore);
   professionalApi = inject(ProfessionalApiService);
   private router = inject(Router);
   
-  settings = this.settingsApi.settings;
+  readonly settings = this.settingsStore.settings;
   
-  professionals = signal<Professional[]>([]);
+  readonly professionals = signal<Professional[]>([]);
 
   username = '';
   password = '';
-  showPassword = signal(false);
-  isLoading = signal(false);
-  error = signal('');
+  readonly showPassword = signal(false);
+  readonly isLoading = signal(false);
+  readonly error = signal('');
 
   ngOnInit() {
     this.loadProfessionals();

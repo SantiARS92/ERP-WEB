@@ -5,6 +5,7 @@ import { ReportApiService } from '../../../core/services/report-api.service';
 import { QuarterlyDetailedReport } from '../../../core/models/report.model';
 
 import { FormsModule } from '@angular/forms';
+import { FileDownloadService } from '../../../core/services/file-download.service';
 
 @Component({
   selector: 'app-informe-trimestral',
@@ -29,6 +30,7 @@ export class InformeTrimestral implements OnInit {
   private readonly maxProfitToScaleChartSignal = signal(20000);
 
   private reportApi = inject(ReportApiService);
+  private fileDownload = inject(FileDownloadService);
 
   get reportData() { return this.reportDataSignal(); }
   set reportData(value: QuarterlyDetailedReport | null) { this.reportDataSignal.set(value); }
@@ -70,15 +72,7 @@ export class InformeTrimestral implements OnInit {
         this.isDownloadingPdf = false;
         this.downloadSuccess = true;
         setTimeout(() => this.downloadSuccess = false, 3000);
-        console.log('PDF generado con éxito');
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `informe-trimestral-${this.selectedYear}-Q${this.selectedQuarter}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
+        this.fileDownload.downloadBlob(blob, `informe-trimestral-${this.selectedYear}-Q${this.selectedQuarter}.pdf`);
       },
       error: () => { 
         this.isDownloadingPdf = false;

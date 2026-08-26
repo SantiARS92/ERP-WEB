@@ -3,9 +3,12 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ServiceApiService } from '../../core/services/service-api.service';
-import { CategoryApiService } from '../../core/services/category-api.service';
 import { Service } from '../../core/models/service.model';
 import { Category } from '../../core/models/category.model';
+import { NotificationService } from '../../core/services/notification.service';
+import { ConfirmService } from '../../core/services/confirm.service';
+import { CategoriesStore } from '../../core/state/categories.store';
+import { ServicesStore } from '../../core/state/services.store';
 
 @Component({
   selector: 'app-edit-service',
@@ -27,9 +30,12 @@ export class EditService implements OnInit {
   private readonly categoriesSignal = signal<Category[]>([]);
 
   private serviceApi = inject(ServiceApiService);
-  private categoryApi = inject(CategoryApiService);
+  private categoriesStore = inject(CategoriesStore);
+  private servicesStore = inject(ServicesStore);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private notification = inject(NotificationService);
+  private confirm = inject(ConfirmService);
 
   get service() { return this.serviceSignal(); }
   set service(value: Service) { this.serviceSignal.set(value); }
@@ -38,7 +44,7 @@ export class EditService implements OnInit {
   set categories(value: Category[]) { this.categoriesSignal.set(value); }
 
   ngOnInit() {
-    this.categoryApi.getCategories().subscribe(cats => {
+    this.categoriesStore.ensureLoaded().subscribe(cats => {
       this.categories = cats;
     });
     this.serviceId = Number(this.route.snapshot.paramMap.get('id'));
@@ -52,11 +58,9 @@ export class EditService implements OnInit {
         },
         error: (err) => {
           if (err.status === 404) {
-             alert('Servicio no encontrado');
+             this.notification.error('Servicio no encontrado');
              this.router.navigate(['/servicios']);
-          } else {
-             console.error('Error fetching service', err);
-          }
+           }
         }
       });
     }
@@ -68,30 +72,42 @@ export class EditService implements OnInit {
 
   saveChanges() {
     if (!this.service.name || this.service.durationMinutes <= 0 || this.service.price <= 0 || !this.service.categoryId) {
-      alert('Por favor, rellene todos los campos obligatorios: Nombre, Categoría, Duración (>0) y Precio (>0).');
+      this.notification.warning('Por favor, rellene todos los campos obligatorios: Nombre, Categoría, Duración (>0) y Precio (>0).');
       return;
     }
 
     this.serviceApi.updateService(this.serviceId, this.service).subscribe({
-      next: () => this.router.navigate(['/servicios']),
+      next: () => {
+        this.servicesStore.refresh().subscribe();
+        this.router.navigate(['/servicios']);
+      },
       error: (err) => {
         if (err.status === 400) {
-          alert('Datos inválidos o faltantes. Revise Nombre, Categoría, Duración o Precio.');
+          this.notification.error('Datos inválidos o faltantes. Revise Nombre, Categoría, Duración o Precio.');
         } else if (err.status === 404) {
-          alert('No se pudo encontrar el servicio para actualizar.');
-        } else {
-          console.error('Error updating service', err);
+          this.notification.error('No se pudo encontrar el servicio para actualizar.');
         }
       }
     });
   }
 
-  deleteService() {
-    if (confirm('¿Está seguro de eliminar este servicio?')) {
-       this.serviceApi.deleteService(this.serviceId).subscribe({
-         next: () => this.router.navigate(['/servicios']),
-         error: (err) => console.error('Error deleting service', err)
-       });
+  async deleteService() {
+    const confirmed = await this.confirm.ask('¿Está seguro de eliminar este servicio?', {
+      title: 'Eliminar servicio',
+      confirmText: 'Eliminar',
+      danger: true,
+    });
+
+    if (!confirmed) {
+      return;
     }
+
+    this.serviceApi.deleteService(this.serviceId).subscribe({
+      next: () => {
+        this.servicesStore.refresh().subscribe();
+        this.router.navigate(['/servicios']);
+      },
+      error: () => this.notification.error('Ocurrió un error al eliminar el servicio.')
+    });
   }
 }

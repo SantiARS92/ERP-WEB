@@ -14,7 +14,7 @@ export interface Notification {
 })
 export class NotificationService {
   private nextId = 0;
-  notifications = signal<Notification[]>([]);
+  readonly notifications = signal<Notification[]>([]);
 
   show(message: string, type: NotificationType = 'info', title?: string) {
     const id = this.nextId++;
@@ -28,19 +28,19 @@ export class NotificationService {
     }, 5000);
   }
 
-  success(message: string, title: string = 'Éxito') {
+  success(message: string, title = 'Éxito') {
     this.show(message, 'success', title);
   }
 
-  error(message: string, title: string = 'Error') {
+  error(message: string, title = 'Error') {
     this.show(message, 'error', title);
   }
 
-  info(message: string, title: string = 'Información') {
+  info(message: string, title = 'Información') {
     this.show(message, 'info', title);
   }
 
-  warning(message: string, title: string = 'Advertencia') {
+  warning(message: string, title = 'Advertencia') {
     this.show(message, 'warning', title);
   }
 

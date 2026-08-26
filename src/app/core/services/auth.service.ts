@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, catchError, firstValueFrom, map, of, tap } from 'rxjs';
 import { User, UserRole } from '../models/user.model';
 import { environment } from '../../../environments/environment';
+import { StorageService } from './storage.service';
 
 interface AuthResponse {
   displayName: string;
@@ -16,6 +17,7 @@ interface AuthResponse {
 })
 export class AuthService {
   private http = inject(HttpClient);
+  private storage = inject(StorageService);
   private readonly baseUrl = `${environment.apiUrl}/api/auth`;
   
   // Use a signal for reactive authentication state
@@ -53,7 +55,7 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    return localStorage.getItem('accessToken');
+    return this.storage.getAccessToken();
   }
 
   login(username: string, password: string): Observable<AuthResponse> {
@@ -82,7 +84,7 @@ export class AuthService {
       avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(res.displayName)}&background=EEF2FF&color=4338CA&bold=true&size=128`
     };
 
-    localStorage.setItem('accessToken', res.accessToken);
+    this.storage.setAccessToken(res.accessToken);
 
     this.isLoggedIn.set(true);
     this.currentUser.set(user);
@@ -95,7 +97,7 @@ export class AuthService {
   }
 
   private clearSession() {
-    localStorage.removeItem('accessToken');
+    this.storage.clearAccessToken();
     this.isLoggedIn.set(false);
     this.currentUser.set(null);
   }

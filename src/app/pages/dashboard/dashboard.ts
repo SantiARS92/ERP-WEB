@@ -11,6 +11,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { UserRole } from '../../core/models/user.model';
 import { from, of } from 'rxjs';
 import { catchError, mergeMap, toArray } from 'rxjs/operators';
+import { toIsoDate } from '../../core/utils/date.util';
 
 @Component({
   selector: 'app-dashboard',
@@ -65,17 +66,10 @@ export class Dashboard implements OnInit {
 
   ngOnInit() {
     const today = new Date();
-    this.todayStr = this.formatDate(today);
+    this.todayStr = toIsoDate(today);
     this.loadAppointmentsData();
     this.loadClientsData();
     this.loadInventoryData();
-  }
-
-  private formatDate(date: Date): string {
-    const yyyy = date.getFullYear();
-    const mm = String(date.getMonth() + 1).padStart(2, '0');
-    const dd = String(date.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
   }
 
   private loadAppointmentsData() {

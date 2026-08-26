@@ -3,9 +3,12 @@ import { CurrencyPipe, NgClass, SlicePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { SaleApiService } from '../../core/services/sale-api.service';
-import { SaleResponse, SaleItemType, PaymentMethod } from '../../core/models/sale.model';
+import { SaleItemType, PaymentMethod } from '../../core/models/sale.model';
 import { PaginationComponent } from '../../shared/components/pagination/pagination';
 import { createPagedResource } from '../../core/state/paged-resource';
+import { toIsoDate } from '../../core/utils/date.util';
+import { FileDownloadService } from '../../core/services/file-download.service';
+import { NotificationService } from '../../core/services/notification.service';
 
 @Component({
   selector: 'app-sales',
@@ -16,6 +19,8 @@ import { createPagedResource } from '../../core/state/paged-resource';
 })
 export class Sales {
   private saleApi = inject(SaleApiService);
+  private fileDownload = inject(FileDownloadService);
+  private notification = inject(NotificationService);
   readonly pageSize = 10;
   readonly search = signal('');
   readonly fromDate = signal('');
@@ -55,24 +60,12 @@ export class Sales {
     }
     
     // Convert to UTC-safe YYYY-MM-DD
-    const fromDate = this.formatDate(start);
-    const toDate = this.formatDate(end);
+    const fromDate = toIsoDate(start);
+    const toDate = toIsoDate(end);
 
     this.fromDate.set(fromDate);
     this.toDate.set(toDate);
     this.resource.setFilters({ search: this.search(), fromDate, toDate, page: 0 });
-  }
-
-  private formatDate(date: Date): string {
-    const d = new Date(date);
-    let month = '' + (d.getMonth() + 1);
-    let day = '' + d.getDate();
-    const year = d.getFullYear();
-
-    if (month.length < 2) month = '0' + month;
-    if (day.length < 2) day = '0' + day;
-
-    return [year, month, day].join('-');
   }
 
   onSearchChange(partial: { search?: string; fromDate?: string; toDate?: string }) {
@@ -107,18 +100,10 @@ export class Sales {
   exportPdf() {
     this.saleApi.exportSalesToPdf({ search: this.search(), fromDate: this.fromDate(), toDate: this.toDate() }).subscribe({
       next: (blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `historial_ventas_${this.fromDate()}_${this.toDate()}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
+        this.fileDownload.downloadBlob(blob, `historial_ventas_${this.fromDate()}_${this.toDate()}.pdf`);
       },
-      error: (err) => {
-        console.error('Error exporting PDF', err);
-        alert('Error al generar el PDF.');
+      error: () => {
+        this.notification.error('Error al generar el PDF.');
       }
     });
   }

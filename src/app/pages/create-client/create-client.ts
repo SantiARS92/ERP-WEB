@@ -5,6 +5,8 @@ import { Router, RouterLink } from '@angular/router';
 import { ClientApiService } from '../../core/services/client-api.service';
 import { Client } from '../../core/models/client.model';
 import { finalize } from 'rxjs';
+import { NotificationService } from '../../core/services/notification.service';
+import { ClientsStore } from '../../core/state/clients.store';
 
 @Component({
   selector: 'app-create-client',
@@ -26,6 +28,8 @@ export class CreateClient {
 
   private clientApi = inject(ClientApiService);
   private router = inject(Router);
+  private notification = inject(NotificationService);
+  private clientsStore = inject(ClientsStore);
 
   get isSubmitting() { return this.isSubmittingSignal(); }
   set isSubmitting(value: boolean) { this.isSubmittingSignal.set(value); }
@@ -34,9 +38,8 @@ export class CreateClient {
   set errorMessage(value: string | null) { this.errorMessageSignal.set(value); }
 
   onSubmit() {
-    console.log('🚀 Submit triggered', this.client);
     if (!this.client.fullName.trim() || !this.client.phone.trim()) {
-      console.warn('⚠️ Validation failed: name and phone are required');
+      this.notification.warning('Nombre y teléfono son obligatorios.');
       return;
     }
 
@@ -46,9 +49,8 @@ export class CreateClient {
     // Safety fallback: ensure spinner stops after 15s no matter what
     const safetyTimer = setTimeout(() => {
       if (this.isSubmitting) {
-        console.error('🛑 Safety timer triggered: request is taking too long');
         this.isSubmitting = false;
-        this.errorMessage = 'El servidor está tardando demasiado en responder. Revisa la consola (F12) o el estado del backend.';
+        this.errorMessage = 'El servidor está tardando demasiado en responder. Revisa el estado del backend.';
       }
     }, 15000);
 
@@ -61,23 +63,19 @@ export class CreateClient {
       cifNif: this.client.admiteFacturas ? (this.client.cifNif?.trim() || null) : null
     };
 
-    console.log('📡 Sending POST to /api/clients', payload);
-
     this.clientApi.createClient(payload)
       .pipe(
         finalize(() => {
-          console.log('🏁 Request finalized');
           clearTimeout(safetyTimer);
           this.isSubmitting = false;
         })
       )
       .subscribe({
-        next: (res) => {
-          console.log('✅ Client created successfully:', res);
+        next: () => {
+          this.clientsStore.refresh().subscribe();
           this.router.navigate(['/clientes']);
         },
-        error: (err) => {
-          console.error('❌ Detailed error creating client:', err);
+        error: () => {
           this.errorMessage = 'No se pudo guardar el cliente. Revisa si el backend (8091) tiene habilitado CORS o si los datos son válidos.';
         }
       });

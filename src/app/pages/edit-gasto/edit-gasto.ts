@@ -7,6 +7,8 @@ import { ProductApiService } from '../../core/services/product-api.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { ExpenseRequest, ExpenseResponse, ExpenseCategory } from '../../core/models/expense.model';
 import { Product, InventoryVariant } from '../../core/models/product.model';
+import { ConfirmService } from '../../core/services/confirm.service';
+import { ProductsStore } from '../../core/state/products.store';
 
 @Component({
   selector: 'app-edit-gasto',
@@ -45,6 +47,8 @@ export class EditGasto implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private notification = inject(NotificationService);
+  private confirm = inject(ConfirmService);
+  private productsStore = inject(ProductsStore);
 
   get expense() { return this.expenseSignal(); }
   set expense(value: ExpenseRequest) { this.expenseSignal.set(value); }
@@ -162,10 +166,8 @@ export class EditGasto implements OnInit {
   }
 
   loadProducts() {
-    this.productApi.getProducts({ size: 500 }).subscribe({
-      next: (res) => {
-        this.products = res.content || [];
-      }
+    this.productsStore.ensureLoaded().subscribe((products) => {
+      this.products = products;
     });
   }
 
@@ -286,6 +288,7 @@ export class EditGasto implements OnInit {
     this.isSubmitting = true;
     this.expenseApi.updateExpense(this.expenseId, payload).subscribe({
       next: () => {
+        this.productsStore.refresh().subscribe();
         this.notification.success('Gasto guardado correctamente.', '¡Actualizado!');
         this.router.navigate(['/gastos']);
       },
@@ -296,15 +299,24 @@ export class EditGasto implements OnInit {
     });
   }
 
-  deleteExpense() {
-    if (confirm('¿Está seguro de eliminar permanentemente este gasto?')) {
-      this.expenseApi.deleteExpense(this.expenseId).subscribe({
-        next: () => {
-          this.notification.success('Gasto eliminado.', 'Eliminado');
-          this.router.navigate(['/gastos']);
-        },
-        error: () => this.notification.error('Ocurrió un error al eliminar el gasto.')
-      });
+  async deleteExpense() {
+    const confirmed = await this.confirm.ask('¿Está seguro de eliminar permanentemente este gasto?', {
+      title: 'Eliminar gasto',
+      confirmText: 'Eliminar',
+      danger: true,
+    });
+
+    if (!confirmed) {
+      return;
     }
+
+    this.expenseApi.deleteExpense(this.expenseId).subscribe({
+      next: () => {
+        this.productsStore.refresh().subscribe();
+        this.notification.success('Gasto eliminado.', 'Eliminado');
+        this.router.navigate(['/gastos']);
+      },
+      error: () => this.notification.error('Ocurrió un error al eliminar el gasto.')
+    });
   }
 }

@@ -7,6 +7,7 @@ import { ProductApiService } from '../../core/services/product-api.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { ExpenseRequest, ExpenseCategory } from '../../core/models/expense.model';
 import { Product, InventoryVariant } from '../../core/models/product.model';
+import { ProductsStore } from '../../core/state/products.store';
 
 @Component({
   selector: 'app-create-gasto',
@@ -20,6 +21,7 @@ export class CreateGasto implements OnInit {
   private productApi = inject(ProductApiService);
   private router = inject(Router);
   private notification = inject(NotificationService);
+  private productsStore = inject(ProductsStore);
 
   private readonly productsSignal = signal<Product[]>([]);
   private readonly selectedProductSignal = signal<Product | null>(null);
@@ -58,10 +60,8 @@ export class CreateGasto implements OnInit {
   set isSubmitting(value: boolean) { this.isSubmittingSignal.set(value); }
 
   ngOnInit(): void {
-    this.productApi.getProducts({ size: 500 }).subscribe({
-      next: (res) => {
-        this.products = res.content || [];
-      }
+    this.productsStore.ensureLoaded().subscribe((products) => {
+      this.products = products;
     });
   }
 
@@ -191,6 +191,7 @@ export class CreateGasto implements OnInit {
 
     this.expenseApi.createExpense(payload).subscribe({
       next: () => {
+        this.productsStore.refresh().subscribe();
         this.notification.success('Gasto registrado correctamente.', '¡Éxito!');
         this.router.navigate(['/gastos']);
       },

@@ -3,14 +3,16 @@ import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { SaleApiService } from '../../core/services/sale-api.service';
-import { ClientApiService } from '../../core/services/client-api.service';
-import { ServiceApiService } from '../../core/services/service-api.service';
 import { SaleRequest, SaleResponse } from '../../core/models/sale.model';
 import { Client } from '../../core/models/client.model';
 import { Service } from '../../core/models/service.model';
 import { Product, InventoryVariant } from '../../core/models/product.model';
 import { ProductApiService } from '../../core/services/product-api.service';
 import { NotificationService } from '../../core/services/notification.service';
+import { ConfirmService } from '../../core/services/confirm.service';
+import { ClientsStore } from '../../core/state/clients.store';
+import { ServicesStore } from '../../core/state/services.store';
+import { ProductsStore } from '../../core/state/products.store';
 
 @Component({
   selector: 'app-edit-sale',
@@ -42,12 +44,14 @@ export class EditSale implements OnInit {
   private readonly isSubmittingSignal = signal(false);
 
   private saleApi = inject(SaleApiService);
-  private clientApi = inject(ClientApiService);
-  private serviceApi = inject(ServiceApiService);
   private productApi = inject(ProductApiService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private notification = inject(NotificationService);
+  private confirm = inject(ConfirmService);
+  private clientsStore = inject(ClientsStore);
+  private servicesStore = inject(ServicesStore);
+  private productsStore = inject(ProductsStore);
 
   get sale() { return this.saleSignal(); }
   set sale(value: SaleRequest) { this.saleSignal.set(value); }
@@ -69,9 +73,9 @@ export class EditSale implements OnInit {
   set isSubmitting(value: boolean) { this.isSubmittingSignal.set(value); }
 
   ngOnInit() {
-    this.clientApi.getClients({ size: 500 }).subscribe({ next: (res) => this.clients = res.content || [] });
-    this.serviceApi.getServices({ size: 500 }).subscribe({ next: (res) => this.services = res.content || [] });
-    this.productApi.getProducts({ size: 500 }).subscribe({ next: (res) => this.products = res.content || [] });
+    this.clientsStore.ensureLoaded().subscribe((clients) => this.clients = clients);
+    this.servicesStore.ensureLoaded().subscribe((services) => this.services = services.filter((service) => service.active));
+    this.productsStore.ensureLoaded().subscribe((products) => this.products = products);
     
     this.saleId = Number(this.route.snapshot.paramMap.get('id'));
     if (this.saleId) {
@@ -225,6 +229,7 @@ export class EditSale implements OnInit {
     this.isSubmitting = true;
     this.saleApi.updateSale(this.saleId, payload).subscribe({
       next: () => {
+        this.productsStore.refresh().subscribe();
         this.notification.success('Venta actualizada correctamente.', '¡Éxito!');
         this.router.navigate(['/ventas']);
       },
@@ -235,19 +240,29 @@ export class EditSale implements OnInit {
     });
   }
 
-  deleteSale() {
+  async deleteSale() {
     if (this.originalSale?.sourceType === 'APPOINTMENT') {
        this.notification.warning('No se pueden eliminar las ventas vinculadas a una cita. Cancele la cita para anular la venta.');
        return;
+     }
+
+    const confirmed = await this.confirm.ask('¿Está seguro de eliminar permanentemente esta venta manual?', {
+      title: 'Eliminar venta',
+      confirmText: 'Eliminar',
+      danger: true,
+    });
+
+    if (!confirmed) {
+      return;
     }
-    if (confirm('¿Está seguro de eliminar permanentemente esta venta manual?')) {
-       this.saleApi.deleteSale(this.saleId).subscribe({
-         next: () => {
-           this.notification.success('Venta eliminada de los registros.', 'Eliminada');
-           this.router.navigate(['/ventas']);
-         },
-         error: (err) => this.notification.error('Ocurrió un error al eliminar la venta.')
-       });
-    }
+
+    this.saleApi.deleteSale(this.saleId).subscribe({
+      next: () => {
+        this.productsStore.refresh().subscribe();
+        this.notification.success('Venta eliminada de los registros.', 'Eliminada');
+        this.router.navigate(['/ventas']);
+      },
+      error: () => this.notification.error('Ocurrió un error al eliminar la venta.')
+    });
   }
 }

@@ -5,6 +5,7 @@ import { ReportApiService } from '../../../core/services/report-api.service';
 import { AnnualConsolidatedReport } from '../../../core/models/report.model';
 
 import { FormsModule } from '@angular/forms';
+import { FileDownloadService } from '../../../core/services/file-download.service';
 
 @Component({
   selector: 'app-informe-anual',
@@ -22,6 +23,7 @@ export class InformeAnual implements OnInit {
   private readonly maxMonthlyValueSignal = signal(1000);
 
   private reportApi = inject(ReportApiService);
+  private fileDownload = inject(FileDownloadService);
 
   get reportData() { return this.reportDataSignal(); }
   set reportData(value: AnnualConsolidatedReport | null) { this.reportDataSignal.set(value); }
@@ -63,15 +65,7 @@ export class InformeAnual implements OnInit {
         this.isDownloadingPdf = false;
         this.downloadSuccess = true;
         setTimeout(() => this.downloadSuccess = false, 3000);
-        console.log('PDF generado con éxito');
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `informe-anual-consolidado-${this.selectedYear}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
+        this.fileDownload.downloadBlob(blob, `informe-anual-consolidado-${this.selectedYear}.pdf`);
       },
       error: () => { 
         this.isDownloadingPdf = false;

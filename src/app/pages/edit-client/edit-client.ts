@@ -5,6 +5,9 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ClientApiService } from '../../core/services/client-api.service';
 import { Client } from '../../core/models/client.model';
 import { finalize } from 'rxjs';
+import { NotificationService } from '../../core/services/notification.service';
+import { ConfirmService } from '../../core/services/confirm.service';
+import { ClientsStore } from '../../core/state/clients.store';
 
 @Component({
   selector: 'app-edit-client',
@@ -30,6 +33,9 @@ export class EditClient implements OnInit {
   private clientApi = inject(ClientApiService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private notification = inject(NotificationService);
+  private confirm = inject(ConfirmService);
+  private clientsStore = inject(ClientsStore);
 
   get client() { return this.clientSignal(); }
   set client(value: Omit<Client, 'id'>) { this.clientSignal.set(value); }
@@ -70,8 +76,7 @@ export class EditClient implements OnInit {
         };
         this.isLoading = false;
       },
-      error: (err) => {
-        console.error('Error loading client', err);
+      error: () => {
         this.isLoading = false;
         this.router.navigate(['/clientes']);
       }
@@ -79,9 +84,8 @@ export class EditClient implements OnInit {
   }
 
   onSubmit() {
-    console.log('🚀 Update triggered', this.client);
     if (!this.client.fullName.trim() || !this.client.phone.trim() || !this.clientId) {
-      console.warn('⚠️ Validation failed: name, phone and ID are required');
+      this.notification.warning('Nombre y teléfono son obligatorios.');
       return;
     }
 
@@ -91,7 +95,6 @@ export class EditClient implements OnInit {
     // Safety fallback
     const safetyTimer = setTimeout(() => {
       if (this.isSubmitting) {
-        console.error('🛑 Safety timer triggered');
         this.isSubmitting = false;
         this.errorMessage = 'El servidor no responde. Revisa el backend.';
       }
@@ -106,23 +109,19 @@ export class EditClient implements OnInit {
       cifNif: this.client.admiteFacturas ? (this.client.cifNif?.trim() || null) : null
     };
 
-    console.log('📡 Sending PUT to /api/clients/' + this.clientId, payload);
-
     this.clientApi.updateClient(this.clientId, payload)
       .pipe(
         finalize(() => {
-          console.log('🏁 Request finalized');
           clearTimeout(safetyTimer);
           this.isSubmitting = false;
         })
       )
       .subscribe({
-        next: (res) => {
-          console.log('✅ Client updated successfully:', res);
+        next: () => {
+          this.clientsStore.refresh().subscribe();
           this.router.navigate(['/clientes']);
         },
-        error: (err) => {
-          console.error('❌ Detailed error updating client:', err);
+        error: () => {
           this.errorMessage = 'No se pudo actualizar el cliente. Comprueba la conexión.';
         }
       });
@@ -132,18 +131,27 @@ export class EditClient implements OnInit {
     this.router.navigate(['/clientes']);
   }
 
-  deleteClient() {
+  async deleteClient() {
     if (!this.clientId) return;
-    if (confirm('¿Está seguro de eliminar permanentemente este cliente? Esta acción no se puede deshacer.')) {
-      this.clientApi.deleteClient(this.clientId).subscribe({
-        next: () => {
-          this.router.navigate(['/clientes']);
-        },
-        error: (err) => {
-          console.error('Error deleting client', err);
-          alert('Ocurrió un error al eliminar el cliente.');
-        }
-      });
+
+    const confirmed = await this.confirm.ask('¿Está seguro de eliminar permanentemente este cliente? Esta acción no se puede deshacer.', {
+      title: 'Eliminar cliente',
+      confirmText: 'Eliminar',
+      danger: true,
+    });
+
+    if (!confirmed) {
+      return;
     }
+
+    this.clientApi.deleteClient(this.clientId).subscribe({
+      next: () => {
+        this.clientsStore.refresh().subscribe();
+        this.router.navigate(['/clientes']);
+      },
+      error: () => {
+        this.notification.error('Ocurrió un error al eliminar el cliente.');
+      }
+    });
   }
 }

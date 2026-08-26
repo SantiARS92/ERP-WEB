@@ -5,6 +5,7 @@ import { ReportApiService } from '../../../core/services/report-api.service';
 import { MonthlyDetailedReport } from '../../../core/models/report.model';
 
 import { FormsModule } from '@angular/forms';
+import { FileDownloadService } from '../../../core/services/file-download.service';
 
 @Component({
   selector: 'app-informe-mensual-detallado',
@@ -28,6 +29,7 @@ export class InformeMensualDetallado implements OnInit {
   private readonly downloadSuccessSignal = signal(false);
 
   private reportApi = inject(ReportApiService);
+  private fileDownload = inject(FileDownloadService);
 
   get reportData() { return this.reportDataSignal(); }
   set reportData(value: MonthlyDetailedReport | null) { this.reportDataSignal.set(value); }
@@ -61,15 +63,7 @@ export class InformeMensualDetallado implements OnInit {
         this.isDownloadingPdf = false;
         this.downloadSuccess = true;
         setTimeout(() => this.downloadSuccess = false, 3000);
-        console.log('PDF generado con éxito');
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `informe-mensual-detallado-${this.selectedYear}-${this.selectedMonth}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
+        this.fileDownload.downloadBlob(blob, `informe-mensual-detallado-${this.selectedYear}-${this.selectedMonth}.pdf`);
       },
       error: () => { 
         this.isDownloadingPdf = false;

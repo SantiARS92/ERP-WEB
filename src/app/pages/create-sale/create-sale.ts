@@ -4,14 +4,15 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { SaleApiService } from '../../core/services/sale-api.service';
-import { ServiceApiService } from '../../core/services/service-api.service';
 import { ProductApiService } from '../../core/services/product-api.service';
-import { ClientApiService } from '../../core/services/client-api.service';
 import { NotificationService } from '../../core/services/notification.service';
-import { SaleRequest, PaymentMethod } from '../../core/models/sale.model';
+import { PaymentMethod } from '../../core/models/sale.model';
 import { Service } from '../../core/models/service.model';
 import { Product, InventoryVariant } from '../../core/models/product.model';
 import { Client } from '../../core/models/client.model';
+import { ClientsStore } from '../../core/state/clients.store';
+import { ServicesStore } from '../../core/state/services.store';
+import { ProductsStore } from '../../core/state/products.store';
 
 interface SaleLine {
   itemType: 'SERVICE' | 'PRODUCT';
@@ -34,11 +35,12 @@ interface SaleLine {
 })
 export class CreateSale implements OnInit {
   private saleApi = inject(SaleApiService);
-  private serviceApi = inject(ServiceApiService);
   private productApi = inject(ProductApiService);
-  private clientApi = inject(ClientApiService);
   private router = inject(Router);
   private notification = inject(NotificationService);
+  private clientsStore = inject(ClientsStore);
+  private servicesStore = inject(ServicesStore);
+  private productsStore = inject(ProductsStore);
 
   private readonly servicesSignal = signal<Service[]>([]);
   private readonly productsSignal = signal<Product[]>([]);
@@ -88,9 +90,9 @@ export class CreateSale implements OnInit {
   set isSubmitting(value: boolean) { this.isSubmittingSignal.set(value); }
 
   ngOnInit(): void {
-    this.clientApi.getClients({ size: 500 }).subscribe({ next: (res) => { this.clients = res.content || []; } });
-    this.serviceApi.getServices({ active: true, size: 200 }).subscribe({ next: (res) => { this.services = res.content || []; } });
-    this.productApi.getProducts({ size: 500 }).subscribe({ next: (res) => { this.products = res.content || []; } });
+    this.clientsStore.ensureLoaded().subscribe((clients) => { this.clients = clients; });
+    this.servicesStore.ensureLoaded().subscribe((services) => { this.services = services.filter((service) => service.active); });
+    this.productsStore.ensureLoaded().subscribe((products) => { this.products = products; });
   }
 
   onProductChange(index: number) {
@@ -212,6 +214,7 @@ export class CreateSale implements OnInit {
     // Execute all requests in parallel
     forkJoin(requests).subscribe({
       next: () => {
+        this.productsStore.refresh().subscribe();
         this.notification.success(`${requests.length} venta(s) registrada(s) correctamente.`, '¡Éxito!');
         this.router.navigate(['/ventas']);
       },

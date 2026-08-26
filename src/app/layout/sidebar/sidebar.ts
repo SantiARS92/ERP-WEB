@@ -1,8 +1,8 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
-import { SettingsApiService } from '../../core/services/settings-api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { UserRole } from '../../core/models/user.model';
+import { SettingsStore } from '../../core/state/settings.store';
 
 @Component({
   selector: 'app-sidebar',
@@ -11,11 +11,11 @@ import { UserRole } from '../../core/models/user.model';
   styles: ``,
 })
 export class Sidebar {
-  private settingsApi = inject(SettingsApiService);
+  private settingsStore = inject(SettingsStore);
   private router = inject(Router);
   authService = inject(AuthService); // Public for template use
   
-  settings = this.settingsApi.settings;
+  settings = this.settingsStore.settings;
   readonly canManage = computed(() => this.authService.hasRole([UserRole.ADMIN, UserRole.PROFESSIONAL]));
   readonly isAdmin = computed(() => this.authService.hasRole([UserRole.ADMIN]));
   readonly roleLabel = computed(() => {

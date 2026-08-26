@@ -3,6 +3,8 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { RouterLink } from '@angular/router';
 import { ReportApiService } from '../../../core/services/report-api.service';
 import { MonthlySimpleReport } from '../../../core/models/report.model';
+import { FileDownloadService } from '../../../core/services/file-download.service';
+import { NotificationService } from '../../../core/services/notification.service';
 
 @Component({
   selector: 'app-informe-mensual-simple',
@@ -21,6 +23,8 @@ export class InformeMensualSimple implements OnInit {
   private readonly maxTopServiceCountSignal = signal(0);
 
   private reportApi = inject(ReportApiService);
+  private fileDownload = inject(FileDownloadService);
+  private notification = inject(NotificationService);
 
   get reportData() { return this.reportDataSignal(); }
   set reportData(value: MonthlySimpleReport | null) { this.reportDataSignal.set(value); }
@@ -96,14 +100,7 @@ export class InformeMensualSimple implements OnInit {
 
     this.reportApi.getMonthlySimplePdf(this.selectedYear, this.selectedMonth).subscribe({
       next: (blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Informe_Mensual_Simple_${this.selectedMonth}_${this.selectedYear}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
+        this.fileDownload.downloadBlob(blob, `Informe_Mensual_Simple_${this.selectedMonth}_${this.selectedYear}.pdf`);
         
         this.isDownloadingPdf = false;
         this.downloadSuccess = true;
@@ -112,9 +109,8 @@ export class InformeMensualSimple implements OnInit {
           this.downloadSuccess = false;
         }, 3000);
       },
-      error: (err) => {
-        console.error('Error downloading PDF', err);
-        alert('Error al descargar el PDF. Inténtelo de nuevo.');
+      error: () => {
+        this.notification.error('Error al descargar el PDF. Inténtelo de nuevo.');
         this.isDownloadingPdf = false;
       }
     });

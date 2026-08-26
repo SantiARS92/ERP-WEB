@@ -7,16 +7,22 @@ import { AuthService } from '../../core/services/auth.service';
 import { UserRole } from '../../core/models/user.model';
 import { AppointmentApiService } from '../../core/services/appointment-api.service';
 import { Appointment, AgendaDay } from '../../core/models/appointment.model';
-import { ClientApiService } from '../../core/services/client-api.service';
-import { ServiceApiService } from '../../core/services/service-api.service';
 import { ProfessionalApiService } from '../../core/services/professional-api.service';
 import { FormsModule } from '@angular/forms';
 import { Professional } from '../../core/models/professional.model';
+import { toIsoDate } from '../../core/utils/date.util';
+import { Client } from '../../core/models/client.model';
+import { Service } from '../../core/models/service.model';
+import { NotificationService } from '../../core/services/notification.service';
+import { ConfirmService } from '../../core/services/confirm.service';
+import { ClientsStore } from '../../core/state/clients.store';
+import { ServicesStore } from '../../core/state/services.store';
+
+const MONTH_FORMATTER = new Intl.DateTimeFormat('es-ES', { month: 'short' });
 
 @Component({
   selector: 'app-agenda',
   imports: [DatePipe, SlicePipe, NgClass, NgStyle, RouterLink, FormsModule],
-  providers: [DatePipe],
   templateUrl: './agenda.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -35,10 +41,10 @@ export class Agenda implements OnInit {
   readonly canManageAppointments = computed(() => this.authService.currentUser()?.role !== UserRole.GUEST);
   
   // For the modal select/autocomplete
-  private readonly allClientsSignal = signal<any[]>([]);
-  private readonly allServicesSignal = signal<any[]>([]);
+  private readonly allClientsSignal = signal<Client[]>([]);
+  private readonly allServicesSignal = signal<Service[]>([]);
   private readonly allProfessionalsSignal = signal<Professional[]>([]);
-  private readonly filteredClientsSignal = signal<any[]>([]);
+  private readonly filteredClientsSignal = signal<Client[]>([]);
   timeOptions = [
     '09:00', '09:30', '10:00', '10:30', 
     '11:00', '11:30', '12:00', '12:30',
@@ -51,11 +57,12 @@ export class Agenda implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   
   private appointmentApi = inject(AppointmentApiService);
-  private clientApi = inject(ClientApiService);
-  private serviceApi = inject(ServiceApiService);
   private professionalApi = inject(ProfessionalApiService);
-  private datePipe = inject(DatePipe);
   public authService = inject(AuthService);
+  private notification = inject(NotificationService);
+  private confirm = inject(ConfirmService);
+  private clientsStore = inject(ClientsStore);
+  private servicesStore = inject(ServicesStore);
 
   get appointments() { return this.appointmentsSignal(); }
   set appointments(value: Appointment[]) { this.appointmentsSignal.set(value); }
@@ -66,13 +73,13 @@ export class Agenda implements OnInit {
   get isSubmitting() { return this.isSubmittingSignal(); }
   set isSubmitting(value: boolean) { this.isSubmittingSignal.set(value); }
   get allClients() { return this.allClientsSignal(); }
-  set allClients(value: any[]) { this.allClientsSignal.set(value); }
+  set allClients(value: Client[]) { this.allClientsSignal.set(value); }
   get allServices() { return this.allServicesSignal(); }
-  set allServices(value: any[]) { this.allServicesSignal.set(value); }
+  set allServices(value: Service[]) { this.allServicesSignal.set(value); }
   get allProfessionals() { return this.allProfessionalsSignal(); }
   set allProfessionals(value: Professional[]) { this.allProfessionalsSignal.set(value); }
   get filteredClients() { return this.filteredClientsSignal(); }
-  set filteredClients(value: any[]) { this.filteredClientsSignal.set(value); }
+  set filteredClients(value: Client[]) { this.filteredClientsSignal.set(value); }
   get currentTimePosition() { return this.currentTimePositionSignal(); }
   set currentTimePosition(value: number) { this.currentTimePositionSignal.set(value); }
 
@@ -105,9 +112,9 @@ export class Agenda implements OnInit {
   }
 
   loadAllData() {
-    this.clientApi.getClients({ size: 1000 }).subscribe((res: any) => this.allClients = res.content);
-    this.serviceApi.getServices({ size: 1000, active: true }).subscribe((res: any) => {
-      this.allServices = res.content;
+    this.clientsStore.ensureLoaded().subscribe((clients) => this.allClients = clients);
+    this.servicesStore.ensureLoaded().subscribe((services) => {
+      this.allServices = services.filter((service) => service.active);
       this.calculateAllStyles();
     });
     this.professionalApi.getProfessionals(true).subscribe(res => this.allProfessionals = res);
@@ -156,10 +163,7 @@ export class Agenda implements OnInit {
   // --- Helpers ---
   
   formatDate(date: Date): string {
-    const yyyy = date.getFullYear();
-    const mm = String(date.getMonth() + 1).padStart(2, '0');
-    const dd = String(date.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
+    return toIsoDate(date);
   }
 
   isToday(date: Date): boolean {
@@ -177,7 +181,7 @@ export class Agenda implements OnInit {
     const startNum = start.getDate();
     const endNum = end.getDate();
     // Assuming same month/year for simple UI formatting as in the picture
-    const month = this.datePipe.transform(start, 'MMM');
+    const month = MONTH_FORMATTER.format(start);
     const year = start.getFullYear();
     
     return `${startNum} - ${endNum} ${month}, ${year}`;
@@ -383,7 +387,7 @@ export class Agenda implements OnInit {
     this.filteredClients = this.allClients.filter(c => c.fullName.toLowerCase().includes(query));
   }
 
-  selectClient(client: any) {
+  selectClient(client: Client) {
     this.selectedAppointment.clientId = client.id;
     this.selectedAppointment.clientName = client.fullName;
     this.filteredClients = [];
@@ -440,7 +444,6 @@ export class Agenda implements OnInit {
 
   updateAppointment() {
     if (!this.selectedAppointment.id) return;
-    console.log('Actualizando cita:', this.selectedAppointment.id);
     this.isSubmitting = true;
     this.appointmentApi.updateAppointment(this.selectedAppointment.id, this.selectedAppointment)
       .pipe(finalize(() => {
@@ -448,20 +451,26 @@ export class Agenda implements OnInit {
       }))
       .subscribe({
         next: () => {
-          console.log('Cita actualizada con éxito');
           this.loadAppointments();
           this.closeEditModal();
         },
-        error: (err) => {
-          console.error('Error al actualizar:', err);
-          alert('Error al actualizar la cita. Verifique la consola o el backend.');
+        error: () => {
+          this.notification.error('Error al actualizar la cita.');
         }
       });
   }
 
-  deleteAppointment() {
-    if (!this.selectedAppointment.id || !confirm('¿Estás seguro de que deseas eliminar esta cita?')) return;
-    console.log('Eliminando cita:', this.selectedAppointment.id);
+  async deleteAppointment() {
+    if (!this.selectedAppointment.id) return;
+
+    const confirmed = await this.confirm.ask('¿Estás seguro de que deseas eliminar esta cita?', {
+      title: 'Eliminar cita',
+      confirmText: 'Eliminar',
+      danger: true,
+    });
+
+    if (!confirmed) return;
+
     this.isSubmitting = true;
     this.appointmentApi.deleteAppointment(this.selectedAppointment.id)
       .pipe(finalize(() => {
@@ -469,13 +478,11 @@ export class Agenda implements OnInit {
       }))
       .subscribe({
         next: () => {
-          console.log('Cita eliminada con éxito');
           this.loadAppointments();
           this.closeEditModal();
         },
-        error: (err) => {
-          console.error('Error al eliminar:', err);
-          alert('Error al eliminar la cita. Verifique la consola o el backend.');
+        error: () => {
+          this.notification.error('Error al eliminar la cita.');
         }
       });
   }

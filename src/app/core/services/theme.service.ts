@@ -1,4 +1,5 @@
-import { Injectable, effect, signal } from '@angular/core';
+import { inject, Injectable, effect, signal } from '@angular/core';
+import { StorageService } from './storage.service';
 
 export type ThemeMode = 'light' | 'dark';
 export type PrimaryColor = 'blue' | 'rose' | 'emerald' | 'indigo' | 'amber' | 'purple';
@@ -23,18 +24,19 @@ const PALETTES: Record<PrimaryColor, ColorPalette> = {
   providedIn: 'root'
 })
 export class ThemeService {
-  themeMode = signal<ThemeMode>((localStorage.getItem('theme-mode') as ThemeMode) || 'light');
-  primaryColor = signal<PrimaryColor>((localStorage.getItem('primary-color') as PrimaryColor) || 'blue');
+  private storage = inject(StorageService);
+  readonly themeMode = signal<ThemeMode>(this.storage.getThemeMode() ?? 'light');
+  readonly primaryColor = signal<PrimaryColor>(this.storage.getPrimaryColor() ?? 'blue');
 
   constructor() {
     effect(() => {
       this.applyTheme(this.themeMode());
-      localStorage.setItem('theme-mode', this.themeMode());
+      this.storage.setThemeMode(this.themeMode());
     });
 
     effect(() => {
       this.applyColor(this.primaryColor());
-      localStorage.setItem('primary-color', this.primaryColor());
+      this.storage.setPrimaryColor(this.primaryColor());
     });
   }
 

@@ -3,9 +3,11 @@ import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@ang
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ServiceApiService } from '../../core/services/service-api.service';
-import { CategoryApiService } from '../../core/services/category-api.service';
 import { Service } from '../../core/models/service.model';
 import { Category } from '../../core/models/category.model';
+import { NotificationService } from '../../core/services/notification.service';
+import { CategoriesStore } from '../../core/state/categories.store';
+import { ServicesStore } from '../../core/state/services.store';
 
 @Component({
   selector: 'app-create-service',
@@ -27,8 +29,10 @@ export class CreateService implements OnInit {
   private readonly categoriesSignal = signal<Category[]>([]);
 
   private serviceApi = inject(ServiceApiService);
-  private categoryApi = inject(CategoryApiService);
+  private categoriesStore = inject(CategoriesStore);
+  private servicesStore = inject(ServicesStore);
   private router = inject(Router);
+  private notification = inject(NotificationService);
 
   get service() { return this.serviceSignal(); }
   set service(value: Service) { this.serviceSignal.set(value); }
@@ -37,7 +41,7 @@ export class CreateService implements OnInit {
   set categories(value: Category[]) { this.categoriesSignal.set(value); }
 
   ngOnInit() {
-    this.categoryApi.getCategories().subscribe((cats: Category[]) => {
+    this.categoriesStore.ensureLoaded().subscribe((cats: Category[]) => {
       this.categories = cats;
       // Ensure we select the first category if none is selected
       if (this.categories.length > 0 && (this.service.categoryId === 0 || !this.service.categoryId)) {
@@ -55,19 +59,16 @@ export class CreateService implements OnInit {
     this.service.categoryId = Number(this.service.categoryId);
 
     if (!this.service.name || this.service.durationMinutes <= 0 || this.service.price <= 0 || !this.service.categoryId) {
-      alert('Por favor, rellene todos los campos obligatorios: Nombre, Categoría, Duración (>0) y Precio (>0).');
+      this.notification.warning('Por favor, rellene todos los campos obligatorios: Nombre, Categoría, Duración (>0) y Precio (>0).');
       return;
     }
 
-    console.log('Enviando payload a la API:', this.service);
-
     this.serviceApi.createService(this.service).subscribe({
-      next: (response: any) => {
-        console.log('Servicio creado con éxito:', response);
+      next: () => {
+        this.servicesStore.refresh().subscribe();
         this.router.navigate(['/servicios']);
       },
-      error: (err: any) => {
-        console.error('Error completo de la API:', err);
+      error: (err: { status: number; error?: unknown; message: string }) => {
         let errorMsg = 'Error al crear el servicio.\n\n';
         
         if (err.status === 400) {
@@ -81,7 +82,7 @@ export class CreateService implements OnInit {
           errorMsg += `Código: ${err.status}\nMensaje: ${err.message}`;
         }
         
-        alert(errorMsg);
+        this.notification.error(errorMsg.replace(/\n+/g, ' '));
       }
     });
   }

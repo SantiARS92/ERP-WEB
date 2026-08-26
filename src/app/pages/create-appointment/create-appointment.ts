@@ -4,13 +4,14 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AppointmentApiService } from '../../core/services/appointment-api.service';
-import { ClientApiService } from '../../core/services/client-api.service';
-import { ServiceApiService } from '../../core/services/service-api.service';
 import { ProfessionalApiService } from '../../core/services/professional-api.service';
 import { Appointment } from '../../core/models/appointment.model';
 import { Client } from '../../core/models/client.model';
-import { Service, ServicePage } from '../../core/models/service.model';
+import { Service } from '../../core/models/service.model';
 import { Professional } from '../../core/models/professional.model';
+import { NotificationService } from '../../core/services/notification.service';
+import { ClientsStore } from '../../core/state/clients.store';
+import { ServicesStore } from '../../core/state/services.store';
 
 @Component({
   selector: 'app-create-appointment',
@@ -48,11 +49,12 @@ export class CreateAppointment implements OnInit {
   ];
 
   private appointmentApi = inject(AppointmentApiService);
-  private clientApi = inject(ClientApiService);
-  private serviceApi = inject(ServiceApiService);
   private professionalApi = inject(ProfessionalApiService);
   private router = inject(Router);
   private eRef = inject(ElementRef);
+  private notification = inject(NotificationService);
+  private clientsStore = inject(ClientsStore);
+  private servicesStore = inject(ServicesStore);
 
   get appointment() { return this.appointmentSignal(); }
   set appointment(value: Partial<Appointment>) { this.appointmentSignal.set(value); }
@@ -80,14 +82,14 @@ export class CreateAppointment implements OnInit {
   }
 
   loadServices() {
-    this.serviceApi.getServices({ size: 100, active: true }).subscribe((res: ServicePage) => {
-      this.services = res.content;
+    this.servicesStore.ensureLoaded().subscribe((services) => {
+      this.services = services.filter((service) => service.active);
     });
   }
 
   loadClients() {
-    this.clientApi.getClients({ size: 100 }).subscribe(res => {
-      this.clients = res.content;
+    this.clientsStore.ensureLoaded().subscribe((clients) => {
+      this.clients = clients;
     });
   }
 
@@ -186,9 +188,8 @@ export class CreateAppointment implements OnInit {
         next: () => {
           this.router.navigate(['/agenda']);
         },
-        error: (err) => {
-          console.error('Error creating appt', err);
-          alert('Error al guardar cita. Verifique la consola o el backend.');
+        error: () => {
+          this.notification.error('Error al guardar la cita.');
         }
       });
   }
