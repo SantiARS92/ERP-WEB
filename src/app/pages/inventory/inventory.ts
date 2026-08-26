@@ -1,95 +1,79 @@
-import { Component, OnInit, inject, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { ProductApiService } from '../../core/services/product-api.service';
 import { CategoryApiService } from '../../core/services/category-api.service';
-import { Product, ProductPage, InventoryVariant } from '../../core/models/product.model';
-import { Category } from '../../core/models/category.model';
+import { Product, InventoryVariant } from '../../core/models/product.model';
 import { PaginationComponent } from '../../shared/components/pagination/pagination';
 import { from, of } from 'rxjs';
 import { catchError, mergeMap, toArray } from 'rxjs/operators';
+import { createPagedResource } from '../../core/state/paged-resource';
 
 @Component({
   selector: 'app-inventory',
-  changeDetection: ChangeDetectionStrategy.Default,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [NgClass, RouterLink, FormsModule, PaginationComponent],
   templateUrl: './inventory.html',
   styles: ``,
 })
-export class Inventory implements OnInit {
-  private productApi   = inject(ProductApiService);
-  private categoryApi  = inject(CategoryApiService);
-  private cdr          = inject(ChangeDetectorRef);
-  private router       = inject(Router);
+export class Inventory {
+  private productApi = inject(ProductApiService);
+  private categoryApi = inject(CategoryApiService);
+  readonly pageSize = 10;
+  readonly searchText = signal('');
+  readonly selectedCategoryIds = signal<number[]>([]);
+  readonly isFilterOpen = signal(false);
+  readonly expandedIds = signal<Set<number>>(new Set());
+  private readonly variantDetails = signal<Record<number, InventoryVariant[]>>({});
+  private readonly loadingVariantIds = signal<Set<number>>(new Set());
+  private readonly resource = createPagedResource({
+    initialFilters: { search: '', categoryIds: undefined as string | undefined, page: 0, size: this.pageSize },
+    fetcher: (filters) => this.productApi.getProducts(filters),
+  });
 
-  products: Product[]  = [];
-  categories: Category[] = [];
+  readonly categories = toSignal(this.categoryApi.getCategories().pipe(catchError(() => of([]))), { initialValue: [] });
+  readonly totalElements = this.resource.totalElements;
+  readonly currentPage = this.resource.page;
+  readonly isLoading = this.resource.isLoading;
+  readonly hasError = computed(() => this.resource.error() !== null);
+  readonly products = computed(() => this.resource.items().map((product) => {
+    if (!product.id) {
+      return product;
+    }
 
-  searchText = '';
-  selectedCategoryIds: number[] = [];
+    const variants = this.variantDetails()[product.id];
+    if (!variants) {
+      return product;
+    }
 
-  currentPage   = 0;
-  pageSize      = 10;
-  totalElements = 0;
+    return {
+      ...product,
+      variants,
+      variantCount: variants.length,
+    };
+  }));
 
-  isFilterOpen = false;
-  isLoading = false;
-  hasError = false;
-
-  // ── Expand/collapse variant rows ─────────────────
-  expandedIds = new Set<number>();
-
-  ngOnInit(): void {
-    this.loadProducts();
-    this.loadCategories();
-  }
-
-  // ── Data loading ──────────────────────────────────
-  loadCategories() {
-    this.categoryApi.getCategories().subscribe({
-      next: (data) => { this.categories = data; this.cdr.detectChanges(); },
-      error: (err) => console.error('Error loading categories:', err),
-    });
-  }
-
-  loadProducts() {
-    const categoryIdsStr = this.selectedCategoryIds.length > 0
-      ? this.selectedCategoryIds.join(',') : undefined;
-
-    this.isLoading = true;
-    this.hasError = false;
-
-    this.productApi.getProducts({
-      search: this.searchText, categoryIds: categoryIdsStr,
-      page: this.currentPage, size: this.pageSize
-    }).subscribe({
-      next: (data: ProductPage) => {
-        // Una lista vacía es un resultado legítimo, no un error.
-        this.products = data.content;
-        this.totalElements = data.totalElements;
-        this.isLoading = false;
-        this.cdr.detectChanges();
-        // Pre-load variants so we have accurate counts and data for the list
-        this.preloadVariants(data.content);
-      },
-      error: () => {
-        this.products = [];
-        this.totalElements = 0;
-        this.isLoading = false;
-        this.hasError = true;
-        this.cdr.detectChanges();
+  constructor() {
+    effect(() => {
+      const products = this.resource.items();
+      const variantMap = this.variantDetails();
+      const loadingIds = this.loadingVariantIds();
+      const pending = products.filter((product) => product.hasVariants && product.id !== undefined && !variantMap[product.id] && !loadingIds.has(product.id));
+      if (!pending.length) {
+        return;
       }
+
+      this.loadingVariantIds.update((current) => new Set([...current, ...pending.map((product) => product.id!)]));
+      this.preloadVariants(pending);
     });
   }
 
   // TODO(api): mitigación temporal del N+1 (plan §1.10). Resolución definitiva en §7.4:
   // que `GET /api/products` devuelva las variantes embebidas y se elimine este método.
   private preloadVariants(products: Product[]) {
-    const variantProducts = products.filter(p => p.hasVariants && p.id !== undefined);
-    if (variantProducts.length === 0) return;
-
-    from(variantProducts).pipe(
+    from(products).pipe(
       mergeMap(
         p => this.productApi.getProductById(p.id as number).pipe(catchError(() => of(p))),
         4
@@ -97,62 +81,85 @@ export class Inventory implements OnInit {
       toArray()
     ).subscribe({
       next: (fullProducts) => {
-        fullProducts.forEach(fp => {
-          const target = this.products.find(p => p.id === fp.id);
-          if (target) {
-            target.variants = fp.variants;
-            target.variantCount = fp.variants?.length ?? target.variantCount;
+        this.variantDetails.update((current) => {
+          const next = { ...current };
+          for (const fullProduct of fullProducts) {
+            if (fullProduct.id && fullProduct.variants) {
+              next[fullProduct.id] = fullProduct.variants;
+            }
           }
+          return next;
         });
-        this.cdr.detectChanges();
+        this.loadingVariantIds.update((current) => {
+          const next = new Set(current);
+          for (const fullProduct of fullProducts) {
+            if (fullProduct.id) {
+              next.delete(fullProduct.id);
+            }
+          }
+          return next;
+        });
       }
     });
   }
 
   // ── Search & Filters ─────────────────────────────
-  onSearch() { this.currentPage = 0; this.loadProducts(); }
-  toggleFilter() { this.isFilterOpen = !this.isFilterOpen; }
+  onSearch(searchText: string) {
+    this.searchText.set(searchText);
+    this.resource.setFilters({ search: searchText, page: 0 });
+  }
+
+  toggleFilter() {
+    this.isFilterOpen.update((value) => !value);
+  }
 
   toggleCategoryFilter(categoryId: number) {
-    const index = this.selectedCategoryIds.indexOf(categoryId);
-    if (index === -1) {
-      this.selectedCategoryIds.push(categoryId);
-    } else {
-      this.selectedCategoryIds.splice(index, 1);
-    }
+    this.selectedCategoryIds.update((current) => current.includes(categoryId)
+      ? current.filter((id) => id !== categoryId)
+      : [...current, categoryId]);
   }
 
   applyFilters() {
-    this.currentPage = 0;
-    this.loadProducts();
-    this.isFilterOpen = false;
+    const categoryIds = this.selectedCategoryIds();
+    this.resource.setFilters({
+      page: 0,
+      categoryIds: categoryIds.length ? categoryIds.join(',') : undefined,
+    });
+    this.isFilterOpen.set(false);
   }
 
   clearFilters() {
-    this.selectedCategoryIds = [];
-    this.searchText = '';
-    this.currentPage = 0;
-    this.applyFilters();
+    this.selectedCategoryIds.set([]);
+    this.searchText.set('');
+    this.resource.setFilters({ search: '', categoryIds: undefined, page: 0 });
+    this.isFilterOpen.set(false);
   }
 
-  changePage(p: number) { this.currentPage = p; this.loadProducts(); }
+  changePage(p: number) {
+    this.resource.setPage(p);
+  }
 
 
 
   // ── Expand rows ───────────────────────────────────
   toggleExpand(id: number) {
-    if (this.expandedIds.has(id)) {
-      this.expandedIds.delete(id);
+    if (this.expandedIds().has(id)) {
+      this.expandedIds.update((current) => {
+        const next = new Set(current);
+        next.delete(id);
+        return next;
+      });
     } else {
-      this.expandedIds.add(id);
+      this.expandedIds.update((current) => new Set([...current, id]));
       
       // If expanding and variants are missing, fetch them
-      const product = this.products.find(p => p.id === id);
+      const product = this.products().find((item) => item.id === id);
       if (product && product.hasVariants && (!product.variants || product.variants.length === 0)) {
         this.productApi.getProductById(id).subscribe({
           next: (fullProduct) => {
-            product.variants = fullProduct.variants;
-            this.cdr.detectChanges();
+            if (fullProduct.variants) {
+              this.variantDetails.update((current) => ({ ...current, [id]: fullProduct.variants! }));
+            }
           },
           error: (err) => console.error('Error loading variants for expansion:', err)
         });
@@ -160,7 +167,7 @@ export class Inventory implements OnInit {
     }
   }
 
-  isExpanded(id: number) { return this.expandedIds.has(id); }
+  isExpanded(id: number) { return this.expandedIds().has(id); }
 
   // ── Status / Style helpers ────────────────────────
   getStatusClasses(status: string): string {
@@ -194,19 +201,25 @@ export class Inventory implements OnInit {
 
 
   exportPdf() {
-    const categoryIdsStr = this.selectedCategoryIds.length > 0
-      ? this.selectedCategoryIds.join(',') : undefined;
+    const categoryIds = this.selectedCategoryIds();
+    const categoryIdsStr = categoryIds.length > 0 ? categoryIds.join(',') : undefined;
 
-    this.productApi.exportProductsToPdf({ search: this.searchText, categoryIds: categoryIdsStr }).subscribe({
+    this.productApi.exportProductsToPdf({ search: this.searchText(), categoryIds: categoryIdsStr }).subscribe({
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = `inventario_${new Date().toISOString().split('T')[0]}.pdf`;
+        document.body.appendChild(a);
         a.click();
+        a.remove();
         window.URL.revokeObjectURL(url);
       },
       error: (err) => console.error('Error exporting PDF:', err)
     });
+  }
+
+  reload() {
+    this.resource.reload();
   }
 }

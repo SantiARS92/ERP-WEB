@@ -1,4 +1,4 @@
-import { Component, inject, ChangeDetectorRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -10,6 +10,7 @@ import { finalize } from 'rxjs';
   selector: 'app-create-client',
   imports: [FormsModule, RouterLink],
   templateUrl: './create-client.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CreateClient {
   client: Omit<Client, 'id'> = {
@@ -20,12 +21,17 @@ export class CreateClient {
     direccion: '',
     cifNif: ''
   };
-  isSubmitting = false;
-  errorMessage: string | null = null;
+  private readonly isSubmittingSignal = signal(false);
+  private readonly errorMessageSignal = signal<string | null>(null);
 
   private clientApi = inject(ClientApiService);
   private router = inject(Router);
-  private cdr = inject(ChangeDetectorRef);
+
+  get isSubmitting() { return this.isSubmittingSignal(); }
+  set isSubmitting(value: boolean) { this.isSubmittingSignal.set(value); }
+
+  get errorMessage() { return this.errorMessageSignal(); }
+  set errorMessage(value: string | null) { this.errorMessageSignal.set(value); }
 
   onSubmit() {
     console.log('🚀 Submit triggered', this.client);
@@ -36,7 +42,6 @@ export class CreateClient {
 
     this.isSubmitting = true;
     this.errorMessage = null;
-    this.cdr.detectChanges();
 
     // Safety fallback: ensure spinner stops after 15s no matter what
     const safetyTimer = setTimeout(() => {
@@ -44,7 +49,6 @@ export class CreateClient {
         console.error('🛑 Safety timer triggered: request is taking too long');
         this.isSubmitting = false;
         this.errorMessage = 'El servidor está tardando demasiado en responder. Revisa la consola (F12) o el estado del backend.';
-        this.cdr.detectChanges();
       }
     }, 15000);
 
@@ -65,7 +69,6 @@ export class CreateClient {
           console.log('🏁 Request finalized');
           clearTimeout(safetyTimer);
           this.isSubmitting = false;
-          this.cdr.detectChanges();
         })
       )
       .subscribe({
@@ -76,7 +79,6 @@ export class CreateClient {
         error: (err) => {
           console.error('❌ Detailed error creating client:', err);
           this.errorMessage = 'No se pudo guardar el cliente. Revisa si el backend (8091) tiene habilitado CORS o si los datos son válidos.';
-          this.cdr.detectChanges();
         }
       });
   }

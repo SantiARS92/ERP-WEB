@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnInit, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -16,6 +16,7 @@ import { NotificationService } from '../../core/services/notification.service';
   imports: [RouterLink, FormsModule, VariantConfigComponent],
   templateUrl: './edit-product.html',
   styles: ``,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EditProduct implements OnInit {
   public authService = inject(AuthService);
@@ -24,16 +25,15 @@ export class EditProduct implements OnInit {
   private categoryApi = inject(CategoryApiService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private cdr = inject(ChangeDetectorRef);
   private notification = inject(NotificationService);
 
   isEditMode = false;
-  isSubmitting = false;
+  private readonly isSubmittingSignal = signal(false);
   
-  selectedVariantToEdit: InventoryVariant | null = null;
-  editingVariantDraft: InventoryVariant | null = null;
+  private readonly selectedVariantToEditSignal = signal<InventoryVariant | null>(null);
+  private readonly editingVariantDraftSignal = signal<InventoryVariant | null>(null);
 
-  product: Product = {
+  private readonly productSignal = signal<Product>({
     name: '',
     categoryId: 0,
     sku: '',
@@ -44,9 +44,24 @@ export class EditProduct implements OnInit {
     description: '',
     hasVariants: false,
     variants: []
-  };
+  });
 
-  categories: Category[] = [];
+  private readonly categoriesSignal = signal<Category[]>([]);
+
+  get isSubmitting() { return this.isSubmittingSignal(); }
+  set isSubmitting(value: boolean) { this.isSubmittingSignal.set(value); }
+
+  get selectedVariantToEdit() { return this.selectedVariantToEditSignal(); }
+  set selectedVariantToEdit(value: InventoryVariant | null) { this.selectedVariantToEditSignal.set(value); }
+
+  get editingVariantDraft() { return this.editingVariantDraftSignal(); }
+  set editingVariantDraft(value: InventoryVariant | null) { this.editingVariantDraftSignal.set(value); }
+
+  get product() { return this.productSignal(); }
+  set product(value: Product) { this.productSignal.set(value); }
+
+  get categories() { return this.categoriesSignal(); }
+  set categories(value: Category[]) { this.categoriesSignal.set(value); }
 
   get statusLabel(): { label: string; cls: string } {
     if (this.product.hasVariants) return { label: 'Gestionado por Variantes', cls: 'text-blue-600' };
@@ -77,7 +92,6 @@ export class EditProduct implements OnInit {
     this.categoryApi.getCategories().subscribe({
       next: (data) => {
         this.categories = data;
-        this.cdr.detectChanges();
       },
       error: (err) => console.error('Error loading categories:', err)
     });
@@ -90,7 +104,6 @@ export class EditProduct implements OnInit {
           ...data,
           variants: data.variants ? data.variants.map(v => ({ ...v })) : []
         };
-        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Error loading product:', err);
@@ -118,7 +131,6 @@ export class EditProduct implements OnInit {
     }
     this.selectedVariantToEdit = null;
     this.editingVariantDraft = null;
-    this.cdr.detectChanges();
   }
 
   closeVariantEditor() {
@@ -172,7 +184,6 @@ export class EditProduct implements OnInit {
       error: (err) => {
         this.isSubmitting = false;
         console.error('Error saving product:', err);
-        this.cdr.detectChanges();
       }
     });
   }

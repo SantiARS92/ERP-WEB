@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -12,22 +12,29 @@ import { Category } from '../../core/models/category.model';
   imports: [FormsModule, RouterLink],
   templateUrl: './create-service.html',
   styles: ``,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CreateService implements OnInit {
-  service: Service = {
+  private readonly serviceSignal = signal<Service>({
     name: '',
     description: '',
     durationMinutes: 60,
     price: 0,
     active: true,
     categoryId: 0
-  };
+  });
 
-  categories: Category[] = [];
+  private readonly categoriesSignal = signal<Category[]>([]);
 
   private serviceApi = inject(ServiceApiService);
   private categoryApi = inject(CategoryApiService);
   private router = inject(Router);
+
+  get service() { return this.serviceSignal(); }
+  set service(value: Service) { this.serviceSignal.set(value); }
+
+  get categories() { return this.categoriesSignal(); }
+  set categories(value: Category[]) { this.categoriesSignal.set(value); }
 
   ngOnInit() {
     this.categoryApi.getCategories().subscribe((cats: Category[]) => {

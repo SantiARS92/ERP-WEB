@@ -1,5 +1,5 @@
 import { DecimalPipe, NgClass, SlicePipe } from '@angular/common';
-import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ReportApiService } from '../../../core/services/report-api.service';
 import { QuarterlyDetailedReport } from '../../../core/models/report.model';
@@ -10,9 +10,9 @@ import { FormsModule } from '@angular/forms';
   selector: 'app-informe-trimestral',
   imports: [DecimalPipe, SlicePipe, NgClass, RouterLink, FormsModule],
   templateUrl: './trimestral.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class InformeTrimestral implements OnInit {
-  reportData: QuarterlyDetailedReport | null = null;
   selectedYear: number = new Date().getFullYear();
   selectedQuarter: number = Math.ceil((new Date().getMonth() + 1) / 3);
   availableYears: number[] = [2024, 2025, 2026];
@@ -22,13 +22,28 @@ export class InformeTrimestral implements OnInit {
     { value: 3, label: '3er Trimestre' },
     { value: 4, label: '4to Trimestre' }
   ];
-  hasError = false;
-  isDownloadingPdf = false;
-  downloadSuccess = false;
-  maxProfitToScaleChart = 20000;
+  private readonly reportDataSignal = signal<QuarterlyDetailedReport | null>(null);
+  private readonly hasErrorSignal = signal(false);
+  private readonly isDownloadingPdfSignal = signal(false);
+  private readonly downloadSuccessSignal = signal(false);
+  private readonly maxProfitToScaleChartSignal = signal(20000);
 
   private reportApi = inject(ReportApiService);
-  private cdr = inject(ChangeDetectorRef);
+
+  get reportData() { return this.reportDataSignal(); }
+  set reportData(value: QuarterlyDetailedReport | null) { this.reportDataSignal.set(value); }
+
+  get hasError() { return this.hasErrorSignal(); }
+  set hasError(value: boolean) { this.hasErrorSignal.set(value); }
+
+  get isDownloadingPdf() { return this.isDownloadingPdfSignal(); }
+  set isDownloadingPdf(value: boolean) { this.isDownloadingPdfSignal.set(value); }
+
+  get downloadSuccess() { return this.downloadSuccessSignal(); }
+  set downloadSuccess(value: boolean) { this.downloadSuccessSignal.set(value); }
+
+  get maxProfitToScaleChart() { return this.maxProfitToScaleChartSignal(); }
+  set maxProfitToScaleChart(value: number) { this.maxProfitToScaleChartSignal.set(value); }
 
   ngOnInit() { this.loadData(); }
 
@@ -40,12 +55,10 @@ export class InformeTrimestral implements OnInit {
         this.reportData = data;
         const maxProfit = Math.max(...data.profitEvolution.map(p => p.operatingProfit), 1000);
         this.maxProfitToScaleChart = Math.ceil(maxProfit / 5000) * 5000;
-        this.cdr.detectChanges();
       },
       error: () => {
         this.hasError = true;
         this.reportData = null;
-        this.cdr.detectChanges();
       }
     });
   }
@@ -62,20 +75,20 @@ export class InformeTrimestral implements OnInit {
         const a = document.createElement('a');
         a.href = url;
         a.download = `informe-trimestral-${this.selectedYear}-Q${this.selectedQuarter}.pdf`;
+        document.body.appendChild(a);
         a.click();
+        a.remove();
         window.URL.revokeObjectURL(url);
-        this.cdr.detectChanges();
       },
       error: () => { 
         this.isDownloadingPdf = false;
-        this.cdr.detectChanges();
       }
     });
   }
 
   getAbs(val: number | null): number { return Math.abs(val || 0); }
 
-  getNormalizedY(profit: number, totalHeight: number = 250): number {
+  getNormalizedY(profit: number, totalHeight = 250): number {
     const maxData = this.maxProfitToScaleChart || 1;
     const mapped = ((profit / maxData) * 200) + 20;
     return totalHeight - mapped;

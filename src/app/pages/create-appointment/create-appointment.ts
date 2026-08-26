@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, HostListener, ElementRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, HostListener, inject, OnInit, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -16,10 +16,11 @@ import { Professional } from '../../core/models/professional.model';
   selector: 'app-create-appointment',
   imports: [NgClass, FormsModule, RouterLink],
   templateUrl: './create-appointment.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CreateAppointment implements OnInit {
   
-  appointment: Partial<Appointment> = {
+  private readonly appointmentSignal = signal<Partial<Appointment>>({
     clientName: '',
     serviceName: '',
     professionalName: '',
@@ -28,17 +29,17 @@ export class CreateAppointment implements OnInit {
     status: 'PENDING',
     price: 0,
     internalNotes: ''
-  };
+  });
 
-  isSubmitting = false;
+  private readonly isSubmittingSignal = signal(false);
   isTimeDropdownOpen = false;
   isStatusDropdownOpen = false;
   isClientDropdownOpen = false;
   
-  clients: Client[] = [];
-  filteredClients: Client[] = [];
-  services: Service[] = [];
-  professionals: Professional[] = [];
+  private readonly clientsSignal = signal<Client[]>([]);
+  private readonly filteredClientsSignal = signal<Client[]>([]);
+  private readonly servicesSignal = signal<Service[]>([]);
+  private readonly professionalsSignal = signal<Professional[]>([]);
   timeOptions = [
     '09:00', '09:30', '10:00', '10:30', 
     '11:00', '11:30', '12:00', '12:30',
@@ -52,6 +53,19 @@ export class CreateAppointment implements OnInit {
   private professionalApi = inject(ProfessionalApiService);
   private router = inject(Router);
   private eRef = inject(ElementRef);
+
+  get appointment() { return this.appointmentSignal(); }
+  set appointment(value: Partial<Appointment>) { this.appointmentSignal.set(value); }
+  get isSubmitting() { return this.isSubmittingSignal(); }
+  set isSubmitting(value: boolean) { this.isSubmittingSignal.set(value); }
+  get clients() { return this.clientsSignal(); }
+  set clients(value: Client[]) { this.clientsSignal.set(value); }
+  get filteredClients() { return this.filteredClientsSignal(); }
+  set filteredClients(value: Client[]) { this.filteredClientsSignal.set(value); }
+  get services() { return this.servicesSignal(); }
+  set services(value: Service[]) { this.servicesSignal.set(value); }
+  get professionals() { return this.professionalsSignal(); }
+  set professionals(value: Professional[]) { this.professionalsSignal.set(value); }
 
   ngOnInit() {
     this.loadClients();

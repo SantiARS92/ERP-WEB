@@ -1,5 +1,5 @@
 import { NgClass } from '@angular/common';
-import { ChangeDetectorRef, Component, OnInit, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AppointmentApiService } from '../../core/services/appointment-api.service';
 import { ClientApiService } from '../../core/services/client-api.service';
@@ -16,30 +16,49 @@ import { catchError, mergeMap, toArray } from 'rxjs/operators';
   selector: 'app-dashboard',
   imports: [NgClass, RouterLink],
   templateUrl: './dashboard.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Dashboard implements OnInit {
   private appointmentApi = inject(AppointmentApiService);
   private clientApi = inject(ClientApiService);
   private productApi = inject(ProductApiService);
   public themeService = inject(ThemeService);
-  private cdr = inject(ChangeDetectorRef);
   public authService = inject(AuthService);
   readonly canCreateAppointments = computed(() => this.authService.currentUser()?.role !== UserRole.GUEST);
 
+  private readonly citasHoyCountSignal = signal(0);
+  private readonly porConfirmarCountSignal = signal(0);
+  private readonly clientesNuevosCountSignal = signal(0);
+  private readonly topServiceSignal = signal('Limpieza Facial');
+  private readonly topServicePercentageSignal = signal('45%');
+  private readonly sinStockCountSignal = signal(0);
+  private readonly pocoStockCountSignal = signal(0);
+  private readonly stockSuficienteCountSignal = signal(0);
+  private readonly proximasCitasSignal = signal<Appointment[]>([]);
+
   // Stats Resumen Operativo
-  citasHoyCount = 0;
-  porConfirmarCount = 0;
-  clientesNuevosCount = 0;
-  topService = 'Limpieza Facial';
-  topServicePercentage = '45%';
+  get citasHoyCount() { return this.citasHoyCountSignal(); }
+  set citasHoyCount(value: number) { this.citasHoyCountSignal.set(value); }
+  get porConfirmarCount() { return this.porConfirmarCountSignal(); }
+  set porConfirmarCount(value: number) { this.porConfirmarCountSignal.set(value); }
+  get clientesNuevosCount() { return this.clientesNuevosCountSignal(); }
+  set clientesNuevosCount(value: number) { this.clientesNuevosCountSignal.set(value); }
+  get topService() { return this.topServiceSignal(); }
+  set topService(value: string) { this.topServiceSignal.set(value); }
+  get topServicePercentage() { return this.topServicePercentageSignal(); }
+  set topServicePercentage(value: string) { this.topServicePercentageSignal.set(value); }
 
   // Alertas
-  sinStockCount = 0;
-  pocoStockCount = 0;
-  stockSuficienteCount = 0;
+  get sinStockCount() { return this.sinStockCountSignal(); }
+  set sinStockCount(value: number) { this.sinStockCountSignal.set(value); }
+  get pocoStockCount() { return this.pocoStockCountSignal(); }
+  set pocoStockCount(value: number) { this.pocoStockCountSignal.set(value); }
+  get stockSuficienteCount() { return this.stockSuficienteCountSignal(); }
+  set stockSuficienteCount(value: number) { this.stockSuficienteCountSignal.set(value); }
 
   // Próximas Citas Table
-  proximasCitas: Appointment[] = [];
+  get proximasCitas() { return this.proximasCitasSignal(); }
+  set proximasCitas(value: Appointment[]) { this.proximasCitasSignal.set(value); }
   
   // Date tracking
   todayStr = '';
@@ -84,7 +103,6 @@ export class Dashboard implements OnInit {
           this.topService = maxSrv;
           this.topServicePercentage = Math.round((maxCount / data.length) * 100) + '%';
         }
-        this.cdr.detectChanges();
       },
       error: (err) => console.error('Error fetching appointments', err)
     });
@@ -94,7 +112,6 @@ export class Dashboard implements OnInit {
     this.clientApi.getClients({ size: 1 }).subscribe({
       next: (res) => {
         this.clientesNuevosCount = res.totalElements; // Approximate total clients as new to show something
-        this.cdr.detectChanges();
       },
       error: (err) => console.error('Error fetching clients', err)
     });
@@ -165,7 +182,6 @@ export class Dashboard implements OnInit {
     this.sinStockCount = sinStock;
     this.pocoStockCount = pocoStock;
     this.stockSuficienteCount = suficienteStock;
-    this.cdr.detectChanges();
   }
 
   getAppointmentStatusClass(status: string): string {

@@ -1,4 +1,5 @@
 import { Category } from './category.model';
+import { Page } from './page.model';
 
 export interface Service {
   id?: number;
@@ -11,12 +12,4 @@ export interface Service {
   categoryId?: number; // For POST/PUT requests
 }
 
-export interface ServicePage {
-  content: Service[];
-  page: number;
-  size: number;
-  totalElements: number;
-  totalPages: number;
-  first: boolean;
-  last: boolean;
-}
+export type ServicePage = Page<Service>;

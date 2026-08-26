@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { SettingsApiService } from '../../core/services/settings-api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { UserRole } from '../../core/models/user.model';
@@ -12,6 +12,7 @@ import { UserRole } from '../../core/models/user.model';
 })
 export class Sidebar {
   private settingsApi = inject(SettingsApiService);
+  private router = inject(Router);
   authService = inject(AuthService); // Public for template use
   
   settings = this.settingsApi.settings;
@@ -36,5 +37,6 @@ export class Sidebar {
 
   logout() {
     this.authService.logout();
+    this.router.navigate(['/login']);
   }
 }

@@ -1,5 +1,5 @@
 import { DecimalPipe, NgClass, SlicePipe } from '@angular/common';
-import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ReportApiService } from '../../../core/services/report-api.service';
 import { MonthlySimpleReport } from '../../../core/models/report.model';
@@ -8,19 +8,37 @@ import { MonthlySimpleReport } from '../../../core/models/report.model';
   selector: 'app-informe-mensual-simple',
   imports: [DecimalPipe, SlicePipe, NgClass, RouterLink],
   templateUrl: './mensual-simple.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class InformeMensualSimple implements OnInit {
-  reportData: MonthlySimpleReport | null = null;
   selectedYear: number = new Date().getFullYear();
   selectedMonth: number = new Date().getMonth() + 1;
-  isDownloadingPdf = false;
-  downloadSuccess = false;
-  hasError = false;
-  maxIncomeExpense = 0;
-  maxTopServiceCount = 0;
+  private readonly reportDataSignal = signal<MonthlySimpleReport | null>(null);
+  private readonly isDownloadingPdfSignal = signal(false);
+  private readonly downloadSuccessSignal = signal(false);
+  private readonly hasErrorSignal = signal(false);
+  private readonly maxIncomeExpenseSignal = signal(0);
+  private readonly maxTopServiceCountSignal = signal(0);
 
   private reportApi = inject(ReportApiService);
-  private cdr = inject(ChangeDetectorRef);
+
+  get reportData() { return this.reportDataSignal(); }
+  set reportData(value: MonthlySimpleReport | null) { this.reportDataSignal.set(value); }
+
+  get isDownloadingPdf() { return this.isDownloadingPdfSignal(); }
+  set isDownloadingPdf(value: boolean) { this.isDownloadingPdfSignal.set(value); }
+
+  get downloadSuccess() { return this.downloadSuccessSignal(); }
+  set downloadSuccess(value: boolean) { this.downloadSuccessSignal.set(value); }
+
+  get hasError() { return this.hasErrorSignal(); }
+  set hasError(value: boolean) { this.hasErrorSignal.set(value); }
+
+  get maxIncomeExpense() { return this.maxIncomeExpenseSignal(); }
+  set maxIncomeExpense(value: number) { this.maxIncomeExpenseSignal.set(value); }
+
+  get maxTopServiceCount() { return this.maxTopServiceCountSignal(); }
+  set maxTopServiceCount(value: number) { this.maxTopServiceCountSignal.set(value); }
 
   ngOnInit() {
     this.loadData();
@@ -34,12 +52,10 @@ export class InformeMensualSimple implements OnInit {
         this.reportData = data;
         this.maxIncomeExpense = Math.max(...data.lastThreeMonths.map(m => Math.max(m.income, m.expenses)), 1);
         this.maxTopServiceCount = Math.max(...data.topServices.map(s => s.totalCount), 1);
-        this.cdr.detectChanges();
       },
       error: () => {
         this.hasError = true;
         this.reportData = null;
-        this.cdr.detectChanges();
       }
     });
   }
@@ -77,7 +93,6 @@ export class InformeMensualSimple implements OnInit {
     if (this.isDownloadingPdf) return;
     
     this.isDownloadingPdf = true;
-    this.cdr.detectChanges();
 
     this.reportApi.getMonthlySimplePdf(this.selectedYear, this.selectedMonth).subscribe({
       next: (blob) => {
@@ -85,23 +100,22 @@ export class InformeMensualSimple implements OnInit {
         const a = document.createElement('a');
         a.href = url;
         a.download = `Informe_Mensual_Simple_${this.selectedMonth}_${this.selectedYear}.pdf`;
+        document.body.appendChild(a);
         a.click();
+        a.remove();
         window.URL.revokeObjectURL(url);
         
         this.isDownloadingPdf = false;
         this.downloadSuccess = true;
-        this.cdr.detectChanges();
         
         setTimeout(() => {
           this.downloadSuccess = false;
-          this.cdr.detectChanges();
         }, 3000);
       },
       error: (err) => {
         console.error('Error downloading PDF', err);
         alert('Error al descargar el PDF. Inténtelo de nuevo.');
         this.isDownloadingPdf = false;
-        this.cdr.detectChanges();
       }
     });
   }

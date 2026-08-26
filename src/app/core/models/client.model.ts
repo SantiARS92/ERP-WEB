@@ -1,3 +1,5 @@
+import { Page } from './page.model';
+
 export interface Client {
   id?: number;
   fullName: string;   // matches backend field
@@ -9,12 +11,4 @@ export interface Client {
   identificador?: number | null;
 }
 
-export interface ClientPage {
-  content: Client[];
-  page: number;           // current page index (0-based)
-  size: number;
-  totalElements: number;
-  totalPages: number;
-  first: boolean;
-  last: boolean;
-}
+export type ClientPage = Page<Client>;

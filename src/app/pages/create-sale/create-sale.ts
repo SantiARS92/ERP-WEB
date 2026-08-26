@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -30,19 +30,19 @@ interface SaleLine {
   imports: [DecimalPipe, FormsModule, RouterLink],
   templateUrl: './create-sale.html',
   styles: ``,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CreateSale implements OnInit {
   private saleApi = inject(SaleApiService);
   private serviceApi = inject(ServiceApiService);
   private productApi = inject(ProductApiService);
   private clientApi = inject(ClientApiService);
-  private cdr = inject(ChangeDetectorRef);
   private router = inject(Router);
   private notification = inject(NotificationService);
 
-  services: Service[] = [];
-  products: Product[] = [];
-  clients: Client[] = [];
+  private readonly servicesSignal = signal<Service[]>([]);
+  private readonly productsSignal = signal<Product[]>([]);
+  private readonly clientsSignal = signal<Client[]>([]);
 
   totalEstimado = 0;
 
@@ -73,12 +73,24 @@ export class CreateSale implements OnInit {
     // Add watcher for quantities and prices if they change manually
   }
 
-  isSubmitting = false;
+  private readonly isSubmittingSignal = signal(false);
+
+  get services() { return this.servicesSignal(); }
+  set services(value: Service[]) { this.servicesSignal.set(value); }
+
+  get products() { return this.productsSignal(); }
+  set products(value: Product[]) { this.productsSignal.set(value); }
+
+  get clients() { return this.clientsSignal(); }
+  set clients(value: Client[]) { this.clientsSignal.set(value); }
+
+  get isSubmitting() { return this.isSubmittingSignal(); }
+  set isSubmitting(value: boolean) { this.isSubmittingSignal.set(value); }
 
   ngOnInit(): void {
-    this.clientApi.getClients({ size: 500 }).subscribe({ next: (res) => { this.clients = res.content || []; this.cdr.detectChanges(); } });
-    this.serviceApi.getServices({ active: true, size: 200 }).subscribe({ next: (res) => { this.services = res.content || []; this.cdr.detectChanges(); } });
-    this.productApi.getProducts({ size: 500 }).subscribe({ next: (res) => { this.products = res.content || []; this.cdr.detectChanges(); } });
+    this.clientApi.getClients({ size: 500 }).subscribe({ next: (res) => { this.clients = res.content || []; } });
+    this.serviceApi.getServices({ active: true, size: 200 }).subscribe({ next: (res) => { this.services = res.content || []; } });
+    this.productApi.getProducts({ size: 500 }).subscribe({ next: (res) => { this.products = res.content || []; } });
   }
 
   onProductChange(index: number) {
@@ -102,7 +114,6 @@ export class CreateSale implements OnInit {
         this.productApi.getProductById(productId).subscribe({
           next: (fullProduct) => {
             product.variants = fullProduct.variants;
-            this.cdr.detectChanges();
           },
           error: (err) => console.error('Error loading product details:', err)
         });
@@ -197,7 +208,6 @@ export class CreateSale implements OnInit {
     });
 
     this.isSubmitting = true;
-    this.cdr.detectChanges();
     
     // Execute all requests in parallel
     forkJoin(requests).subscribe({
@@ -208,8 +218,6 @@ export class CreateSale implements OnInit {
       error: (err) => {
         console.error('Error creando venta:', err);
         this.isSubmitting = false;
-        // La notificación global interceptará este mensaje, no necesitamos alert
-        this.cdr.detectChanges();
       }
     });
   }

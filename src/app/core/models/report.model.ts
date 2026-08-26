@@ -1,3 +1,5 @@
+import { Page } from './page.model';
+
 export interface ReportMonthlyEvolution {
   period: string;
   year: number;
@@ -109,15 +111,8 @@ export interface AnnualConsolidatedReport {
   profitEvolution: ReportProfitEvolution[];
 }
 
-export interface RankingResponse {
+export interface RankingResponse extends Page<ReportTopService> {
   type: 'SERVICE' | 'PRODUCT';
   year: number;
   month: number;
-  content: ReportTopService[];
-  page: number;
-  size: number;
-  totalElements: number;
-  totalPages: number;
-  first: boolean;
-  last: boolean;
 }

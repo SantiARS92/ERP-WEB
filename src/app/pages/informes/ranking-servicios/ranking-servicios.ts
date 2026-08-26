@@ -1,18 +1,19 @@
 import { DecimalPipe, NgClass } from '@angular/common';
-import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ReportApiService } from '../../../core/services/report-api.service';
 import { RankingResponse } from '../../../core/models/report.model';
 
 import { FormsModule } from '@angular/forms';
+import { createPagedResource } from '../../../core/state/paged-resource';
 
 @Component({
   selector: 'app-ranking-servicios',
   imports: [DecimalPipe, NgClass, RouterLink, FormsModule],
   templateUrl: './ranking-servicios.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class InformeRankingServicios implements OnInit {
-  rankingData: RankingResponse | null = null;
   selectedYear: number = new Date().getFullYear();
   selectedMonth: number = new Date().getMonth() + 1;
   availableYears: number[] = [2024, 2025, 2026];
@@ -22,48 +23,74 @@ export class InformeRankingServicios implements OnInit {
     { value: 7, label: 'Julio' }, { value: 8, label: 'Agosto' }, { value: 9, label: 'Septiembre' },
     { value: 10, label: 'Octubre' }, { value: 11, label: 'Noviembre' }, { value: 12, label: 'Diciembre' }
   ];
-  hasError = false;
-  currentPage = 0;
-  maxCitas = 0;
+  private readonly currentPageSignal = signal(0);
   private reportApi = inject(ReportApiService);
-  private cdr = inject(ChangeDetectorRef);
+  private readonly resource = createPagedResource({
+    initialFilters: { type: 'SERVICE' as const, year: this.selectedYear, month: this.selectedMonth, page: 0, size: 10 },
+    fetcher: (filters) => this.reportApi.getRanking(filters.type, filters.year, filters.month, filters.page, filters.size),
+  });
+
+  readonly rankingData = computed<RankingResponse | null>(() => {
+    if (this.resource.isLoading() && this.resource.totalElements() === 0 && !this.resource.error()) {
+      return null;
+    }
+
+    return {
+      type: 'SERVICE',
+      year: this.selectedYear,
+      month: this.selectedMonth,
+      content: this.resource.items(),
+      totalElements: this.resource.totalElements(),
+      totalPages: this.resource.totalPages(),
+      number: this.resource.page(),
+      page: this.resource.page(),
+      size: this.resource.pageSize(),
+      first: this.resource.page() === 0,
+      last: this.resource.page() >= Math.max(this.resource.totalPages() - 1, 0),
+    };
+  });
+  readonly hasError = computed(() => this.resource.error() !== null);
+  readonly maxCitas = computed(() => Math.max(...this.resource.items().map((item) => item.totalCount), 1));
 
   ngOnInit() { this.loadData(); }
 
   loadData() {
-    this.hasError = false;
-    this.rankingData = null;
-    this.reportApi.getRanking('SERVICE', this.selectedYear, this.selectedMonth, this.currentPage, 10).subscribe({
-      next: (data) => {
-        this.rankingData = data;
-        const maxFound = Math.max(...data.content.map(i => i.totalCount));
-        this.maxCitas = maxFound > 0 ? maxFound : 1;
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        this.hasError = true;
-        this.rankingData = null;
-        this.cdr.detectChanges();
-      }
+    this.resource.setFilters({
+      type: 'SERVICE',
+      year: this.selectedYear,
+      month: this.selectedMonth,
+      page: this.currentPageSignal(),
+      size: 10,
     });
   }
 
   nextPage() {
-    if (this.rankingData && !this.rankingData.last) { this.currentPage++; this.loadData(); }
+    const rankingData = this.rankingData();
+    if (rankingData && !rankingData.last) {
+      this.currentPageSignal.update((value) => value + 1);
+      this.loadData();
+    }
   }
 
   prevPage() {
-    if (this.currentPage > 0) { this.currentPage--; this.loadData(); }
+    if (this.currentPageSignal() > 0) {
+      this.currentPageSignal.update((value) => value - 1);
+      this.loadData();
+    }
   }
 
-  goToPage(page: number) { this.currentPage = page; this.loadData(); }
+  goToPage(page: number) {
+    this.currentPageSignal.set(page);
+    this.loadData();
+  }
 
   getPagesArray(): number[] {
-    if (!this.rankingData) return [];
-    return Array(this.rankingData.totalPages).fill(0).map((_, i) => i);
+    const rankingData = this.rankingData();
+    if (!rankingData) return [];
+    return Array(rankingData.totalPages).fill(0).map((_, i) => i);
   }
 
-  getServiceWidth(citas: number): string { return `${(citas / this.maxCitas) * 100}%`; }
+  getServiceWidth(citas: number): string { return `${(citas / this.maxCitas()) * 100}%`; }
 
   getServiceColor(index: number): string {
     const shades = ['bg-blue-500', 'bg-blue-400', 'bg-blue-300', 'bg-blue-200', 'bg-blue-100'];

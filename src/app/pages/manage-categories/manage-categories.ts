@@ -1,4 +1,5 @@
-import { ChangeDetectorRef, Component, OnInit, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -7,19 +8,25 @@ import { CategoryApiService } from '../../core/services/category-api.service';
 import { PaginationComponent } from '../../shared/components/pagination/pagination';
 import { AuthService } from '../../core/services/auth.service';
 import { UserRole } from '../../core/models/user.model';
+import { catchError, debounceTime, distinctUntilChanged, map, of, startWith, switchMap } from 'rxjs';
 
 @Component({
   selector: 'app-manage-categories',
   imports: [FormsModule, RouterLink, PaginationComponent],
   templateUrl: './manage-categories.html',
   styles: ``,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ManageCategories implements OnInit {
-  isModalOpen = false;
-  isEditMode = false;
-  isDeleteModalOpen = false;
-  searchText = '';
-  selectedCategoryName = '';
+export class ManageCategories {
+  readonly isModalOpen = signal(false);
+  readonly isEditMode = signal(false);
+  readonly isDeleteModalOpen = signal(false);
+  readonly searchText = signal('');
+  readonly selectedCategoryName = signal('');
+  readonly currentPage = signal(0);
+  readonly pageSize = 10;
+  readonly categoriesError = signal(false);
+  private readonly refreshTick = signal(0);
   categoryToDelete?: Category;
   
   // Category Form State
@@ -30,84 +37,71 @@ export class ManageCategories implements OnInit {
   };
   editingId?: number;
 
-  categories: Category[] = [];
-  
-  // Pagination State
-  currentPage = 0;
-  pageSize = 10;
-  totalElements = 0;
-  totalPages = 0;
-
   public authService = inject(AuthService);
   readonly isAdmin = computed(() => this.authService.hasRole([UserRole.ADMIN]));
   private categoryApi = inject(CategoryApiService);
-  private cdr = inject(ChangeDetectorRef);
-
-  ngOnInit() {
-    this.loadCategories();
-  }
-
-  loadCategories() {
-    this.categoryApi.getCategories(this.searchText).subscribe(cats => {
-      this.totalElements = cats.length;
-      this.totalPages = Math.ceil(this.totalElements / this.pageSize) || 1;
-      
-      // Client-side pagination since API returns full list
-      const start = this.currentPage * this.pageSize;
-      const end = start + this.pageSize;
-      this.categories = cats.slice(start, end);
-      
-      this.cdr.detectChanges();
-    });
-  }
+  private readonly categoriesResponse = toSignal(
+    toObservable(computed(() => ({ search: this.searchText(), refreshTick: this.refreshTick() }))).pipe(
+      debounceTime(300),
+      distinctUntilChanged((prev, curr) => prev.search === curr.search && prev.refreshTick === curr.refreshTick),
+      switchMap(({ search }) => this.categoryApi.getCategories(search).pipe(
+        map((categories) => ({ categories, error: false })),
+        catchError(() => of({ categories: [], error: true })),
+      )),
+      startWith({ categories: [], error: false }),
+    ),
+    { initialValue: { categories: [], error: false } }
+  );
+  readonly allCategories = computed(() => {
+    const response = this.categoriesResponse();
+    this.categoriesError.set(response.error);
+    return response.categories;
+  });
+  readonly totalElements = computed(() => this.allCategories().length);
+  readonly totalPages = computed(() => Math.ceil(this.totalElements() / this.pageSize) || 1);
+  readonly categories = computed(() => {
+    const start = this.currentPage() * this.pageSize;
+    return this.allCategories().slice(start, start + this.pageSize);
+  });
 
   goToPage(p: number) {
-    this.currentPage = p;
-    this.loadCategories();
+    this.currentPage.set(p);
   }
 
-  onSearch() {
-    this.currentPage = 0;
-    this.loadCategories();
-  }
-
-  get filteredCategories(): Category[] {
-    if (!this.searchText.trim()) return this.categories;
-    return this.categories.filter(cat =>
-      cat.name.toLowerCase().includes(this.searchText.toLowerCase())
-    );
+  onSearch(searchText: string) {
+    this.searchText.set(searchText);
+    this.currentPage.set(0);
   }
 
   // Opens the Add/Edit Category Modal
   openModal(category?: Category) {
     if (category) {
-      this.isEditMode = true;
+      this.isEditMode.set(true);
       this.editingId = category.id;
       this.categoryForm = { ...category };
     } else {
-      this.isEditMode = false;
+      this.isEditMode.set(false);
       this.editingId = undefined;
       this.categoryForm = { name: '', icon: 'spa', color: '#DCEBFF' };
     }
-    this.isModalOpen = true;
+    this.isModalOpen.set(true);
   }
 
   closeModal() {
-    this.isModalOpen = false;
+    this.isModalOpen.set(false);
   }
 
   saveCategory() {
     if (!this.categoryForm.name) return;
 
-    const request = this.isEditMode && this.editingId
+    const request = this.isEditMode() && this.editingId
       ? this.categoryApi.updateCategory(this.editingId, this.categoryForm)
       : this.categoryApi.createCategory(this.categoryForm);
 
     request.subscribe({
       next: () => {
-        this.loadCategories();
+        this.refreshTick.update((value) => value + 1);
         this.closeModal();
-        this.cdr.detectChanges();
       },
       error: (err) => {
         if (err.status === 409) {
@@ -122,14 +116,14 @@ export class ManageCategories implements OnInit {
   deleteCategory(cat: Category) {
     if (!cat.id) return;
     this.categoryToDelete = cat;
-    this.selectedCategoryName = cat.name;
-    this.isDeleteModalOpen = true;
+    this.selectedCategoryName.set(cat.name);
+    this.isDeleteModalOpen.set(true);
   }
 
   closeDeleteModal() {
-    this.isDeleteModalOpen = false;
+    this.isDeleteModalOpen.set(false);
     this.categoryToDelete = undefined;
-    this.selectedCategoryName = '';
+    this.selectedCategoryName.set('');
   }
 
   confirmDelete() {
@@ -137,9 +131,8 @@ export class ManageCategories implements OnInit {
 
     this.categoryApi.deleteCategory(this.categoryToDelete.id).subscribe({
       next: () => {
-        this.loadCategories();
+        this.refreshTick.update((value) => value + 1);
         this.closeDeleteModal();
-        this.cdr.detectChanges();
       },
       error: (err) => {
         if (err.status === 409) {

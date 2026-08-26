@@ -5,3 +5,8 @@ import { HttpContextToken } from '@angular/common/http';
  * y se limita a propagar el error al llamante.
  */
 export const silentError = new HttpContextToken<boolean>(() => false);
+
+/**
+ * Permite sobrescribir el timeout global por petición.
+ */
+export const requestTimeout = new HttpContextToken<number>(() => 10000);

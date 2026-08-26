@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, ChangeDetectorRef, DestroyRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DatePipe, NgClass, NgStyle, SlicePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -18,26 +18,27 @@ import { Professional } from '../../core/models/professional.model';
   imports: [DatePipe, SlicePipe, NgClass, NgStyle, RouterLink, FormsModule],
   providers: [DatePipe],
   templateUrl: './agenda.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Agenda implements OnInit {
   currentWeekStart!: Date;
   days: AgendaDay[] = [];
   hours: number[] = [8, 9, 10, 11, 12, 13, 14, 15, 16]; // 08 AM to 04 PM
-  appointments: Appointment[] = [];
+  private readonly appointmentsSignal = signal<Appointment[]>([]);
   viewMode: 'day' | 'week' = 'week';
   selectedDate: Date = new Date();
   
   // Modal State
-  isEditModalOpen = false;
-  selectedAppointment: Partial<Appointment> = {};
-  isSubmitting = false;
+  private readonly isEditModalOpenSignal = signal(false);
+  private readonly selectedAppointmentSignal = signal<Partial<Appointment>>({});
+  private readonly isSubmittingSignal = signal(false);
   readonly canManageAppointments = computed(() => this.authService.currentUser()?.role !== UserRole.GUEST);
   
   // For the modal select/autocomplete
-  allClients: any[] = [];
-  allServices: any[] = [];
-  allProfessionals: Professional[] = [];
-  filteredClients: any[] = [];
+  private readonly allClientsSignal = signal<any[]>([]);
+  private readonly allServicesSignal = signal<any[]>([]);
+  private readonly allProfessionalsSignal = signal<Professional[]>([]);
+  private readonly filteredClientsSignal = signal<any[]>([]);
   timeOptions = [
     '09:00', '09:30', '10:00', '10:30', 
     '11:00', '11:30', '12:00', '12:30',
@@ -46,16 +47,34 @@ export class Agenda implements OnInit {
   ];
   
   // Real time indicator
-  currentTimePosition = 0;
+  private readonly currentTimePositionSignal = signal(0);
+  private readonly destroyRef = inject(DestroyRef);
   
   private appointmentApi = inject(AppointmentApiService);
   private clientApi = inject(ClientApiService);
   private serviceApi = inject(ServiceApiService);
   private professionalApi = inject(ProfessionalApiService);
-  private cdr = inject(ChangeDetectorRef);
-  private destroyRef = inject(DestroyRef);
   private datePipe = inject(DatePipe);
   public authService = inject(AuthService);
+
+  get appointments() { return this.appointmentsSignal(); }
+  set appointments(value: Appointment[]) { this.appointmentsSignal.set(value); }
+  get isEditModalOpen() { return this.isEditModalOpenSignal(); }
+  set isEditModalOpen(value: boolean) { this.isEditModalOpenSignal.set(value); }
+  get selectedAppointment() { return this.selectedAppointmentSignal(); }
+  set selectedAppointment(value: Partial<Appointment>) { this.selectedAppointmentSignal.set(value); }
+  get isSubmitting() { return this.isSubmittingSignal(); }
+  set isSubmitting(value: boolean) { this.isSubmittingSignal.set(value); }
+  get allClients() { return this.allClientsSignal(); }
+  set allClients(value: any[]) { this.allClientsSignal.set(value); }
+  get allServices() { return this.allServicesSignal(); }
+  set allServices(value: any[]) { this.allServicesSignal.set(value); }
+  get allProfessionals() { return this.allProfessionalsSignal(); }
+  set allProfessionals(value: Professional[]) { this.allProfessionalsSignal.set(value); }
+  get filteredClients() { return this.filteredClientsSignal(); }
+  set filteredClients(value: any[]) { this.filteredClientsSignal.set(value); }
+  get currentTimePosition() { return this.currentTimePositionSignal(); }
+  set currentTimePosition(value: number) { this.currentTimePositionSignal.set(value); }
 
   ngOnInit() {
     this.selectedDate = new Date();
@@ -68,11 +87,12 @@ export class Agenda implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         this.calculateCurrentTimePosition();
-        this.cdr.detectChanges();
       });
   }
 
-  appointmentStyles: Record<number, Record<string, string | number>> = {};
+  private readonly appointmentStylesSignal = signal<Record<number, Record<string, string | number>>>({});
+  get appointmentStyles() { return this.appointmentStylesSignal(); }
+  set appointmentStyles(value: Record<number, Record<string, string | number>>) { this.appointmentStylesSignal.set(value); }
 
   initCurrentWeek() {
     const today = this.selectedDate;
@@ -89,7 +109,6 @@ export class Agenda implements OnInit {
     this.serviceApi.getServices({ size: 1000, active: true }).subscribe((res: any) => {
       this.allServices = res.content;
       this.calculateAllStyles();
-      this.cdr.detectChanges();
     });
     this.professionalApi.getProfessionals(true).subscribe(res => this.allProfessionals = res);
   }
@@ -131,7 +150,6 @@ export class Agenda implements OnInit {
     this.appointmentApi.getAppointments(startStr, endStr).subscribe((data: Appointment[]) => {
       this.appointments = data;
       this.calculateAllStyles();
-      this.cdr.detectChanges();
     });
   }
 
@@ -266,11 +284,14 @@ export class Agenda implements OnInit {
 
         for (const item of cluster) {
           if (item.app.id !== undefined) {
-            this.appointmentStyles[item.app.id] = {
+            this.appointmentStyles = {
+              ...this.appointmentStyles,
+              [item.app.id]: {
               'top.px': this.timeToPixels(item.startH, item.startM),
               'height.px': (item.duration / 60) * 100,
               'width.%': widthPercent,
               'left.%': 5 + (item.colIdx * widthPercent)
+              },
             };
           }
         }
@@ -424,7 +445,6 @@ export class Agenda implements OnInit {
     this.appointmentApi.updateAppointment(this.selectedAppointment.id, this.selectedAppointment)
       .pipe(finalize(() => {
         this.isSubmitting = false;
-        this.cdr.detectChanges();
       }))
       .subscribe({
         next: () => {
@@ -446,7 +466,6 @@ export class Agenda implements OnInit {
     this.appointmentApi.deleteAppointment(this.selectedAppointment.id)
       .pipe(finalize(() => {
         this.isSubmitting = false;
-        this.cdr.detectChanges();
       }))
       .subscribe({
         next: () => {

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -17,28 +17,29 @@ import { NotificationService } from '../../core/services/notification.service';
   imports: [DecimalPipe, FormsModule, RouterLink],
   templateUrl: './edit-sale.html',
   styles: ``,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EditSale implements OnInit {
-  sale: SaleRequest = {
+  private readonly saleSignal = signal<SaleRequest>({
     clientId: undefined,
     itemType: 'SERVICE',
     quantity: 1,
     paymentMethod: 'CASH'
-  };
+  });
   
   originalSale: SaleResponse | undefined;
   saleId!: number;
-  clients: Client[] = [];
-  services: Service[] = [];
-  products: Product[] = [];
-  selectedClient: Client | null = null;
-  selectedProduct: Product | null = null;
-  selectedService: Service | null = null;
-  selectedVariant: InventoryVariant | null = null;
+  private readonly clientsSignal = signal<Client[]>([]);
+  private readonly servicesSignal = signal<Service[]>([]);
+  private readonly productsSignal = signal<Product[]>([]);
+  private readonly selectedClientSignal = signal<Client | null>(null);
+  private readonly selectedProductSignal = signal<Product | null>(null);
+  private readonly selectedServiceSignal = signal<Service | null>(null);
+  private readonly selectedVariantSignal = signal<InventoryVariant | null>(null);
 
   totalEstimado = 0;
   stockRestante = 0;
-  isSubmitting = false;
+  private readonly isSubmittingSignal = signal(false);
 
   private saleApi = inject(SaleApiService);
   private clientApi = inject(ClientApiService);
@@ -47,6 +48,25 @@ export class EditSale implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private notification = inject(NotificationService);
+
+  get sale() { return this.saleSignal(); }
+  set sale(value: SaleRequest) { this.saleSignal.set(value); }
+  get clients() { return this.clientsSignal(); }
+  set clients(value: Client[]) { this.clientsSignal.set(value); }
+  get services() { return this.servicesSignal(); }
+  set services(value: Service[]) { this.servicesSignal.set(value); }
+  get products() { return this.productsSignal(); }
+  set products(value: Product[]) { this.productsSignal.set(value); }
+  get selectedClient() { return this.selectedClientSignal(); }
+  set selectedClient(value: Client | null) { this.selectedClientSignal.set(value); }
+  get selectedProduct() { return this.selectedProductSignal(); }
+  set selectedProduct(value: Product | null) { this.selectedProductSignal.set(value); }
+  get selectedService() { return this.selectedServiceSignal(); }
+  set selectedService(value: Service | null) { this.selectedServiceSignal.set(value); }
+  get selectedVariant() { return this.selectedVariantSignal(); }
+  set selectedVariant(value: InventoryVariant | null) { this.selectedVariantSignal.set(value); }
+  get isSubmitting() { return this.isSubmittingSignal(); }
+  set isSubmitting(value: boolean) { this.isSubmittingSignal.set(value); }
 
   ngOnInit() {
     this.clientApi.getClients({ size: 500 }).subscribe({ next: (res) => this.clients = res.content || [] });

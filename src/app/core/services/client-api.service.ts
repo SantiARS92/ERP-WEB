@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, timeout } from 'rxjs';
+import { Observable } from 'rxjs';
 import { Client, ClientPage } from '../models/client.model';
 import { environment } from '../../../environments/environment';
 
@@ -10,8 +10,6 @@ import { environment } from '../../../environments/environment';
 export class ClientApiService {
   private readonly baseUrl = `${environment.apiUrl}/api/clients`;
   private http = inject(HttpClient);
-  private readonly DEFAULT_TIMEOUT = 10000; // 10 seconds
-
   /**
    * GET /api/clients  — paginated list with optional search
    */
@@ -20,34 +18,34 @@ export class ClientApiService {
     if (filters.search?.trim()) params = params.set('search', filters.search.trim());
     if (filters.page !== undefined) params = params.set('page', filters.page.toString());
     if (filters.size !== undefined) params = params.set('size', filters.size.toString());
-    return this.http.get<ClientPage>(this.baseUrl, { params }).pipe(timeout(this.DEFAULT_TIMEOUT));
+    return this.http.get<ClientPage>(this.baseUrl, { params });
   }
 
   /**
    * GET /api/clients/{id}
    */
   getClientById(id: number): Observable<Client> {
-    return this.http.get<Client>(`${this.baseUrl}/${id}`).pipe(timeout(this.DEFAULT_TIMEOUT));
+    return this.http.get<Client>(`${this.baseUrl}/${id}`);
   }
 
   /**
    * POST /api/clients
    */
   createClient(client: Omit<Client, 'id'>): Observable<Client> {
-    return this.http.post<Client>(this.baseUrl, client).pipe(timeout(this.DEFAULT_TIMEOUT));
+    return this.http.post<Client>(this.baseUrl, client);
   }
 
   /**
    * PUT /api/clients/{id}
    */
   updateClient(id: number, client: Omit<Client, 'id'>): Observable<Client> {
-    return this.http.put<Client>(`${this.baseUrl}/${id}`, client).pipe(timeout(this.DEFAULT_TIMEOUT));
+    return this.http.put<Client>(`${this.baseUrl}/${id}`, client);
   }
 
   /**
    * DELETE /api/clients/{id}  — returns 204 No Content
    */
   deleteClient(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/${id}`).pipe(timeout(this.DEFAULT_TIMEOUT));
+    return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 }

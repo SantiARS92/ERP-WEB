@@ -30,23 +30,23 @@
       <div class="px-6 py-5 border-b border-slate-100 flex flex-col xl:flex-row justify-between xl:items-center gap-4 bg-slate-50/30">
 
         <div class="flex p-1 bg-slate-100 rounded-xl w-fit">
-          <button (click)="setQuickFilter('month')" [class]="quickFilter === 'month' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'" class="px-4 py-2 text-[13px] font-bold rounded-lg transition-all">Mes Actual</button>
-          <button (click)="setQuickFilter('quarter')" [class]="quickFilter === 'quarter' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'" class="px-4 py-2 text-[13px] font-bold rounded-lg transition-all">Trimestre</button>
-          <button (click)="setQuickFilter('year')" [class]="quickFilter === 'year' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'" class="px-4 py-2 text-[13px] font-bold rounded-lg transition-all">Anual</button>
+          <button (click)="setQuickFilter('month')" [class]="quickFilter() === 'month' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'" class="px-4 py-2 text-[13px] font-bold rounded-lg transition-all">Mes Actual</button>
+          <button (click)="setQuickFilter('quarter')" [class]="quickFilter() === 'quarter' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'" class="px-4 py-2 text-[13px] font-bold rounded-lg transition-all">Trimestre</button>
+          <button (click)="setQuickFilter('year')" [class]="quickFilter() === 'year' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'" class="px-4 py-2 text-[13px] font-bold rounded-lg transition-all">Anual</button>
         </div>
 
         <div class="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
           <!-- Custom Date Range -->
           <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 h-11">
             <span class="material-symbols-outlined text-slate-400 text-[18px]">calendar_month</span>
-            <input type="date" [(ngModel)]="fromDate" (ngModelChange)="onSearchChange()" class="text-[13px] font-semibold text-slate-600 border-none outline-none focus:ring-0 p-0 bg-transparent min-w-[110px]" title="Desde" />
+            <input type="date" [ngModel]="fromDate()" (ngModelChange)="onSearchChange({ fromDate: $event })" class="text-[13px] font-semibold text-slate-600 border-none outline-none focus:ring-0 p-0 bg-transparent min-w-[110px]" title="Desde" />
             <span class="text-slate-300">-</span>
-            <input type="date" [(ngModel)]="toDate" (ngModelChange)="onSearchChange()" class="text-[13px] font-semibold text-slate-600 border-none outline-none focus:ring-0 p-0 bg-transparent min-w-[110px]" title="Hasta" />
+            <input type="date" [ngModel]="toDate()" (ngModelChange)="onSearchChange({ toDate: $event })" class="text-[13px] font-semibold text-slate-600 border-none outline-none focus:ring-0 p-0 bg-transparent min-w-[110px]" title="Hasta" />
           </div>
 
           <div class="relative flex-1 sm:flex-none sm:w-80">
             <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
-            <input type="text" [(ngModel)]="search" (ngModelChange)="onSearchChange()" placeholder="Buscar por cliente o producto/servicio..."
+            <input type="text" [ngModel]="search()" (ngModelChange)="onSearchChange({ search: $event })" placeholder="Buscar por cliente o producto/servicio..."
               class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow text-[14px]">
           </div>
         </div>
@@ -65,7 +65,18 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100 relative">
-            @if (sales.length === 0) {
+            @if (hasError()) {
+              <tr>
+                <td colspan="6" class="px-6 py-12 text-center text-red-500">
+                  No se pudo cargar el listado de ventas.
+                  <button type="button" (click)="reload()" class="ml-3 rounded-lg bg-red-500 px-3 py-1.5 text-white transition-colors hover:bg-red-600">Reintentar</button>
+                </td>
+              </tr>
+            } @else if (isLoading()) {
+              <tr>
+                <td colspan="6" class="px-6 py-12 text-center text-slate-500">Cargando ventas...</td>
+              </tr>
+            } @else if (sales().length === 0) {
               <tr>
                 <td colspan="5" class="px-6 py-12 text-center text-slate-500">
                   <div class="flex flex-col items-center justify-center">
@@ -75,7 +86,7 @@
                 </td>
               </tr>
             }
-            @for (sale of sales; track sale.id) {
+            @for (sale of sales(); track sale.id) {
               <tr class="hover:bg-slate-50/50 transition-colors group">
                 <td class="px-6 py-4">
                   <div class="flex flex-col">
@@ -134,9 +145,9 @@
 
     <!-- Page Pagination (Detached Style) -->
     <app-pagination
-      [totalElements]="totalElements"
+      [totalElements]="totalElements()"
       [pageSize]="pageSize"
-      [currentPage]="currentPage"
+      [currentPage]="currentPage()"
       [itemsLabel]="'ventas'"
       (pageChange)="goToPage($event)" />
 

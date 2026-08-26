@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';
+import { Observable, catchError, firstValueFrom, of, tap } from 'rxjs';
 import { BusinessSettings } from '../models/settings.model';
 import { environment } from '../../../environments/environment';
 import { HttpContext } from '@angular/common/http';
@@ -17,25 +17,20 @@ export class SettingsApiService {
   private settingsSignal = signal<BusinessSettings | null>(null);
   public settings = this.settingsSignal.asReadonly();
 
-  constructor() {
-    this.loadSettings();
-  }
+  async loadSettings(): Promise<void> {
+    const data = await firstValueFrom(
+      this.http.get<BusinessSettings>(this.apiUrl, { context: new HttpContext().set(silentError, true) }).pipe(
+        catchError((err) => {
+          console.error('Error loading business settings:', err);
+          return of(null);
+        })
+      )
+    );
 
-  loadSettings(): void {
-    this.http.get<BusinessSettings>(this.apiUrl, { context: new HttpContext().set(silentError, true) }).subscribe({
-      next: (data) => {
-        // Fallback: Restore from localStorage if backend returned empty but we have a local copy
-        const enriched = this.applyLocalStorageFallback(data);
-      
-        this.settingsSignal.set(enriched);
-      },
-      error: (err) => {
-        console.error('Error loading business settings:', err);
-        // Even on error, try to load from local storage
-        const fallback = this.applyLocalStorageFallback({} as any);
-        if (fallback.businessName) this.settingsSignal.set(fallback);
-      }
-    });
+    const fallback = this.applyLocalStorageFallback(data ?? this.emptySettings());
+    if (data || fallback.businessName || fallback.businessLogo) {
+      this.settingsSignal.set(fallback);
+    }
   }
 
   getSettings(): Observable<BusinessSettings> {
@@ -66,6 +61,24 @@ export class SettingsApiService {
       ...apiData,
       businessName: apiData.businessName || localName || '',
       businessLogo: apiData.businessLogo || localLogo || ''
+    };
+  }
+
+  private emptySettings(): BusinessSettings {
+    return {
+      businessName: '',
+      phone: '',
+      address: '',
+      contactEmail: '',
+      onlineBookingEnabled: false,
+      defaultAppointmentDurationMinutes: 0,
+      minimumAdvanceMinutes: 0,
+      maximumAdvanceDays: 0,
+      freeCancellationHours: 0,
+      cancellationPolicy: '',
+      openingHours: [],
+      specialClosures: [],
+      businessLogo: '',
     };
   }
 

@@ -17,7 +17,7 @@
         <!-- Dropdown Month & Year selector -->
         <div class="flex items-center gap-2">
           <div class="relative">
-            <select [disabled]="!rankingData" [(ngModel)]="selectedMonth" (ngModelChange)="loadData()"
+            <select [disabled]="!rankingData()" [(ngModel)]="selectedMonth" (ngModelChange)="loadData()"
                     class="appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 font-bold text-sm rounded-xl pl-4 pr-10 py-2.5 outline-none focus:ring-4 focus:ring-blue-500/10 cursor-pointer hover:border-slate-300 dark:hover:border-slate-700 shadow-sm disabled:opacity-50 transition-all">
               @for (m of availableMonths; track m.value) {
                 <option [value]="m.value">{{ m.label }}</option>
@@ -27,7 +27,7 @@
           </div>
 
           <div class="relative">
-            <select [disabled]="!rankingData" [(ngModel)]="selectedYear" (ngModelChange)="loadData()"
+            <select [disabled]="!rankingData()" [(ngModel)]="selectedYear" (ngModelChange)="loadData()"
                     class="appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 font-bold text-sm rounded-xl pl-4 pr-10 py-2.5 outline-none focus:ring-4 focus:ring-blue-500/10 cursor-pointer hover:border-slate-300 dark:hover:border-slate-700 shadow-sm disabled:opacity-50 transition-all">
               @for (y of availableYears; track y) {
                 <option [value]="y">{{ y }}</option>
@@ -39,7 +39,7 @@
       </div>
     </header>
 
-    @if (hasError) {
+    @if (hasError()) {
       <div class="w-full mb-4 flex items-center gap-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-2xl px-5 py-3">
         <span class="material-symbols-outlined text-[20px] shrink-0">error</span>
         <p class="text-[13px] font-semibold flex-1">No se pudo cargar el informe. Los datos no están disponibles en este momento.</p>
@@ -49,7 +49,7 @@
         </button>
       </div>
     }
-    @if (rankingData) {
+    @if (rankingData(); as rankingData) {
       <main class="w-full pb-10 flex flex-col gap-6">
         
         <!-- Top Table Area -->
@@ -100,7 +100,7 @@
           @if (rankingData.totalElements > 0) {
             <div class="px-8 py-5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/30 dark:bg-slate-800/20">
               <span class="text-[12px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                Mostrando {{ (rankingData.page * rankingData.size) + 1 }}-{{ (rankingData.page * rankingData.size) + rankingData.content.length }} 
+                Mostrando {{ ((rankingData.page ?? rankingData.number) * rankingData.size) + 1 }}-{{ ((rankingData.page ?? rankingData.number) * rankingData.size) + rankingData.content.length }} 
                 de {{ rankingData.totalElements }} items
               </span>
               <div class="flex items-center gap-2">
@@ -112,7 +112,7 @@
                 @for (page of getPagesArray(); track page) {
                   <button (click)="goToPage(page)" 
                           class="w-9 h-9 rounded-xl font-black text-[13px] flex items-center justify-center transition-all border shadow-sm"
-                          [ngClass]="page === rankingData.page ? 'bg-blue-500 text-white border-blue-500 shadow-blue-500/20' : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800'">
+                           [ngClass]="page === (rankingData.page ?? rankingData.number) ? 'bg-blue-500 text-white border-blue-500 shadow-blue-500/20' : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800'">
                     {{ page + 1 }}
                   </button>
                 }

@@ -1,3 +1,5 @@
+import { Page } from './page.model';
+
 export type SaleSourceType = 'MANUAL' | 'APPOINTMENT';
 export type SaleItemType = 'SERVICE' | 'PRODUCT';
 export type PaymentMethod = 'CASH' | 'DEBIT_CARD' | 'CREDIT_CARD' | 'BANK_TRANSFER' | 'BIZUM';
@@ -41,11 +43,4 @@ export interface SaleRequest {
   notes?: string | null;
 }
 
-export interface SalePage {
-  content: SaleResponse[];
-  page: number;
-  size: number;
-  totalElements: number;
-  totalPages: number;
-  last: boolean;
-}
+export type SalePage = Page<SaleResponse>;

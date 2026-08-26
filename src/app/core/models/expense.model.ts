@@ -1,3 +1,5 @@
+import { Page } from './page.model';
+
 export type ExpenseCategory = 'SUPPLIES' | 'SERVICES' | 'OTHER';
 
 export interface ExpenseRequest {
@@ -28,12 +30,4 @@ export interface ExpenseResponse {
   updatedAt?: string;
 }
 
-export interface ExpensePage {
-  content: ExpenseResponse[];
-  page: number;
-  size: number;
-  totalElements: number;
-  totalPages: number;
-  first: boolean;
-  last: boolean;
-}
+export type ExpensePage = Page<ExpenseResponse>;

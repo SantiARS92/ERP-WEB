@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -13,38 +13,59 @@ import { Product, InventoryVariant } from '../../core/models/product.model';
   imports: [DecimalPipe, FormsModule, RouterLink],
   templateUrl: './edit-gasto.html',
   styles: ``,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EditGasto implements OnInit {
-  expense: ExpenseRequest = {
+  private readonly expenseSignal = signal<ExpenseRequest>({
     concept: '',
     category: 'SUPPLIES',
     amount: 0,
     quantity: 1,
     expenseDate: new Date().toISOString().split('T')[0],
     notes: ''
-  };
+  });
 
   totalGasto = 0;
   stockFinal = 0;
   
-  products: Product[] = [];
-  selectedProduct: Product | null = null;
-  selectedVariant: InventoryVariant | null = null;
+  private readonly productsSignal = signal<Product[]>([]);
+  private readonly selectedProductSignal = signal<Product | null>(null);
+  private readonly selectedVariantSignal = signal<InventoryVariant | null>(null);
   
-  conceptSuggestions: string[] = [];
+  private readonly conceptSuggestionsSignal = signal<string[]>([]);
   conceptSelectedFromSuggestions = true; // assume true initially for existing expenses
 
   originalExpense: ExpenseResponse | undefined;
   expenseId!: number;
-  isSubmitting = false;
-  isLoading = true;
+  private readonly isSubmittingSignal = signal(false);
+  private readonly isLoadingSignal = signal(true);
 
   private expenseApi = inject(ExpenseApiService);
   private productApi = inject(ProductApiService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
-  private cdr = inject(ChangeDetectorRef);
   private notification = inject(NotificationService);
+
+  get expense() { return this.expenseSignal(); }
+  set expense(value: ExpenseRequest) { this.expenseSignal.set(value); }
+
+  get products() { return this.productsSignal(); }
+  set products(value: Product[]) { this.productsSignal.set(value); }
+
+  get selectedProduct() { return this.selectedProductSignal(); }
+  set selectedProduct(value: Product | null) { this.selectedProductSignal.set(value); }
+
+  get selectedVariant() { return this.selectedVariantSignal(); }
+  set selectedVariant(value: InventoryVariant | null) { this.selectedVariantSignal.set(value); }
+
+  get conceptSuggestions() { return this.conceptSuggestionsSignal(); }
+  set conceptSuggestions(value: string[]) { this.conceptSuggestionsSignal.set(value); }
+
+  get isSubmitting() { return this.isSubmittingSignal(); }
+  set isSubmitting(value: boolean) { this.isSubmittingSignal.set(value); }
+
+  get isLoading() { return this.isLoadingSignal(); }
+  set isLoading(value: boolean) { this.isLoadingSignal.set(value); }
 
   readonly categories: { value: ExpenseCategory; label: string }[] = [
     { value: 'SUPPLIES', label: 'Suministros' },
@@ -61,7 +82,6 @@ export class EditGasto implements OnInit {
         console.warn('EditGasto: Timeout de carga excedido (8s). Redirigiendo...');
         this.isLoading = false;
         this.router.navigate(['/gastos']);
-        this.cdr.detectChanges();
       }
     }, 8000);
 
@@ -103,13 +123,10 @@ export class EditGasto implements OnInit {
             if (this.expense.inventoryProductId) {
               this.onProductChange(true);
             }
-
-            this.cdr.detectChanges();
           },
           error: (err) => {
             console.error('EditGasto: Error cargando el gasto', err);
             this.isLoading = false; // Stop loading even on error before redirect
-            this.cdr.detectChanges();
             
             if (err.status === 404) this.notification.error('Gasto no encontrado.', 'No existe');
             this.router.navigate(['/gastos']);
@@ -130,7 +147,6 @@ export class EditGasto implements OnInit {
       this.expenseApi.getSuggestions(query, category).subscribe({
         next: (data) => {
           this.conceptSuggestions = data;
-          this.cdr.detectChanges();
         },
         error: (err) => console.error('Error fetching suggestions:', err)
       });
@@ -143,14 +159,12 @@ export class EditGasto implements OnInit {
     this.expense.concept = val;
     this.conceptSelectedFromSuggestions = true;
     this.conceptSuggestions = [];
-    this.cdr.detectChanges();
   }
 
   loadProducts() {
     this.productApi.getProducts({ size: 500 }).subscribe({
       next: (res) => {
         this.products = res.content || [];
-        this.cdr.detectChanges();
       }
     });
   }
@@ -196,7 +210,6 @@ export class EditGasto implements OnInit {
             if (isInitialLoad && this.expense.inventoryProductVariantId) {
               this.onVariantChange();
             }
-            this.cdr.detectChanges();
           },
           error: (err) => console.error('Error loading product details:', err)
         });
@@ -279,7 +292,6 @@ export class EditGasto implements OnInit {
       error: (err) => {
         this.isSubmitting = false;
         console.error('Error updating expense:', err);
-        this.cdr.detectChanges();
       }
     });
   }

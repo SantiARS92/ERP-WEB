@@ -24,7 +24,7 @@
   <!-- Search Input -->
   <div class="relative w-80 mb-6">
     <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
-    <input type="text" [(ngModel)]="searchText" (input)="onSearch()" placeholder="Buscar categorías..." class="w-full pl-11 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow text-[15px] text-slate-800 placeholder-slate-400">
+    <input type="text" [ngModel]="searchText()" (ngModelChange)="onSearch($event)" placeholder="Buscar categorías..." class="w-full pl-11 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow text-[15px] text-slate-800 placeholder-slate-400">
   </div>
 
   <!-- Data Table -->
@@ -43,7 +43,10 @@
 
     <!-- Table Body -->
     <div class="divide-y divide-slate-100">
-      @for (cat of categories; track cat.id) {
+      @if (categoriesError()) {
+        <div class="p-8 text-center text-red-500 font-medium text-[15px]">No se pudieron cargar las categorías.</div>
+      } @else {
+      @for (cat of categories(); track cat.id) {
       <div class="grid gap-4 px-6 py-4 items-center hover:bg-slate-50 transition-colors group cursor-pointer"
            [class.grid-cols-[1fr_200px_100px]]="isAdmin()"
            [class.grid-cols-[1fr_200px]]="!isAdmin()">
@@ -71,14 +74,15 @@
       @empty {
         <div class="p-8 text-center text-slate-500 font-medium text-[15px]">No se encontraron categorías.</div>
       }
+      }
     </div>
   </div>
 
   <!-- Page Pagination (Detached Style - Professional & Containerless) -->
   <app-pagination 
-    [totalElements]="totalElements" 
+    [totalElements]="totalElements()" 
     [pageSize]="pageSize" 
-    [currentPage]="currentPage" 
+    [currentPage]="currentPage()" 
     [itemsLabel]="'categorías'"
     (pageChange)="goToPage($event)" />
 
@@ -87,7 +91,7 @@
   </div>
 
   <!-- Overlay Modal -->
-  @if (isModalOpen) {
+  @if (isModalOpen()) {
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
     <!-- Modal Content -->
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
@@ -98,10 +102,10 @@
           <span class="material-symbols-outlined text-[20px]">close</span>
         </button>
         <h3 class="text-[20px] font-bold text-slate-900 tracking-tight">
-          {{ isEditMode ? 'Editar Categoría' : 'Añadir Nueva Categoría' }}
+          {{ isEditMode() ? 'Editar Categoría' : 'Añadir Nueva Categoría' }}
         </h3>
         <p class="text-[13px] text-slate-500 font-medium mt-1">
-          {{ isEditMode ? 'Modifique los detalles de esta clasificación de servicios.' : 'Complete los detalles para crear una nueva clasificación de servicios.' }}
+          {{ isEditMode() ? 'Modifique los detalles de esta clasificación de servicios.' : 'Complete los detalles para crear una nueva clasificación de servicios.' }}
         </p>
       </div>
 
@@ -154,7 +158,7 @@
           Cancelar
         </button>
         <button (click)="saveCategory()" class="px-5 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-[14px] transition-colors shadow-sm">
-          {{ isEditMode ? 'Guardar Cambios' : 'Guardar Categoría' }}
+          {{ isEditMode() ? 'Guardar Cambios' : 'Guardar Categoría' }}
         </button>
       </div>
 
@@ -163,7 +167,7 @@
   }
 
   <!-- Delete Confirmation Modal -->
-  @if (isDeleteModalOpen) {
+  @if (isDeleteModalOpen()) {
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden text-center p-6 lg:p-8">
       
@@ -175,7 +179,7 @@
       <!-- Content -->
       <h3 class="text-[20px] font-bold text-slate-900 tracking-tight mb-2">¿Eliminar Categoría?</h3>
       <p class="text-[14px] text-slate-500 font-medium mb-8">
-        Está a punto de eliminar la categoría <span class="font-bold text-slate-800">"{{ selectedCategoryName }}"</span>. Esta acción no se puede deshacer. Los servicios asignados quedarán "Sin Categoría".
+        Está a punto de eliminar la categoría <span class="font-bold text-slate-800">"{{ selectedCategoryName() }}"</span>. Esta acción no se puede deshacer. Los servicios asignados quedarán "Sin Categoría".
       </p>
 
       <!-- Actions -->

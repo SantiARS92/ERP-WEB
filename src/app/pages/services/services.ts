@@ -1,132 +1,87 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { ServiceApiService } from '../../core/services/service-api.service';
+import { catchError, of } from 'rxjs';
+import { ServiceApiService, ServiceFilters } from '../../core/services/service-api.service';
 import { CategoryApiService } from '../../core/services/category-api.service';
-import { Service } from '../../core/models/service.model';
-import { Category } from '../../core/models/category.model';
 import { PaginationComponent } from '../../shared/components/pagination/pagination';
+import { createPagedResource } from '../../core/state/paged-resource';
 
 @Component({
   selector: 'app-services',
   imports: [CurrencyPipe, RouterLink, FormsModule, PaginationComponent],
   templateUrl: './services.html',
   styles: ``,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Services implements OnInit {
-  isFilterOpen = false;
-  services: Service[] = [];
-  
-  // Pagination & Filter state
-  searchText = '';
-  statusFilter = 'Todos los estados';
-  selectedCategories: number[] = [];
-  currentPage = 0;
-  pageSize = 10;
-  totalElements = 0;
-  totalPages = 0;
-  categories: Category[] = [];
+export class Services {
+  readonly pageSize = 10;
+  readonly isFilterOpen = signal(false);
+  readonly searchText = signal('');
+  readonly statusFilter = signal('Todos los estados');
+  readonly selectedCategories = signal<number[]>([]);
+  readonly categoriesError = signal(false);
 
   private serviceApi = inject(ServiceApiService);
   private categoryApi = inject(CategoryApiService);
-  private cdr = inject(ChangeDetectorRef);
+  private readonly resource = createPagedResource<import('../../core/models/service.model').Service, ServiceFilters & { page: number; size: number }>({
+    initialFilters: { search: '', active: undefined, categoryId: undefined, page: 0, size: this.pageSize },
+    fetcher: (filters) => this.serviceApi.getServices(filters),
+  });
 
-  ngOnInit(): void {
-    this.loadCategories();
-    this.loadServices();
-  }
+  readonly categories = toSignal(
+    this.categoryApi.getCategories().pipe(
+      catchError(() => {
+        this.categoriesError.set(true);
+        return of([]);
+      })
+    ),
+    { initialValue: [] }
+  );
+  readonly services = this.resource.items;
+  readonly totalElements = this.resource.totalElements;
+  readonly currentPage = this.resource.page;
+  readonly isLoading = this.resource.isLoading;
+  readonly hasError = computed(() => this.resource.error() !== null);
 
-  loadCategories() {
-    this.categoryApi.getCategories().subscribe(cats => {
-      this.categories = cats;
-      this.cdr.detectChanges();
-    });
-  }
-
-  loadServices() {
-    const filters: any = {};
-    
-    // Only send filters if they have values to avoid backend issues
-    if (this.searchText.trim()) filters.search = this.searchText.trim();
-    if (this.statusFilter === 'Activo') filters.active = true;
-    if (this.statusFilter === 'Inactivo') filters.active = false;
-    if (this.selectedCategories.length > 0) filters.categoryId = this.selectedCategories[0];
-    
-    // Always send pagination
-    filters.page = this.currentPage;
-    filters.size = this.pageSize;
-
-    this.serviceApi.getServices(filters).subscribe({
-      next: (data: any) => {
-        console.log('Servicios recibidos:', data);
-        
-        // Robust handling of different API response formats
-        if (data && typeof data === 'object') {
-          if (Array.isArray(data.content)) {
-            this.services = data.content;
-            this.totalElements = data.totalElements ?? data.content.length;
-            this.totalPages = data.totalPages ?? Math.ceil(this.totalElements / this.pageSize);
-          } else if (Array.isArray(data)) {
-            this.services = data;
-            this.totalElements = data.length;
-            this.totalPages = Math.ceil(data.length / this.pageSize);
-          } else {
-            console.warn('Estructura de datos inesperada:', data);
-            this.services = [];
-            this.totalElements = 0;
-            this.totalPages = 0;
-          }
-        } else {
-          this.services = [];
-        }
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        console.error('Error fetching services', err);
-        // Error handling for CORS or connection issues
-        const errorMsg = err.status === 0 
-          ? 'No se pudo conectar con el servidor (CORS o Red). Verifique que la API esté encendida.'
-          : `Error al cargar servicios (${err.status}): ${err.message}`;
-        alert(errorMsg);
-      }
-    });
-  }
-
-  onSearch() {
-    this.currentPage = 0;
-    this.loadServices();
+  onSearch(searchText: string) {
+    this.searchText.set(searchText);
+    this.resource.setFilters({ search: searchText, page: 0 });
   }
 
   changePage(page: number) {
-    this.currentPage = page;
-    this.loadServices();
+    this.resource.setPage(page);
   }
 
   toggleFilter() {
-    this.isFilterOpen = !this.isFilterOpen;
+    this.isFilterOpen.update((value) => !value);
   }
 
   clearFilters() {
-    this.searchText = '';
-    this.statusFilter = 'Todos los estados';
-    this.selectedCategories = [];
-    this.currentPage = 0;
-    this.loadServices();
+    this.searchText.set('');
+    this.statusFilter.set('Todos los estados');
+    this.selectedCategories.set([]);
+    this.resource.setFilters({ search: '', active: undefined, categoryId: undefined, page: 0 });
   }
 
   toggleCategoryFilter(categoryId: number) {
-    const index = this.selectedCategories.indexOf(categoryId);
-    if (index === -1) {
-      this.selectedCategories.push(categoryId);
-    } else {
-      this.selectedCategories.splice(index, 1);
-    }
-    this.currentPage = 0;
-    this.loadServices();
+    this.selectedCategories.update((current) => current.includes(categoryId)
+      ? current.filter((id) => id !== categoryId)
+      : [...current, categoryId]);
   }
 
-  get filteredServices(): Service[] {
-    return this.services;
+  applyFilters() {
+    this.resource.setFilters({
+      page: 0,
+      active: this.statusFilter() === 'Activo' ? true : this.statusFilter() === 'Inactivo' ? false : undefined,
+      categoryId: this.selectedCategories()[0],
+    });
+    this.isFilterOpen.set(false);
+  }
+
+  reload() {
+    this.resource.reload();
   }
 }

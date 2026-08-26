@@ -1,6 +1,5 @@
-import { Component, signal, inject } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { ThemeService } from './core/services/theme.service';
 import { NotificationComponent } from './shared/components/notification/notification';
 
 @Component({
@@ -11,5 +10,4 @@ import { NotificationComponent } from './shared/components/notification/notifica
 })
 export class App {
   protected readonly title = signal('AppPimes');
-  private themeService = inject(ThemeService); 
 }

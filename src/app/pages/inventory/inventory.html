@@ -17,7 +17,7 @@
       <!-- Search -->
       <div class="relative flex-1 max-w-xs">
         <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
-        <input type="text" [(ngModel)]="searchText" (input)="onSearch()" placeholder="Buscar por nombre o SKU..."
+        <input type="text" [ngModel]="searchText()" (ngModelChange)="onSearch($event)" placeholder="Buscar por nombre o SKU..."
           class="w-full pl-11 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow text-[14px] text-slate-800 placeholder-slate-400">
       </div>
 
@@ -26,16 +26,16 @@
       <!-- Filter button -->
       <div class="relative">
         <button (click)="toggleFilter()"
-          [class.bg-blue-50]="isFilterOpen" [class.border-blue-300]="isFilterOpen" [class.text-blue-600]="isFilterOpen"
+          [class.bg-blue-50]="isFilterOpen()" [class.border-blue-300]="isFilterOpen()" [class.text-blue-600]="isFilterOpen()"
           class="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 font-semibold text-[14px] transition-colors shadow-sm">
           <span class="material-symbols-outlined text-[18px]">filter_alt</span>
           Filtros
-          @if (selectedCategoryIds.length > 0) {
-            <span class="w-5 h-5 flex items-center justify-center rounded-full bg-blue-500 text-white text-[10px] font-bold">{{ selectedCategoryIds.length }}</span>
+          @if (selectedCategoryIds().length > 0) {
+            <span class="w-5 h-5 flex items-center justify-center rounded-full bg-blue-500 text-white text-[10px] font-bold">{{ selectedCategoryIds().length }}</span>
           }
         </button>
 
-        @if (isFilterOpen) {
+        @if (isFilterOpen()) {
           <div class="absolute top-full mt-2 right-0 w-[280px] bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-100 z-50">
             <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
               <h3 class="font-bold text-slate-800 text-[15px]">Filtros</h3>
@@ -44,9 +44,9 @@
             <div class="p-4">
               <h4 class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">CATEGORÍA</h4>
               <div class="space-y-2 max-h-[180px] overflow-y-auto">
-                @for (cat of categories; track cat.id) {
+                @for (cat of categories(); track cat.id) {
                   <label class="flex items-center gap-2.5 p-2 rounded-lg hover:bg-slate-50 cursor-pointer">
-                    <input type="checkbox" [checked]="selectedCategoryIds.includes(cat.id!)" (change)="toggleCategoryFilter(cat.id!)"
+                    <input type="checkbox" [checked]="selectedCategoryIds().includes(cat.id!)" (change)="toggleCategoryFilter(cat.id!)"
                       class="w-4 h-4 rounded text-blue-500 border-slate-300">
                     <span class="text-[14px] text-slate-700 font-medium">{{ cat.name }}</span>
                   </label>
@@ -92,7 +92,7 @@
         </thead>
         <tbody>
 
-          @for (product of products; track product.id) {
+          @for (product of products(); track product.id) {
             <!-- Main product row -->
             <tr class="border-b border-slate-50 hover:bg-slate-50/60 transition-colors group">
               <!-- Expand chevron + icon + name -->
@@ -199,24 +199,24 @@
             }
           }
 
-          @if (hasError) {
+          @if (hasError()) {
             <tr>
               <td colspan="7" class="p-14 text-center">
                 <span class="material-symbols-outlined text-5xl text-red-300 block mb-3">error</span>
                 <span class="text-red-500 font-semibold text-[14px] block mb-3">No se pudo cargar el inventario.</span>
-                <button type="button" (click)="loadProducts()"
+                        <button type="button" (click)="reload()"
                         class="text-[13px] font-bold px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-colors">
                   Reintentar
                 </button>
               </td>
             </tr>
-          } @else if (isLoading) {
+          } @else if (isLoading()) {
             <tr>
               <td colspan="7" class="p-14 text-center">
                 <span class="text-slate-400 font-medium text-[14px]">Cargando productos…</span>
               </td>
             </tr>
-          } @else if (products.length === 0) {
+          } @else if (products().length === 0) {
             <tr>
               <td colspan="7" class="p-14 text-center">
                 <span class="material-symbols-outlined text-5xl text-slate-200 block mb-3">inventory_2</span>
@@ -231,9 +231,9 @@
 
     <!-- Pagination -->
     <app-pagination
-      [totalElements]="totalElements"
+      [totalElements]="totalElements()"
       [pageSize]="pageSize"
-      [currentPage]="currentPage"
+      [currentPage]="currentPage()"
       [itemsLabel]="'productos'"
       (pageChange)="changePage($event)" />
 

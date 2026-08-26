@@ -1,5 +1,5 @@
 import { NgClass } from '@angular/common';
-import { Component, OnDestroy, OnInit, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { Subject, debounceTime, takeUntil } from 'rxjs';
@@ -46,11 +46,12 @@ import { NotificationService } from '../../core/services/notification.service';
     .ios-toggle:checked::after {
       transform: translateX(20px);
     }
-  `
+  `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Configuracion implements OnInit, OnDestroy {
   // Accordion state
-  expandedSection: string | null = 'perfil';
+  private readonly expandedSectionSignal = signal<string | null>('perfil');
   private destroy$ = new Subject<void>();
   private autoSave$ = new Subject<void>();
   private router = inject(Router);
@@ -71,7 +72,7 @@ export class Configuracion implements OnInit, OnDestroy {
   ];
 
   // --- Real State ---
-  settings: BusinessSettings = {
+  private readonly settingsSignal = signal<BusinessSettings>({
     businessName: '',
     phone: '',
     address: '',
@@ -86,16 +87,16 @@ export class Configuracion implements OnInit, OnDestroy {
     specialClosures: [],
     businessLogo: '',
     cip: ''
-  };
+  });
 
-  professionals: Professional[] = [];
-  isSubmitting = false;
-  saveStatus: 'idle' | 'saving' | 'saved' | 'error' = 'idle';
+  private readonly professionalsSignal = signal<Professional[]>([]);
+  private readonly isSubmittingSignal = signal(false);
+  private readonly saveStatusSignal = signal<'idle' | 'saving' | 'saved' | 'error'>('idle');
   private saveResetTimer: any = null;
 
   // For adding/editing professional (Modal mini-state)
-  isProfessionalModalOpen = false;
-  editingProfessional: Professional & { accessPassword?: string } = { fullName: '', specialty: '', active: true, accessPassword: '' };
+  private readonly isProfessionalModalOpenSignal = signal(false);
+  private readonly editingProfessionalSignal = signal<Professional & { accessPassword?: string }>({ fullName: '', specialty: '', active: true, accessPassword: '' });
 
   dayNamesMap: Record<DayOfWeek, string> = {
     MONDAY: 'Lunes',
@@ -108,6 +109,21 @@ export class Configuracion implements OnInit, OnDestroy {
   };
 
   orderedDays: DayOfWeek[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
+
+  get expandedSection() { return this.expandedSectionSignal(); }
+  set expandedSection(value: string | null) { this.expandedSectionSignal.set(value); }
+  get settings() { return this.settingsSignal(); }
+  set settings(value: BusinessSettings) { this.settingsSignal.set(value); }
+  get professionals() { return this.professionalsSignal(); }
+  set professionals(value: Professional[]) { this.professionalsSignal.set(value); }
+  get isSubmitting() { return this.isSubmittingSignal(); }
+  set isSubmitting(value: boolean) { this.isSubmittingSignal.set(value); }
+  get saveStatus() { return this.saveStatusSignal(); }
+  set saveStatus(value: 'idle' | 'saving' | 'saved' | 'error') { this.saveStatusSignal.set(value); }
+  get isProfessionalModalOpen() { return this.isProfessionalModalOpenSignal(); }
+  set isProfessionalModalOpen(value: boolean) { this.isProfessionalModalOpenSignal.set(value); }
+  get editingProfessional() { return this.editingProfessionalSignal(); }
+  set editingProfessional(value: Professional & { accessPassword?: string }) { this.editingProfessionalSignal.set(value); }
 
   ngOnInit(): void {
     this.loadAll();
@@ -132,6 +148,13 @@ export class Configuracion implements OnInit, OnDestroy {
     this.autoSave$.next();
   }
 
+  private ensureOpeningHours() {
+    const current = this.settings;
+    const openingHours = this.orderedDays.map((day) => current.openingHours.find((hour) => hour.dayOfWeek === day)
+      ?? { dayOfWeek: day, enabled: false, openingTime: null, closingTime: null });
+    this.settings = { ...current, openingHours };
+  }
+
   loadAll() {
     this.settingsApi.getSettings().subscribe({
       next: (data) => {
@@ -145,14 +168,19 @@ export class Configuracion implements OnInit, OnDestroy {
           openingHours: data.openingHours?.length ? data.openingHours : this.settings.openingHours,
           specialClosures: data.specialClosures ?? [],
         };
+        this.ensureOpeningHours();
       },
       error: (err) => {
         console.error('Error loading settings:', err);
         // Restore from localStorage on API failure
         const savedName = localStorage.getItem('fallback_businessName');
         const savedLogo = localStorage.getItem('fallback_businessLogo');
-        if (savedName) this.settings.businessName = savedName;
-        if (savedLogo) this.settings.businessLogo = savedLogo;
+        this.settings = {
+          ...this.settings,
+          businessName: savedName || this.settings.businessName,
+          businessLogo: savedLogo || this.settings.businessLogo,
+        };
+        this.ensureOpeningHours();
       }
     });
     this.professionalApi.getProfessionals().subscribe({
@@ -206,48 +234,68 @@ export class Configuracion implements OnInit, OnDestroy {
 
     const reader = new FileReader();
     reader.onload = (e) => {
-      this.settings.businessLogo = e.target?.result as string;
-      localStorage.setItem('fallback_businessLogo', this.settings.businessLogo);
+      const businessLogo = e.target?.result as string;
+      this.settings = { ...this.settings, businessLogo };
+      localStorage.setItem('fallback_businessLogo', businessLogo);
       this.onFieldChange(); // triggers auto-save
     };
     reader.readAsDataURL(file);
   }
 
   removeLogo() {
-    this.settings.businessLogo = '';
+    this.settings = { ...this.settings, businessLogo: '' };
     this.onFieldChange();
   }
 
   // Management for Opening Hours
   getOpeningHourForDay(day: DayOfWeek): OpeningHour {
-    let oh = this.settings.openingHours.find(h => h.dayOfWeek === day);
-    if (!oh) {
-      oh = { dayOfWeek: day, enabled: false, openingTime: null, closingTime: null };
-      this.settings.openingHours.push(oh);
-    }
-    return oh;
+    return this.settings.openingHours.find(h => h.dayOfWeek === day)
+      ?? { dayOfWeek: day, enabled: false, openingTime: null, closingTime: null };
   }
 
   toggleDay(oh: OpeningHour) {
-    oh.enabled = !oh.enabled;
-    if (!oh.enabled) {
-      oh.openingTime = null;
-      oh.closingTime = null;
-    } else {
-      oh.openingTime = '09:00';
-      oh.closingTime = '18:00';
-    }
+    this.settings = {
+      ...this.settings,
+      openingHours: this.settings.openingHours.map((item) => item.dayOfWeek !== oh.dayOfWeek ? item : {
+        ...item,
+        enabled: !item.enabled,
+        openingTime: !item.enabled ? '09:00' : null,
+        closingTime: !item.enabled ? '18:00' : null,
+      }),
+    };
+    this.onFieldChange();
+  }
+
+  updateOpeningHour(day: DayOfWeek, patch: Partial<OpeningHour>) {
+    this.settings = {
+      ...this.settings,
+      openingHours: this.settings.openingHours.map((item) => item.dayOfWeek !== day ? item : { ...item, ...patch }),
+    };
     this.onFieldChange();
   }
 
   // Management for Special Closures
   addClosure() {
-    this.settings.specialClosures.push({ closureDate: '', reason: '' });
+    this.settings = {
+      ...this.settings,
+      specialClosures: [...this.settings.specialClosures, { closureDate: '', reason: '' }],
+    };
     this.onFieldChange();
   }
 
   removeClosure(index: number) {
-    this.settings.specialClosures.splice(index, 1);
+    this.settings = {
+      ...this.settings,
+      specialClosures: this.settings.specialClosures.filter((_, currentIndex) => currentIndex !== index),
+    };
+    this.onFieldChange();
+  }
+
+  updateClosure(index: number, patch: { closureDate?: string; reason?: string }) {
+    this.settings = {
+      ...this.settings,
+      specialClosures: this.settings.specialClosures.map((closure, currentIndex) => currentIndex !== index ? closure : { ...closure, ...patch }),
+    };
     this.onFieldChange();
   }
 

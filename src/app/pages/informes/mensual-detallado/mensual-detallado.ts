@@ -1,5 +1,5 @@
 import { DecimalPipe } from '@angular/common';
-import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ReportApiService } from '../../../core/services/report-api.service';
 import { MonthlyDetailedReport } from '../../../core/models/report.model';
@@ -10,9 +10,9 @@ import { FormsModule } from '@angular/forms';
   selector: 'app-informe-mensual-detallado',
   imports: [DecimalPipe, RouterLink, FormsModule],
   templateUrl: './mensual-detallado.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class InformeMensualDetallado implements OnInit {
-  reportData: MonthlyDetailedReport | null = null;
   selectedYear: number = new Date().getFullYear();
   selectedMonth: number = new Date().getMonth() + 1;
   availableYears: number[] = [2024, 2025, 2026];
@@ -22,12 +22,24 @@ export class InformeMensualDetallado implements OnInit {
     { value: 7, label: 'Julio' }, { value: 8, label: 'Agosto' }, { value: 9, label: 'Septiembre' },
     { value: 10, label: 'Octubre' }, { value: 11, label: 'Noviembre' }, { value: 12, label: 'Diciembre' }
   ];
-  hasError = false;
-  isDownloadingPdf = false;
-  downloadSuccess = false;
+  private readonly reportDataSignal = signal<MonthlyDetailedReport | null>(null);
+  private readonly hasErrorSignal = signal(false);
+  private readonly isDownloadingPdfSignal = signal(false);
+  private readonly downloadSuccessSignal = signal(false);
 
   private reportApi = inject(ReportApiService);
-  private cdr = inject(ChangeDetectorRef);
+
+  get reportData() { return this.reportDataSignal(); }
+  set reportData(value: MonthlyDetailedReport | null) { this.reportDataSignal.set(value); }
+
+  get hasError() { return this.hasErrorSignal(); }
+  set hasError(value: boolean) { this.hasErrorSignal.set(value); }
+
+  get isDownloadingPdf() { return this.isDownloadingPdfSignal(); }
+  set isDownloadingPdf(value: boolean) { this.isDownloadingPdfSignal.set(value); }
+
+  get downloadSuccess() { return this.downloadSuccessSignal(); }
+  set downloadSuccess(value: boolean) { this.downloadSuccessSignal.set(value); }
 
   ngOnInit() {
     this.loadData();
@@ -37,8 +49,8 @@ export class InformeMensualDetallado implements OnInit {
     this.hasError = false;
     this.reportData = null;
     this.reportApi.getMonthlyDetailed(this.selectedYear, this.selectedMonth).subscribe({
-      next: (data) => { this.reportData = data; this.cdr.detectChanges(); },
-      error: () => { this.hasError = true; this.reportData = null; this.cdr.detectChanges(); }
+      next: (data) => { this.reportData = data; },
+      error: () => { this.hasError = true; this.reportData = null; }
     });
   }
 
@@ -54,13 +66,13 @@ export class InformeMensualDetallado implements OnInit {
         const a = document.createElement('a');
         a.href = url;
         a.download = `informe-mensual-detallado-${this.selectedYear}-${this.selectedMonth}.pdf`;
+        document.body.appendChild(a);
         a.click();
+        a.remove();
         window.URL.revokeObjectURL(url);
-        this.cdr.detectChanges();
       },
       error: () => { 
         this.isDownloadingPdf = false;
-        this.cdr.detectChanges();
       }
     });
   }

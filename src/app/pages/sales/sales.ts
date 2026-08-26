@@ -1,119 +1,43 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { CurrencyPipe, NgClass, SlicePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { SaleApiService } from '../../core/services/sale-api.service';
-import { ServiceApiService } from '../../core/services/service-api.service';
-import { ProductApiService } from '../../core/services/product-api.service';
-import { ClientApiService } from '../../core/services/client-api.service';
 import { SaleResponse, SaleItemType, PaymentMethod } from '../../core/models/sale.model';
-import { Service } from '../../core/models/service.model';
-import { Product } from '../../core/models/product.model';
-import { Client } from '../../core/models/client.model';
 import { PaginationComponent } from '../../shared/components/pagination/pagination';
+import { createPagedResource } from '../../core/state/paged-resource';
 
 @Component({
   selector: 'app-sales',
   imports: [SlicePipe, CurrencyPipe, NgClass, RouterLink, FormsModule, PaginationComponent],
   templateUrl: './sales.html',
   styles: ``,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Sales implements OnInit {
+export class Sales {
   private saleApi = inject(SaleApiService);
-  private serviceApi = inject(ServiceApiService);
-  private productApi = inject(ProductApiService);
-  private clientApi = inject(ClientApiService);
-  private cdr = inject(ChangeDetectorRef);
+  readonly pageSize = 10;
+  readonly search = signal('');
+  readonly fromDate = signal('');
+  readonly toDate = signal('');
+  readonly quickFilter = signal<'month' | 'quarter' | 'year'>('month');
+  private readonly resource = createPagedResource({
+    initialFilters: { search: '', fromDate: '', toDate: '', page: 0, size: this.pageSize },
+    fetcher: (filters) => this.saleApi.getSales(filters),
+  });
+  readonly sales = this.resource.items;
+  readonly totalElements = this.resource.totalElements;
+  readonly currentPage = this.resource.page;
+  readonly totalPages = this.resource.totalPages;
+  readonly hasError = computed(() => this.resource.error() !== null);
+  readonly isLoading = this.resource.isLoading;
 
-  // Data
-  sales: SaleResponse[] = [];
-  services: Service[] = [];
-  products: Product[] = [];
-  clients: Client[] = [];
-
-  // Pagination for detailed
-  currentPage = 0;
-  pageSize = 10;
-  totalElements = 0;
-  totalPages = 0;
-
-
-  // Filters for detailed
-  search = '';
-  fromDate = '';
-  toDate = '';
-  quickFilter: 'month' | 'quarter' | 'year' = 'month';
-
-
-
-  ngOnInit(): void {
-    this.loadServices();
-    this.loadProducts();
-    this.loadClients();
+  constructor() {
     this.setQuickFilter('month');
   }
 
-  loadClients() {
-    this.clientApi.getClients({ size: 500 }).subscribe({
-      next: (res) => {
-        this.clients = res.content || [];
-        this.cdr.detectChanges();
-      },
-      error: (err) => console.error('Error loading clients:', err)
-    });
-  }
-
-
-
-  loadDetailedSales() {
-    const filters = {
-      search: this.search,
-      fromDate: this.fromDate,
-      toDate: this.toDate,
-      page: this.currentPage,
-      size: this.pageSize
-    };
-    this.saleApi.getSales(filters).subscribe({
-      next: (pageData: any) => {
-        if (pageData && typeof pageData === 'object') {
-          if (Array.isArray(pageData.content)) {
-            this.sales = pageData.content;
-            this.totalElements = pageData.totalElements ?? pageData.content.length;
-            this.totalPages = pageData.totalPages ?? Math.ceil(this.totalElements / this.pageSize);
-          } else if (Array.isArray(pageData)) {
-            this.sales = pageData;
-            this.totalElements = pageData.length;
-            this.totalPages = Math.ceil(pageData.length / this.pageSize);
-          }
-        }
-        this.cdr.detectChanges();
-      },
-      error: (err) => console.error('Error loading sales:', err)
-    });
-  }
-
-  loadServices() {
-    this.serviceApi.getServices({ active: true, size: 200 }).subscribe({
-      next: (res) => {
-        this.services = res.content || [];
-        this.cdr.detectChanges();
-      },
-      error: (err) => console.error('Error loading services:', err)
-    });
-  }
-
-  loadProducts() {
-    this.productApi.getProducts({ size: 500 }).subscribe({
-      next: (res) => {
-        this.products = res.content || [];
-        this.cdr.detectChanges();
-      },
-      error: (err) => console.error('Error loading products:', err)
-    });
-  }
-
   setQuickFilter(filter: 'month' | 'quarter' | 'year') {
-    this.quickFilter = filter;
+    this.quickFilter.set(filter);
     const now = new Date();
     let start: Date;
     let end: Date;
@@ -131,11 +55,12 @@ export class Sales implements OnInit {
     }
     
     // Convert to UTC-safe YYYY-MM-DD
-    this.fromDate = this.formatDate(start);
-    this.toDate = this.formatDate(end);
-    this.currentPage = 0;
-    
-    this.loadDetailedSales();
+    const fromDate = this.formatDate(start);
+    const toDate = this.formatDate(end);
+
+    this.fromDate.set(fromDate);
+    this.toDate.set(toDate);
+    this.resource.setFilters({ search: this.search(), fromDate, toDate, page: 0 });
   }
 
   private formatDate(date: Date): string {
@@ -150,29 +75,42 @@ export class Sales implements OnInit {
     return [year, month, day].join('-');
   }
 
-  onSearchChange() {
-    this.currentPage = 0;
-    this.loadDetailedSales();
+  onSearchChange(partial: { search?: string; fromDate?: string; toDate?: string }) {
+    if (partial.search !== undefined) {
+      this.search.set(partial.search);
+    }
+    if (partial.fromDate !== undefined) {
+      this.fromDate.set(partial.fromDate);
+    }
+    if (partial.toDate !== undefined) {
+      this.toDate.set(partial.toDate);
+    }
+
+    this.resource.setFilters({
+      search: partial.search ?? this.search(),
+      fromDate: partial.fromDate ?? this.fromDate(),
+      toDate: partial.toDate ?? this.toDate(),
+      page: 0,
+    });
   }
 
 
 
   goToPage(p: number) {
-    if (p >= 0 && p < this.totalPages) {
-      this.currentPage = p;
-      this.loadDetailedSales();
+    if (p >= 0 && p < this.totalPages()) {
+      this.resource.setPage(p);
     }
   }
 
 
 
   exportPdf() {
-    this.saleApi.exportSalesToPdf({ search: this.search, fromDate: this.fromDate, toDate: this.toDate }).subscribe({
+    this.saleApi.exportSalesToPdf({ search: this.search(), fromDate: this.fromDate(), toDate: this.toDate() }).subscribe({
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `historial_ventas_${this.fromDate}_${this.toDate}.pdf`;
+        a.download = `historial_ventas_${this.fromDate()}_${this.toDate()}.pdf`;
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -198,5 +136,9 @@ export class Sales implements OnInit {
 
   getItemTypeName(type: SaleItemType): string {
     return type === 'SERVICE' ? 'Servicio' : 'Producto';
+  }
+
+  reload() {
+    this.resource.reload();
   }
 }

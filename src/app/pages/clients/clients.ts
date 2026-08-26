@@ -1,74 +1,43 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ClientApiService } from '../../core/services/client-api.service';
-import { Client } from '../../core/models/client.model';
 import { PaginationComponent } from '../../shared/components/pagination/pagination';
+import { createPagedResource } from '../../core/state/paged-resource';
 
 @Component({
   selector: 'app-clients',
   imports: [NgClass, RouterLink, FormsModule, PaginationComponent],
   templateUrl: './clients.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Clients implements OnInit {
-  clients: Client[] = [];
-
-  // Pagination & Filter state
-  searchText = '';
-  currentPage = 0;
-  pageSize = 10;
-  totalElements = 0;
-  totalPages = 0;
-  isLoading = false;
+export class Clients {
   private clientApi = inject(ClientApiService);
-  private cdr = inject(ChangeDetectorRef);
+  readonly pageSize = 10;
+  readonly searchText = signal('');
+  private readonly resource = createPagedResource({
+    initialFilters: { search: '', page: 0, size: this.pageSize },
+    fetcher: (filters) => this.clientApi.getClients(filters),
+  });
 
-  ngOnInit(): void {
-    this.loadClients();
-  }
+  readonly clients = this.resource.items;
+  readonly totalElements = this.resource.totalElements;
+  readonly currentPage = this.resource.page;
+  readonly isLoading = this.resource.isLoading;
+  readonly hasError = computed(() => this.resource.error() !== null);
 
-  loadClients() {
-    this.isLoading = true;
-    const filters: { search?: string; page: number; size: number } = {
-      page: this.currentPage,
-      size: this.pageSize,
-    };
-    if (this.searchText.trim()) filters.search = this.searchText.trim();
-
-    this.clientApi.getClients(filters).subscribe({
-      next: (data: any) => {
-        if (data && typeof data === 'object') {
-          if (Array.isArray(data.content)) {
-            this.clients = data.content;
-            this.totalElements = data.totalElements ?? data.content.length;
-            this.totalPages = data.totalPages ?? Math.ceil(this.totalElements / this.pageSize);
-          } else if (Array.isArray(data)) {
-            this.clients = data;
-            this.totalElements = data.length;
-            this.totalPages = Math.ceil(data.length / this.pageSize);
-          }
-        }
-        this.isLoading = false;
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        console.error('Error fetching clients:', err);
-        this.clients = [];
-        this.isLoading = false;
-        this.cdr.detectChanges();
-      }
-    });
-  }
-
-  onSearch() {
-    this.currentPage = 0;
-    this.loadClients();
+  onSearch(searchText: string) {
+    this.searchText.set(searchText);
+    this.resource.setFilters({ search: searchText, page: 0 });
   }
 
   changePage(page: number) {
-    this.currentPage = page;
-    this.loadClients();
+    this.resource.setPage(page);
+  }
+
+  reload() {
+    this.resource.reload();
   }
 
 

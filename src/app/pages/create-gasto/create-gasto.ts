@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -13,17 +13,17 @@ import { Product, InventoryVariant } from '../../core/models/product.model';
   imports: [DecimalPipe, FormsModule, RouterLink],
   templateUrl: './create-gasto.html',
   styles: ``,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CreateGasto implements OnInit {
   private expenseApi = inject(ExpenseApiService);
   private productApi = inject(ProductApiService);
-  private cdr = inject(ChangeDetectorRef);
   private router = inject(Router);
   private notification = inject(NotificationService);
 
-  products: Product[] = [];
-  selectedProduct: Product | null = null;
-  selectedVariant: InventoryVariant | null = null;
+  private readonly productsSignal = signal<Product[]>([]);
+  private readonly selectedProductSignal = signal<Product | null>(null);
+  private readonly selectedVariantSignal = signal<InventoryVariant | null>(null);
   
   totalGasto = 0;
   stockFinal = 0;
@@ -43,13 +43,24 @@ export class CreateGasto implements OnInit {
     notes: ''
   };
 
-  isSubmitting = false;
+  private readonly isSubmittingSignal = signal(false);
+
+  get products() { return this.productsSignal(); }
+  set products(value: Product[]) { this.productsSignal.set(value); }
+
+  get selectedProduct() { return this.selectedProductSignal(); }
+  set selectedProduct(value: Product | null) { this.selectedProductSignal.set(value); }
+
+  get selectedVariant() { return this.selectedVariantSignal(); }
+  set selectedVariant(value: InventoryVariant | null) { this.selectedVariantSignal.set(value); }
+
+  get isSubmitting() { return this.isSubmittingSignal(); }
+  set isSubmitting(value: boolean) { this.isSubmittingSignal.set(value); }
 
   ngOnInit(): void {
     this.productApi.getProducts({ size: 500 }).subscribe({
       next: (res) => {
         this.products = res.content || [];
-        this.cdr.detectChanges();
       }
     });
   }
@@ -88,7 +99,6 @@ export class CreateGasto implements OnInit {
         this.productApi.getProductById(productId).subscribe({
           next: (fullProduct) => {
             product.variants = fullProduct.variants;
-            this.cdr.detectChanges();
           },
           error: (err) => console.error('Error loading product details:', err)
         });
@@ -178,7 +188,6 @@ export class CreateGasto implements OnInit {
     }
 
     this.isSubmitting = true;
-    this.cdr.detectChanges();
 
     this.expenseApi.createExpense(payload).subscribe({
       next: () => {
@@ -188,8 +197,6 @@ export class CreateGasto implements OnInit {
       error: (err) => {
         console.error('Error creando gasto:', err);
         this.isSubmitting = false;
-        // La notificación genérica del error.interceptor podría estar saltando, pero mostramos esto si llega
-        this.cdr.detectChanges();
       }
     });
   }

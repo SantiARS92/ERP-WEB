@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -10,9 +10,10 @@ import { finalize } from 'rxjs';
   selector: 'app-edit-client',
   imports: [FormsModule, RouterLink],
   templateUrl: './edit-client.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EditClient implements OnInit {
-  client: Omit<Client, 'id'> = {
+  private readonly clientSignal = signal<Omit<Client, 'id'>>({
     fullName: '',
     phone: '',
     email: '',
@@ -20,16 +21,27 @@ export class EditClient implements OnInit {
     direccion: '',
     cifNif: '',
     identificador: null
-  };
+  });
   clientId: number | null = null;
-  isLoading = true;
-  isSubmitting = false;
-  errorMessage: string | null = null;
+  private readonly isLoadingSignal = signal(true);
+  private readonly isSubmittingSignal = signal(false);
+  private readonly errorMessageSignal = signal<string | null>(null);
 
   private clientApi = inject(ClientApiService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
-  private cdr = inject(ChangeDetectorRef);
+
+  get client() { return this.clientSignal(); }
+  set client(value: Omit<Client, 'id'>) { this.clientSignal.set(value); }
+
+  get isLoading() { return this.isLoadingSignal(); }
+  set isLoading(value: boolean) { this.isLoadingSignal.set(value); }
+
+  get isSubmitting() { return this.isSubmittingSignal(); }
+  set isSubmitting(value: boolean) { this.isSubmittingSignal.set(value); }
+
+  get errorMessage() { return this.errorMessageSignal(); }
+  set errorMessage(value: string | null) { this.errorMessageSignal.set(value); }
 
   ngOnInit() {
     this.route.paramMap.subscribe(params => {
@@ -57,12 +69,10 @@ export class EditClient implements OnInit {
           identificador: client.identificador ?? null
         };
         this.isLoading = false;
-        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Error loading client', err);
         this.isLoading = false;
-        this.cdr.detectChanges();
         this.router.navigate(['/clientes']);
       }
     });
@@ -77,7 +87,6 @@ export class EditClient implements OnInit {
 
     this.isSubmitting = true;
     this.errorMessage = null;
-    this.cdr.detectChanges();
 
     // Safety fallback
     const safetyTimer = setTimeout(() => {
@@ -85,7 +94,6 @@ export class EditClient implements OnInit {
         console.error('🛑 Safety timer triggered');
         this.isSubmitting = false;
         this.errorMessage = 'El servidor no responde. Revisa el backend.';
-        this.cdr.detectChanges();
       }
     }, 15000);
 
@@ -106,7 +114,6 @@ export class EditClient implements OnInit {
           console.log('🏁 Request finalized');
           clearTimeout(safetyTimer);
           this.isSubmitting = false;
-          this.cdr.detectChanges();
         })
       )
       .subscribe({
@@ -117,7 +124,6 @@ export class EditClient implements OnInit {
         error: (err) => {
           console.error('❌ Detailed error updating client:', err);
           this.errorMessage = 'No se pudo actualizar el cliente. Comprueba la conexión.';
-          this.cdr.detectChanges();
         }
       });
   }

@@ -1,4 +1,4 @@
-import { Injectable, signal, effect } from '@angular/core';
+import { Injectable, effect, signal } from '@angular/core';
 
 export type ThemeMode = 'light' | 'dark';
 export type PrimaryColor = 'blue' | 'rose' | 'emerald' | 'indigo' | 'amber' | 'purple';
@@ -44,6 +44,11 @@ export class ThemeService {
 
   setPrimaryColor(color: PrimaryColor) {
     this.primaryColor.set(color);
+  }
+
+  initializeTheme() {
+    this.applyTheme(this.themeMode());
+    this.applyColor(this.primaryColor());
   }
 
   private applyTheme(mode: ThemeMode) {

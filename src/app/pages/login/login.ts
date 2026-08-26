@@ -6,6 +6,7 @@ import { SettingsApiService } from '../../core/services/settings-api.service';
 import { ProfessionalApiService } from '../../core/services/professional-api.service';
 import { Professional } from '../../core/models/professional.model';
 import { HttpContext } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { silentError } from '../../core/http/http-contexts';
 
 @Component({
@@ -18,6 +19,7 @@ export class Login {
   authService = inject(AuthService);
   settingsApi = inject(SettingsApiService);
   professionalApi = inject(ProfessionalApiService);
+  private router = inject(Router);
   
   settings = this.settingsApi.settings;
   
@@ -54,7 +56,10 @@ export class Login {
     this.error.set('');
 
     this.authService.login(this.username, this.password).subscribe({
-      next: () => this.isLoading.set(false),
+      next: () => {
+        this.isLoading.set(false);
+        this.router.navigate(['/panel']);
+      },
       error: (err) => {
         this.error.set(err.error?.message || 'Credenciales incorrectas');
         this.isLoading.set(false);
@@ -63,6 +68,8 @@ export class Login {
   }
 
   loginAsGuest() {
-    this.authService.loginAsGuest().subscribe();
+    this.authService.loginAsGuest().subscribe({
+      next: () => this.router.navigate(['/panel']),
+    });
   }
 }

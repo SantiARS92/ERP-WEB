@@ -1,5 +1,5 @@
 import { CurrencyPipe, DecimalPipe, NgClass, SlicePipe } from '@angular/common';
-import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ReportApiService } from '../../../core/services/report-api.service';
 import { AnnualConsolidatedReport } from '../../../core/models/report.model';
@@ -10,18 +10,33 @@ import { FormsModule } from '@angular/forms';
   selector: 'app-informe-anual',
   imports: [CurrencyPipe, DecimalPipe, SlicePipe, NgClass, RouterLink, FormsModule],
   templateUrl: './anual.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class InformeAnual implements OnInit {
-  reportData: AnnualConsolidatedReport | null = null;
   selectedYear: number = new Date().getFullYear();
   availableYears: number[] = [2024, 2025, 2026];
-  hasError = false;
-  isDownloadingPdf = false;
-  downloadSuccess = false;
-  maxMonthlyValue = 1000;
+  private readonly reportDataSignal = signal<AnnualConsolidatedReport | null>(null);
+  private readonly hasErrorSignal = signal(false);
+  private readonly isDownloadingPdfSignal = signal(false);
+  private readonly downloadSuccessSignal = signal(false);
+  private readonly maxMonthlyValueSignal = signal(1000);
 
   private reportApi = inject(ReportApiService);
-  private cdr = inject(ChangeDetectorRef);
+
+  get reportData() { return this.reportDataSignal(); }
+  set reportData(value: AnnualConsolidatedReport | null) { this.reportDataSignal.set(value); }
+
+  get hasError() { return this.hasErrorSignal(); }
+  set hasError(value: boolean) { this.hasErrorSignal.set(value); }
+
+  get isDownloadingPdf() { return this.isDownloadingPdfSignal(); }
+  set isDownloadingPdf(value: boolean) { this.isDownloadingPdfSignal.set(value); }
+
+  get downloadSuccess() { return this.downloadSuccessSignal(); }
+  set downloadSuccess(value: boolean) { this.downloadSuccessSignal.set(value); }
+
+  get maxMonthlyValue() { return this.maxMonthlyValueSignal(); }
+  set maxMonthlyValue(value: number) { this.maxMonthlyValueSignal.set(value); }
 
   ngOnInit() { this.loadData(); }
 
@@ -33,12 +48,10 @@ export class InformeAnual implements OnInit {
         this.reportData = data;
         const maxFound = Math.max(...data.monthlyBreakdown.map(m => Math.max(m.grossIncome, m.grossExpenses)));
         this.maxMonthlyValue = maxFound > 0 ? maxFound : 1000;
-        this.cdr.detectChanges();
       },
       error: () => {
         this.hasError = true;
         this.reportData = null;
-        this.cdr.detectChanges();
       }
     });
   }
@@ -55,13 +68,13 @@ export class InformeAnual implements OnInit {
         const a = document.createElement('a');
         a.href = url;
         a.download = `informe-anual-consolidado-${this.selectedYear}.pdf`;
+        document.body.appendChild(a);
         a.click();
+        a.remove();
         window.URL.revokeObjectURL(url);
-        this.cdr.detectChanges();
       },
       error: () => { 
         this.isDownloadingPdf = false;
-        this.cdr.detectChanges();
       }
     });
   }

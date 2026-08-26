@@ -1,3 +1,5 @@
+import { Page } from './page.model';
+
 export type ProductType = 'SIMPLE' | 'VARIANT';
 
 export interface InventoryVariant {
@@ -38,10 +40,4 @@ export interface Product {
   variants?: InventoryVariant[];
 }
 
-export interface ProductPage {
-  content: Product[];
-  totalElements: number;
-  totalPages: number;
-  size: number;
-  number: number;
-}
+export type ProductPage = Page<Product>;

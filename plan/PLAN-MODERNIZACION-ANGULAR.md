@@ -8,7 +8,7 @@
 | Angular | 21.1.x |
 | Gestor de paquetes | pnpm 10.33.0 |
 | Fecha de análisis | 2026-08-25 |
-| Estado global | 🟡 Fase 5 en curso |
+| Estado global | 🟡 Fase 6 en curso |
 
 ---
 
@@ -436,7 +436,7 @@ Cada fase completada genera un documento en `plan/fases/` siguiendo la plantilla
 | 3 — Tooling | `fases/fase-03-tooling.md` | 🟢 Completada | 2026-08-26 | `2544e63` |
 | 4 — Migraciones automáticas | `fases/fase-04-migraciones-automaticas.md` | 🟢 Completada | 2026-08-26 | `f058dfb` |
 | 5 — Limpieza | `fases/fase-05-limpieza.md` | 🟡 En curso | 2026-08-26 | — |
-| 6 — Reactividad | `fases/fase-06-reactividad.md` | 🔴 Pendiente | — | — |
+| 6 — Reactividad | `fases/fase-06-reactividad.md` | 🟡 En curso | 2026-08-26 | — |
 | 7 — Arquitectura | `fases/fase-07-arquitectura.md` | 🔴 Pendiente | — | — |
 | 8 — Refactor profundo | `fases/fase-08-refactor-profundo.md` | 🔴 Pendiente | — | — |
 

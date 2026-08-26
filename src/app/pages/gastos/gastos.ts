@@ -1,32 +1,36 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DecimalPipe, NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ExpenseApiService } from '../../core/services/expense-api.service';
 import { ExpenseResponse, ExpenseCategory } from '../../core/models/expense.model';
 import { PaginationComponent } from '../../shared/components/pagination/pagination';
+import { createPagedResource } from '../../core/state/paged-resource';
 
 @Component({
   selector: 'app-gastos',
   imports: [DecimalPipe, NgClass, RouterLink, FormsModule, PaginationComponent],
   templateUrl: './gastos.html',
   styles: ``,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Gastos implements OnInit {
+export class Gastos {
   private expenseApi = inject(ExpenseApiService);
-  private cdr = inject(ChangeDetectorRef);
-
-  expenses: ExpenseResponse[] = [];
-
-  currentPage = 0;
-  pageSize = 10;
-  totalElements = 0;
-  totalPages = 0;
-
-  search = '';
-  fromDate = '';
-  toDate = '';
-  quickFilter: 'month' | 'quarter' | 'year' = 'month';
+  readonly pageSize = 10;
+  readonly search = signal('');
+  readonly fromDate = signal('');
+  readonly toDate = signal('');
+  readonly quickFilter = signal<'month' | 'quarter' | 'year'>('month');
+  private readonly resource = createPagedResource({
+    initialFilters: { search: '', fromDate: '', toDate: '', page: 0, size: this.pageSize },
+    fetcher: (filters) => this.expenseApi.getExpenses(filters),
+  });
+  readonly expenses = this.resource.items;
+  readonly totalElements = this.resource.totalElements;
+  readonly currentPage = this.resource.page;
+  readonly totalPages = this.resource.totalPages;
+  readonly hasError = computed(() => this.resource.error() !== null);
+  readonly isLoading = this.resource.isLoading;
   
   readonly categories: { value: ExpenseCategory; label: string }[] = [
     { value: 'SUPPLIES', label: 'Suministros' },
@@ -34,41 +38,12 @@ export class Gastos implements OnInit {
     { value: 'OTHER',    label: 'Otros'        },
   ];
 
-  ngOnInit(): void {
+  constructor() {
     this.setQuickFilter('month');
   }
 
-
-
-  loadDetailedExpenses() {
-    const filters = {
-      search: this.search,
-      fromDate: this.fromDate,
-      toDate: this.toDate,
-      page: this.currentPage,
-      size: this.pageSize
-    };
-    this.expenseApi.getExpenses(filters).subscribe({
-      next: (data: any) => {
-        if (data && typeof data === 'object') {
-          if (Array.isArray(data.content)) {
-            this.expenses = data.content;
-            this.totalElements = data.totalElements ?? data.content.length;
-            this.totalPages = data.totalPages ?? Math.ceil(this.totalElements / this.pageSize);
-          } else if (Array.isArray(data)) {
-            this.expenses = data;
-            this.totalElements = data.length;
-            this.totalPages = Math.ceil(data.length / this.pageSize);
-          }
-        }
-        this.cdr.detectChanges();
-      },
-      error: (err) => console.error('Error loading expenses:', err)
-    });
-  }
-
   setQuickFilter(filter: 'month' | 'quarter' | 'year') {
-    this.quickFilter = filter;
+    this.quickFilter.set(filter);
     const now = new Date();
     let start: Date;
     let end: Date;
@@ -85,11 +60,12 @@ export class Gastos implements OnInit {
       end = new Date(now.getFullYear(), 11, 31);
     }
 
-    this.fromDate = this.formatDate(start);
-    this.toDate = this.formatDate(end);
-    this.currentPage = 0;
+    const fromDate = this.formatDate(start);
+    const toDate = this.formatDate(end);
 
-    this.loadDetailedExpenses();
+    this.fromDate.set(fromDate);
+    this.toDate.set(toDate);
+    this.resource.setFilters({ search: this.search(), fromDate, toDate, page: 0 });
   }
 
   private formatDate(date: Date): string {
@@ -104,9 +80,23 @@ export class Gastos implements OnInit {
 
 
 
-  onSearchChange() {
-    this.currentPage = 0;
-    this.loadDetailedExpenses();
+  onSearchChange(partial: { search?: string; fromDate?: string; toDate?: string }) {
+    if (partial.search !== undefined) {
+      this.search.set(partial.search);
+    }
+    if (partial.fromDate !== undefined) {
+      this.fromDate.set(partial.fromDate);
+    }
+    if (partial.toDate !== undefined) {
+      this.toDate.set(partial.toDate);
+    }
+
+    this.resource.setFilters({
+      search: partial.search ?? this.search(),
+      fromDate: partial.fromDate ?? this.fromDate(),
+      toDate: partial.toDate ?? this.toDate(),
+      page: 0,
+    });
   }
 
 
@@ -115,15 +105,15 @@ export class Gastos implements OnInit {
 
   exportPdf() {
     this.expenseApi.exportExpensesToPdf({
-      search: this.search,
-      fromDate: this.fromDate,
-      toDate: this.toDate
+      search: this.search(),
+      fromDate: this.fromDate(),
+      toDate: this.toDate()
     }).subscribe({
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `historial_gastos_${this.fromDate}_${this.toDate}.pdf`;
+        a.download = `historial_gastos_${this.fromDate()}_${this.toDate()}.pdf`;
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -150,10 +140,13 @@ export class Gastos implements OnInit {
   }
 
   goToPage(p: number) {
-    if (p >= 0 && p < this.totalPages) {
-      this.currentPage = p;
-      this.loadDetailedExpenses();
+    if (p >= 0 && p < this.totalPages()) {
+      this.resource.setPage(p);
     }
+  }
+
+  reload() {
+    this.resource.reload();
   }
 
 }
