@@ -7,5 +7,4 @@ plan
 .editorconfig
 Dockerfile
 docker-compose.yml
-docker-entrypoint.sh
-nginx.conf.template
+
