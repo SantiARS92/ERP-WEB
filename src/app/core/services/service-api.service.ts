@@ -17,7 +17,7 @@ export interface ServiceFilters {
 })
 export class ServiceApiService {
   private http = inject(HttpClient);
-  private apiUrl = `${environment.apiUrl}/api/services`;
+  private apiUrl = `${environment.apiUrl}/services`;
 
   getServices(filters: ServiceFilters = {}): Observable<ServicePage> {
     let params = new HttpParams();

@@ -15,7 +15,7 @@ import { environment } from '../../../environments/environment';
 })
 export class ReportApiService {
   private http = inject(HttpClient);
-  private apiUrl = `${environment.apiUrl}/api/reports`;
+  private apiUrl = `${environment.apiUrl}/reports`;
 
   getMonthlySimple(year: number, month: number): Observable<MonthlySimpleReport> {
     const params = new HttpParams({ fromObject: { year: String(year), month: String(month) } });

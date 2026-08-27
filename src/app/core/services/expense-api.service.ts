@@ -10,7 +10,7 @@ import { requestTimeout } from '../http/http-contexts';
   providedIn: 'root'
 })
 export class ExpenseApiService {
-  private readonly baseUrl = `${environment.apiUrl}/api/expenses`;
+  private readonly baseUrl = `${environment.apiUrl}/expenses`;
   private http = inject(HttpClient);
   createExpense(expense: ExpenseRequest): Observable<ExpenseResponse> {
     return this.http.post<ExpenseResponse>(this.baseUrl, expense);

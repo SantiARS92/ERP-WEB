@@ -10,7 +10,7 @@ import { requestTimeout } from '../http/http-contexts';
   providedIn: 'root'
 })
 export class ProductApiService {
-  private readonly baseUrl = `${environment.apiUrl}/api/inventory/products`;
+  private readonly baseUrl = `${environment.apiUrl}/inventory/products`;
   private http = inject(HttpClient);
   getProducts(filters: { search?: string; categoryIds?: string; page?: number; size?: number } = {}): Observable<ProductPage> {
     let params = new HttpParams();

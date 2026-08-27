@@ -9,7 +9,7 @@ import { environment } from '../../../environments/environment';
 })
 export class SettingsApiService {
   private http = inject(HttpClient);
-  private apiUrl = `${environment.apiUrl}/api/settings`;
+  private apiUrl = `${environment.apiUrl}/settings`;
 
   getSettings(context?: HttpContext): Observable<BusinessSettings> {
     return this.http.get<BusinessSettings>(this.apiUrl, context ? { context } : undefined);

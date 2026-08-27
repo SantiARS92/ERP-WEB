@@ -18,7 +18,7 @@ interface AuthResponse {
 export class AuthService {
   private http = inject(HttpClient);
   private storage = inject(StorageService);
-  private readonly baseUrl = `${environment.apiUrl}/api/auth`;
+  private readonly baseUrl = `${environment.apiUrl}/auth`;
   
   // Use a signal for reactive authentication state
   readonly isLoggedIn = signal<boolean>(false);

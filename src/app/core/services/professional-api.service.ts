@@ -9,7 +9,7 @@ import { environment } from '../../../environments/environment';
 })
 export class ProfessionalApiService {
   private http = inject(HttpClient);
-  private apiUrl = `${environment.apiUrl}/api/professionals`;
+  private apiUrl = `${environment.apiUrl}/professionals`;
   getProfessionals(active?: boolean, context?: HttpContext ): Observable<Professional[]> {
     let params = new HttpParams();
     if (active !== undefined) {

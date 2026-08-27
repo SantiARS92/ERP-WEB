@@ -9,7 +9,7 @@ import { environment } from '../../../environments/environment';
 })
 export class AppointmentApiService {
   private http = inject(HttpClient);
-  private apiUrl = `${environment.apiUrl}/api/appointments`;
+  private apiUrl = `${environment.apiUrl}/appointments`;
 
   getAppointments(fromDate: string, toDate: string): Observable<Appointment[]> {
     const params = new HttpParams()

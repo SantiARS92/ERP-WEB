@@ -10,7 +10,7 @@ import { requestTimeout } from '../http/http-contexts';
   providedIn: 'root'
 })
 export class SaleApiService {
-  private readonly baseUrl = `${environment.apiUrl}/api/sales`;
+  private readonly baseUrl = `${environment.apiUrl}/sales`;
   private http = inject(HttpClient);
   createSale(sale: SaleRequest): Observable<SaleResponse> {
     return this.http.post<SaleResponse>(this.baseUrl, sale);

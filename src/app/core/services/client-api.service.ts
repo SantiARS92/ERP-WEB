@@ -8,7 +8,7 @@ import { environment } from '../../../environments/environment';
   providedIn: 'root'
 })
 export class ClientApiService {
-  private readonly baseUrl = `${environment.apiUrl}/api/clients`;
+  private readonly baseUrl = `${environment.apiUrl}/clients`;
   private http = inject(HttpClient);
   /**
    * GET /api/clients  — paginated list with optional search

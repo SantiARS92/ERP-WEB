@@ -9,7 +9,7 @@ import { environment } from '../../../environments/environment';
 })
 export class CategoryApiService {
   private http = inject(HttpClient);
-  private apiUrl = `${environment.apiUrl}/api/categories`;
+  private apiUrl = `${environment.apiUrl}/categories`;
 
   getCategories(search?: string): Observable<Category[]> {
     let params = {};

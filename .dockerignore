@@ -1,0 +1,11 @@
+node_modules
+.angular
+dist
+.git
+plan
+.vscode
+.editorconfig
+Dockerfile
+docker-compose.yml
+docker-entrypoint.sh
+nginx.conf.template
