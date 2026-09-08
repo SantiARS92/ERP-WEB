@@ -3,6 +3,7 @@ import { PrimaryColor, ThemeMode } from './theme.service';
 
 const STORAGE_KEYS = {
   accessToken: 'accessToken',
+  refreshToken: 'refreshToken',
   themeMode: 'theme-mode',
   primaryColor: 'primary-color',
   fallbackBusinessName: 'fallback_businessName',
@@ -23,6 +24,18 @@ export class StorageService {
 
   clearAccessToken(): void {
     this.removeItem(STORAGE_KEYS.accessToken);
+  }
+
+  getRefreshToken(): string | null {
+    return this.getItem(STORAGE_KEYS.refreshToken);
+  }
+
+  setRefreshToken(token: string): void {
+    this.setItem(STORAGE_KEYS.refreshToken, token);
+  }
+
+  clearRefreshToken(): void {
+    this.removeItem(STORAGE_KEYS.refreshToken);
   }
 
   getThemeMode(): ThemeMode | null {

@@ -1,14 +1,16 @@
 import { computed, Injectable, signal, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, firstValueFrom, map, of, tap } from 'rxjs';
+import { Observable, catchError, firstValueFrom, map, of, tap, throwError } from 'rxjs';
 import { User, UserRole } from '../models/user.model';
 import { environment } from '../../../environments/environment';
 import { StorageService } from './storage.service';
+import { Router } from '@angular/router';
 
 interface AuthResponse {
   displayName: string;
   role: UserRole;
   accessToken: string;
+  refreshToken: string;
   professionalId?: number;
 }
 
@@ -18,6 +20,7 @@ interface AuthResponse {
 export class AuthService {
   private http = inject(HttpClient);
   private storage = inject(StorageService);
+  private router = inject(Router);
   private readonly baseUrl = `${environment.apiUrl}/auth`;
   
   // Use a signal for reactive authentication state
@@ -85,6 +88,7 @@ export class AuthService {
     };
 
     this.storage.setAccessToken(res.accessToken);
+    this.storage.setRefreshToken(res.refreshToken);
 
     this.isLoggedIn.set(true);
     this.currentUser.set(user);
@@ -94,12 +98,24 @@ export class AuthService {
   logout() {
     this.clearSession();
     this.isInitialized.set(true);
+    this.router.navigate(['/login']);
   }
 
   private clearSession() {
     this.storage.clearAccessToken();
+    this.storage.clearRefreshToken();
     this.isLoggedIn.set(false);
     this.currentUser.set(null);
+  }
+  refreshAccessToken(): Observable<AuthResponse> {
+    const refreshToken = this.storage.getRefreshToken();
+    if (!refreshToken) {
+      return throwError(() => new Error('No hay refresh token disponible'));
+    }
+
+    return this.http.post<AuthResponse>(`${this.baseUrl}/refresh`, { refreshToken }).pipe(
+      tap(res => this.handleAuthSuccess(res))
+    );
   }
 
   /**
