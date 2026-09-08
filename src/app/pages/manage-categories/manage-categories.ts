@@ -28,7 +28,7 @@ export class ManageCategories {
   readonly selectedCategoryName = signal('');
   readonly currentPage = signal(0);
   readonly pageSize = 10;
-  readonly categoriesError = signal(false);
+
   private readonly refreshTick = signal(0);
   categoryToDelete?: Category;
   
@@ -58,11 +58,8 @@ export class ManageCategories {
     ),
     { initialValue: { categories: [], error: false } }
   );
-  readonly allCategories = computed(() => {
-    const response = this.categoriesResponse();
-    this.categoriesError.set(response.error);
-    return response.categories;
-  });
+  readonly allCategories = computed(() => this.categoriesResponse().categories);
+  readonly categoriesError = computed(() => this.categoriesResponse().error);
   readonly totalElements = computed(() => this.allCategories().length);
   readonly totalPages = computed(() => Math.ceil(this.totalElements() / this.pageSize) || 1);
   readonly categories = computed(() => {
