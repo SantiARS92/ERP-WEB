@@ -338,8 +338,8 @@ export class Configuracion implements OnInit, OnDestroy {
         this.loadAll();
         this.closeProfessionalModal();
       },
-      error: () => {
-        this.notification.error('Error al guardar el profesional. Compruebe los datos.');
+      error: (err) => {
+        this.notification.error(err.error?.message || 'Error al guardar el profesional. Compruebe los datos.');
       }
     });
   }
@@ -362,8 +362,8 @@ export class Configuracion implements OnInit, OnDestroy {
         this.loadAll();
         this.closeProfessionalModal();
       },
-      error: () => {
-        this.notification.error('Error al eliminar el profesional');
+      error: (err) => {
+        this.notification.error(err.error?.message || 'Error al eliminar el profesional');
       }
     });
   }
