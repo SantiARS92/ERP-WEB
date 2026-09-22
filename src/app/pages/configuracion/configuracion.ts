@@ -93,6 +93,7 @@ export class Configuracion implements OnInit, OnDestroy {
     cip: ''
   });
 
+  private readonly calendarMonthSignal = signal(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   private readonly professionalsSignal = signal<Professional[]>([]);
   private readonly isSubmittingSignal = signal(false);
   private readonly saveStatusSignal = signal<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -128,6 +129,34 @@ export class Configuracion implements OnInit, OnDestroy {
   set isProfessionalModalOpen(value: boolean) { this.isProfessionalModalOpenSignal.set(value); }
   get editingProfessional() { return this.editingProfessionalSignal(); }
   set editingProfessional(value: ProfessionalDraft) { this.editingProfessionalSignal.set(value); }
+  get calendarMonth() { return this.calendarMonthSignal(); }
+  set calendarMonth(value: Date) { this.calendarMonthSignal.set(value); }
+
+  get calendarMonthLabel(): string {
+    const monthNames = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+    const d = this.calendarMonth;
+    return `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+  }
+  get calendarDays():Array<{ dateStr: string; dayNumber: number; hasClosure: boolean } | null> {
+    const d = this.calendarMonth;
+    const year = d.getFullYear();
+    const month = d.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const leadingEmpty = (firstDay.getDay() + 6) % 7; // Lunes = 0
+
+    const closuredates = new Set(this.settings.specialClosures.map(c => c.closureDate));
+    const cells: Array<{ dateStr: string; dayNumber: number; hasClosure: boolean } | null> = [];
+    for (let i = 0; i < leadingEmpty; i++) cells.push(null);
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      cells.push({ dateStr, dayNumber: day, hasClosure: closuredates.has(dateStr) });
+    }
+    return cells;
+  }
 
   ngOnInit(): void {
     this.loadAll();
@@ -282,6 +311,29 @@ export class Configuracion implements OnInit, OnDestroy {
       specialClosures: [...this.settings.specialClosures, { closureDate: '', reason: '' }],
     };
     this.onFieldChange();
+  }
+
+  previousMonth() {
+    const d = this.calendarMonth;
+    this.calendarMonthSignal.set(new Date(d.getFullYear(), d.getMonth() - 1, 1));
+  }
+
+  nextMonth() {
+    const d = this.calendarMonth;
+    this.calendarMonthSignal.set(new Date(d.getFullYear(), d.getMonth() + 1, 1));
+  }
+
+  toggleClosureDate(dateStr: string) {
+    const existingIndex = this.settings.specialClosures.findIndex(c => c.closureDate === dateStr);
+    if (existingIndex >= 0) {
+      this.removeClosure(existingIndex);
+    } else {
+      this.settings = {
+        ...this.settings,
+        specialClosures: [...this.settings.specialClosures, { closureDate: dateStr, reason: '' }],
+      };
+      this.onFieldChange();
+    }
   }
 
   removeClosure(index: number) {
