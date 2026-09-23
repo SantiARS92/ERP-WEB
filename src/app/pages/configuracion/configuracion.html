@@ -507,9 +507,6 @@
           <div>
             <label for="professional-fullName" class="block text-[13px] font-bold text-slate-800 mb-2">Nombre Completo</label>
             <input id="professional-fullName" type="text" [(ngModel)]="editingProfessional.fullName" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[14px] focus:outline-none focus:border-blue-400" placeholder="Ej. Ana García">
-            @if (editingProfessional.fullName) {
-              <p class="text-[11px] text-slate-400 mt-1.5">Este nombre se usará como usuario para iniciar sesión.</p>
-            }
           </div>
           <div>
             <label for="professional-specialty" class="block text-[13px] font-bold text-slate-800 mb-2">Especialidad</label>
@@ -523,6 +520,9 @@
             <div>
               <label for="professional-email" class="block text-[13px] font-bold text-slate-800 mb-2">Email</label>
               <input id="professional-email" type="email" [(ngModel)]="editingProfessional.email" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[14px] focus:outline-none focus:border-blue-400">
+              @if (editingProfessional.email) {
+                <p class="text-[11px] text-slate-400 mt-1.5">El email se usará como nombre de usuario para iniciar sesión.</p>
+              }
             </div>
           </div>
           <div>
