@@ -118,7 +118,7 @@ export class Dashboard implements OnInit {
       next: (res) => {
         const variantProducts = res.content.filter(p => p.hasVariants && p.id !== undefined);
 
-        if (variantProducts.length > 0) {
+        if (variantProducts.length > 0 && !this.authService.isGuest()) {
           from(variantProducts).pipe(
             mergeMap(
               p => this.productApi.getProductById(p.id as number).pipe(catchError(() => of(p))),
