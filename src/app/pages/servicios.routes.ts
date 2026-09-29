@@ -20,10 +20,7 @@ export const serviciosRoutes: Routes = [
         path: 'editar/:id',
         loadComponent: () => import('./edit-service/edit-service').then((m) => m.EditService),
       },
-      {
-        path: 'categorias',
-        loadComponent: () => import('./manage-categories/manage-categories').then((m) => m.ManageCategories),
-      },
+     
     ],
   },
 ];
