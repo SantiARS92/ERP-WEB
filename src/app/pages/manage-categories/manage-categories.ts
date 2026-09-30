@@ -28,10 +28,21 @@ export class ManageCategories {
   readonly selectedCategoryName = signal('');
   readonly currentPage = signal(0);
   readonly pageSize = 10;
+  readonly icons = [
+    // Estética y belleza
+    'spa', 'content_cut', 'brush', 'palette', 'clean_hands', 'face',
+    'face_3', 'self_care', 'health_and_beauty', 'massage', 'hand_gesture', 'soap',
+    // Agua y bienestar
+    'water_drop', 'shower', 'bathtub', 'hot_tub', 'pool', 'self_improvement',
+    // Salud y deporte
+    'fitness_center', 'healing', 'medical_services', 'favorite', 'local_florist', 'eco',
+    // Tienda y productos
+    'diamond', 'checkroom', 'storefront', 'shopping_bag', 'inventory_2', 'redeem',
+  ];
 
   private readonly refreshTick = signal(0);
   categoryToDelete?: Category;
-  
+
   // Category Form State
   categoryForm: Category = {
     name: '',
