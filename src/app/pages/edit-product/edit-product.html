@@ -53,10 +53,14 @@
               <div class="relative">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">category</span>
                 <select id="product-categoryId" formControlName="categoryId"
+                  (change)="onCategoryChange($event)"
                   class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[14px] text-slate-700 appearance-none">
                   <option [value]="0" disabled>Selecciona categoría...</option>
                   @for (cat of categories; track cat.id) {
                     <option [value]="cat.id">{{ cat.name }}</option>
+                  }
+                  @if (isAdmin()) {
+                    <option [value]="-1">+ Nueva Categoría</option>
                   }
                 </select>
                 <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
@@ -199,6 +203,10 @@
 
         </div>
         </form>
+        @if (isCategoryModalOpen()) {
+          <app-category-modal (saved)="onCategoryCreated($event)"
+           (closed)="isCategoryModalOpen.set(false)" />
+        }
       </div>
     </div>
   </div>
