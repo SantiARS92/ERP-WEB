@@ -140,19 +140,19 @@
                 <button type="button" 
                         (click)="toggleTimeDropdown($event)" 
                         class="w-full px-4 py-3 rounded-xl border border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 bg-white flex items-center justify-between group shadow-[0_0_0_1px_rgba(59,130,246,0.1)]">
-                  <span class="text-[15px] font-bold text-slate-800">{{ formatTimeAMPM(form.controls.appointmentTime.value) }}</span>
+                  <span class="text-[15px] font-bold text-slate-800">{{ formatTime(form.controls.appointmentTime.value) }}</span>
                   <span class="material-symbols-outlined text-blue-500 group-hover:bg-blue-50 rounded-full transition-colors text-[20px] p-0.5">schedule</span>
                 </button>
                 
                 @if (isTimeDropdownOpen) {
                   <div class="absolute left-0 top-full mt-2 w-full bg-white border border-slate-200 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] z-50 overflow-hidden max-h-60 overflow-y-auto">
-                    @for (time of timeOptions; track time) {
+                    @for (time of timeOptions(); track time) {
                       <button type="button" 
                               (click)="selectTime(time, $event)" 
                               [class.bg-blue-500]="form.controls.appointmentTime.value === time + ':00'"
                               [class.text-white]="form.controls.appointmentTime.value === time + ':00'"
                               class="w-full text-left px-5 py-2.5 text-[14px] font-medium text-slate-700 hover:bg-slate-50 transition-colors">
-                        {{ formatTimeAMPM(time) }}
+                        {{ formatTime(time) }}
                       </button>
                     }
                   </div>

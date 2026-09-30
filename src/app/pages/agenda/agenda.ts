@@ -10,13 +10,15 @@ import { Appointment, AgendaDay } from '../../core/models/appointment.model';
 import { ProfessionalApiService } from '../../core/services/professional-api.service';
 import { FormsModule } from '@angular/forms';
 import { Professional } from '../../core/models/professional.model';
-import { toIsoDate } from '../../core/utils/date.util';
+import { formatTime24, toIsoDate } from '../../core/utils/date.util';
 import { Client } from '../../core/models/client.model';
 import { Service } from '../../core/models/service.model';
 import { NotificationService } from '../../core/services/notification.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { ClientsStore } from '../../core/state/clients.store';
 import { ServicesStore } from '../../core/state/services.store';
+import { SettingsStore } from '../../core/state/settings.store';
+import { buildTimeOptions, DEFAULT_END_HOUR, DEFAULT_START_HOUR, getAgendaHourRange } from '../../core/utils/agenda-hours.util';
 
 const MONTH_FORMATTER = new Intl.DateTimeFormat('es-ES', { month: 'short' });
 
@@ -29,33 +31,33 @@ const MONTH_FORMATTER = new Intl.DateTimeFormat('es-ES', { month: 'short' });
 export class Agenda implements OnInit {
   currentWeekStart!: Date;
   days: AgendaDay[] = [];
-  hours: number[] = [8, 9, 10, 11, 12, 13, 14, 15, 16]; // 08 AM to 04 PM
+  startHour = DEFAULT_START_HOUR;
+  endHour = DEFAULT_END_HOUR;
+  hours: number[] = [];
+
   private readonly appointmentsSignal = signal<Appointment[]>([]);
   viewMode: 'day' | 'week' = 'week';
   selectedDate: Date = new Date();
-  
+
   // Modal State
   private readonly isEditModalOpenSignal = signal(false);
   private readonly selectedAppointmentSignal = signal<Partial<Appointment>>({});
   private readonly isSubmittingSignal = signal(false);
   readonly canManageAppointments = computed(() => this.authService.currentUser()?.role !== UserRole.GUEST);
-  
+
   // For the modal select/autocomplete
   private readonly allClientsSignal = signal<Client[]>([]);
   private readonly allServicesSignal = signal<Service[]>([]);
   private readonly allProfessionalsSignal = signal<Professional[]>([]);
   private readonly filteredClientsSignal = signal<Client[]>([]);
-  timeOptions = [
-    '09:00', '09:30', '10:00', '10:30', 
-    '11:00', '11:30', '12:00', '12:30',
-    '13:00', '13:30', '14:00', '14:30',
-    '15:00', '15:30', '16:00', '16:30'
-  ];
-  
+  timeOptions: string[] = [];
+
+
   // Real time indicator
+  readonly formatTime = formatTime24;
   private readonly currentTimePositionSignal = signal(0);
   private readonly destroyRef = inject(DestroyRef);
-  
+
   private appointmentApi = inject(AppointmentApiService);
   private professionalApi = inject(ProfessionalApiService);
   public authService = inject(AuthService);
@@ -63,6 +65,8 @@ export class Agenda implements OnInit {
   private confirm = inject(ConfirmService);
   private clientsStore = inject(ClientsStore);
   private servicesStore = inject(ServicesStore);
+  private settingsStore = inject(SettingsStore);
+
 
   get appointments() { return this.appointmentsSignal(); }
   set appointments(value: Appointment[]) { this.appointmentsSignal.set(value); }
@@ -85,10 +89,16 @@ export class Agenda implements OnInit {
 
   ngOnInit() {
     this.selectedDate = new Date();
+    this.updateHourRange();
+    // Los ajustes se cargan al arrancar la app, antes del login; si no llegaron, se piden ahora
+    if (!this.settingsStore.settings()) {
+      this.settingsStore.load().then(() => this.calculateAllStyles());
+    }
+
     this.initCurrentWeek();
     this.calculateCurrentTimePosition();
     this.loadAllData();
-    
+
     // Update red line every minute
     interval(60000)
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -104,8 +114,8 @@ export class Agenda implements OnInit {
   initCurrentWeek() {
     const today = this.selectedDate;
     const dayOfWeek = today.getDay(); // 0 (Sun) - 6 (Sat)
-    const diffToMonday = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); 
-    
+    const diffToMonday = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+
     this.currentWeekStart = new Date(today.getFullYear(), today.getMonth(), diffToMonday);
     this.generateDays();
     this.loadAppointments();
@@ -123,12 +133,12 @@ export class Agenda implements OnInit {
   generateDays() {
     this.days = [];
     const dayNames = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
-    
+
     if (this.viewMode === 'week') {
       for (let i = 0; i < 7; i++) {
         const d = new Date(this.currentWeekStart);
         d.setDate(this.currentWeekStart.getDate() + i);
-        
+
         this.days.push({
           dateObj: d,
           dateStr: this.formatDate(d),
@@ -152,8 +162,8 @@ export class Agenda implements OnInit {
 
   loadAppointments() {
     const startStr = this.days[0].dateStr;
-    const endStr = this.days[6].dateStr;
-    
+    const endStr = this.days[this.days.length - 1].dateStr;
+
     this.appointmentApi.getAppointments(startStr, endStr).subscribe((data: Appointment[]) => {
       this.appointments = data;
       this.calculateAllStyles();
@@ -161,7 +171,7 @@ export class Agenda implements OnInit {
   }
 
   // --- Helpers ---
-  
+
   formatDate(date: Date): string {
     return toIsoDate(date);
   }
@@ -169,21 +179,21 @@ export class Agenda implements OnInit {
   isToday(date: Date): boolean {
     const today = new Date();
     return date.getDate() === today.getDate() &&
-           date.getMonth() === today.getMonth() &&
-           date.getFullYear() === today.getFullYear();
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear();
   }
 
   getWeekDateRange(): string {
     if (!this.days.length) return '';
     const start = this.days[0].dateObj;
     const end = this.days[6].dateObj;
-    
+
     const startNum = start.getDate();
     const endNum = end.getDate();
     // Assuming same month/year for simple UI formatting as in the picture
     const month = MONTH_FORMATTER.format(start);
     const year = start.getFullYear();
-    
+
     return `${startNum} - ${endNum} ${month}, ${year}`;
   }
 
@@ -214,16 +224,14 @@ export class Agenda implements OnInit {
     this.initCurrentWeek();
   }
 
-  // Format hour label (e.g. 08 AM)
+  // Etiqueta de la hora en 24 h (ej. 08:00, 17:00)
   formatHourLabel(hour: number): string {
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    let h = hour % 12;
-    if (h === 0) h = 12; // 12 PM/AM
-    return `${String(h).padStart(2, '0')} ${ampm}`;
+    return `${String(hour).padStart(2, '0')}:00`;
   }
 
+
   // --- Grid Positioning Logic ---
-  
+
   getAppointmentsForDay(dateStr: string): Appointment[] {
     return this.appointments.filter(a => a.appointmentDate === dateStr);
   }
@@ -233,7 +241,27 @@ export class Agenda implements OnInit {
     return srv ? srv.durationMinutes : 60; // Default to 60 if not found
   }
 
+  updateHourRange() {
+    const range = getAgendaHourRange(this.settingsStore.settings()?.openingHours);
+
+    // Ampliar el rango para que ninguna cita quede fuera de la cuadrícula
+    for (const app of this.appointments) {
+      const [h, m] = app.appointmentTime.split(':').map(Number);
+      const endMin = h * 60 + m + this.getAppointmentDuration(app);
+      range.start = Math.min(range.start, h);
+      range.end = Math.max(range.end, Math.ceil(endMin / 60));
+    }
+
+    this.startHour = range.start;
+    this.endHour = Math.min(range.end, 24);
+    this.hours = Array.from({ length: this.endHour - this.startHour }, (_, i) => this.startHour + i);
+    this.timeOptions = buildTimeOptions(this.startHour, this.endHour);
+    this.calculateCurrentTimePosition();
+  }
+
+
   calculateAllStyles() {
+    this.updateHourRange();
     this.appointmentStyles = {};
     for (const day of this.days) {
       const dayApps = this.getAppointmentsForDay(day.dateStr);
@@ -271,7 +299,7 @@ export class Agenda implements OnInit {
 
       for (const cluster of clusters) {
         const columns: number[] = [];
-        
+
         for (const item of cluster) {
           let colIdx = columns.findIndex(endTime => endTime <= item.startMin);
           if (colIdx === -1) {
@@ -291,10 +319,10 @@ export class Agenda implements OnInit {
             this.appointmentStyles = {
               ...this.appointmentStyles,
               [item.app.id]: {
-              'top.px': this.timeToPixels(item.startH, item.startM),
-              'height.px': (item.duration / 60) * 100,
-              'width.%': widthPercent,
-              'left.%': 5 + (item.colIdx * widthPercent)
+                'top.px': this.timeToPixels(item.startH, item.startM),
+                'height.px': (item.duration / 60) * 100,
+                'width.%': widthPercent,
+                'left.%': 5 + (item.colIdx * widthPercent)
               },
             };
           }
@@ -332,26 +360,19 @@ export class Agenda implements OnInit {
     return 'bg-indigo-100 border-l-4 border-indigo-500 text-indigo-900';
   }
 
-  // Calculates pixels from 08:00 AM. 
-  // Base constants: each hour = row height of 100px.
-  // Example: 08:00 = 0px, 09:30 = 150px
+  // Píxeles desde la primera hora visible (cada hora = 100px). Ej: con inicio 08:00, 09:30 = 150px
   timeToPixels(hour: number, minute: number): number {
-    const baseHour = 8;
     const hourPx = 100;
-    
-    // clamp bounds slightly if appointment overlaps outside
-    const safeHour = Math.max(8, Math.min(hour, 17)); 
-    const diffHours = safeHour - baseHour;
-    
-    return (diffHours * hourPx) + ((minute / 60) * hourPx);
+    return ((hour - this.startHour) * hourPx) + ((minute / 60) * hourPx);
   }
+
 
   calculateCurrentTimePosition() {
     const now = new Date();
     const h = now.getHours();
     const m = now.getMinutes();
-    
-    if (h >= 8 && h < 17) {
+
+    if (h >= this.startHour && h < this.endHour) {
       this.currentTimePosition = this.timeToPixels(h, m);
     } else {
       this.currentTimePosition = -1; // hide if out of bounds
@@ -432,14 +453,6 @@ export class Agenda implements OnInit {
     this.isStatusDropdownOpen = false;
     this.isClientDropdownOpen = false;
     this.filteredClients = [];
-  }
-
-  formatTimeAMPM(time: string): string {
-    if (!time) return '';
-    const [h, m] = time.split(':').map(Number);
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    const hour = h % 12 || 12;
-    return `${String(hour).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
   }
 
   updateAppointment() {
