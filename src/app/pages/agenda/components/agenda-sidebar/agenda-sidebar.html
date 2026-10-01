@@ -1,0 +1,97 @@
+@if (collapsed()) {
+<!-- Panel plegado: barra estrecha con el botón para abrirlo -->
+<div class="flex flex-col items-center gap-3">
+  <button type="button" (click)="toggleCollapsed()" aria-label="Mostrar panel" title="Mostrar panel"
+          class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50">
+    <span class="material-symbols-outlined text-[20px]">left_panel_open</span>
+  </button>
+  <span class="material-symbols-outlined mt-1 text-[20px] text-slate-400" aria-hidden="true">calendar_month</span>
+  <span class="material-symbols-outlined text-[20px] text-slate-400" aria-hidden="true">insights</span>
+  <span class="material-symbols-outlined text-[20px] text-slate-400" aria-hidden="true">palette</span>
+</div>
+} @else {
+<aside class="w-60 flex flex-col gap-4">
+
+  <div class="-mb-2 flex justify-end">
+    <button type="button" (click)="toggleCollapsed()" aria-label="Ocultar panel" title="Ocultar panel"
+            class="flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-semibold text-slate-500 hover:bg-slate-100">
+      <span class="material-symbols-outlined text-[18px]">left_panel_close</span>
+      Ocultar
+    </button>
+  </div>
+
+  <!-- Mini calendario -->
+  <section class="rounded-2xl border border-slate-200 p-3.5" aria-label="Calendario">
+    <div class="mb-2 flex items-center justify-between">
+      <span class="text-[14px] font-bold text-slate-900 first-letter:uppercase">{{ monthLabel() }}</span>
+      <div class="flex">
+        <button type="button" (click)="moveMonth(-1)" aria-label="Mes anterior" class="flex rounded-lg p-1 text-slate-500 hover:bg-slate-100">
+          <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+        </button>
+        <button type="button" (click)="moveMonth(1)" aria-label="Mes siguiente" class="flex rounded-lg p-1 text-slate-500 hover:bg-slate-100">
+          <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+        </button>
+      </div>
+    </div>
+    <div class="grid grid-cols-7 gap-y-0.5 text-center">
+      @for (initial of weekDayInitials; track $index) {
+        <span class="py-1 text-[11px] font-semibold text-slate-500">{{ initial }}</span>
+      }
+      @for (day of calendarDays(); track day.dateStr) {
+        <button type="button" (click)="dateSelected.emit(day.date)"
+                class="h-7 text-[12px] transition-colors" [ngClass]="dayClass(day)">
+          {{ day.day }}
+        </button>
+      }
+    </div>
+  </section>
+
+  <!-- Resumen -->
+  @let s = summary();
+  <section class="flex flex-col gap-3 rounded-2xl border border-slate-200 p-3.5" aria-label="Resumen">
+    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">{{ summaryTitle() }}</span>
+    <div class="grid grid-cols-[auto_minmax(0,1fr)] gap-2">
+      <div class="rounded-xl bg-slate-50 p-2.5">
+        <div class="text-[20px] font-extrabold text-slate-900">{{ s.total }}</div>
+        <div class="text-[12px] text-slate-600">{{ s.total === 1 ? 'cita' : 'citas' }}</div>
+      </div>
+      <div class="rounded-xl bg-slate-50 p-2.5">
+        <div class="truncate text-[18px] font-extrabold text-slate-900">{{ s.income }}</div>
+        <div class="text-[12px] text-slate-600">previstos</div>
+      </div>
+    </div>
+    <dl class="flex flex-col gap-1.5 text-[13px] text-slate-700">
+      <div class="flex justify-between"><dt>Confirmadas</dt><dd class="font-bold">{{ s.confirmed }}</dd></div>
+      <div class="flex justify-between"><dt>Pendientes</dt><dd class="font-bold text-amber-700">{{ s.pending }}</dd></div>
+      <div class="flex justify-between"><dt>Canceladas</dt><dd class="font-bold text-slate-500">{{ s.cancelled }}</dd></div>
+    </dl>
+  </section>
+
+  <!-- Leyenda -->
+  <section class="flex flex-col gap-2 rounded-2xl border border-slate-200 p-3.5" aria-label="Leyenda">
+    @if (legend().length) {
+      <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Categorías</span>
+      @for (item of legend(); track item.name) {
+        <div class="flex items-center gap-2 text-[13px] text-slate-700">
+          <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-white" [style.background-color]="item.palette.solid">
+            <span class="material-symbols-outlined text-[13px]">{{ item.icon }}</span>
+          </span>
+          <span class="truncate">{{ item.name }}</span>
+        </div>
+      }
+    }
+    <span class="mt-1 text-[11px] font-bold uppercase tracking-wider text-slate-500">Estado</span>
+    <div class="flex items-center gap-2 text-[13px] text-slate-700">
+      <span class="h-3 w-[18px] rounded border border-slate-400 bg-slate-50"></span>Confirmada
+    </div>
+    <div class="flex items-center gap-2 text-[13px] text-slate-700">
+      <span class="h-3 w-[18px] rounded border border-dashed border-amber-700 bg-amber-50"></span>Pendiente
+      <span class="material-symbols-outlined text-[14px] text-amber-700" aria-hidden="true">schedule</span>
+    </div>
+    <div class="flex items-center gap-2 text-[13px] text-slate-600">
+      <span class="h-3 w-[18px] rounded border border-slate-300 bg-slate-100"></span><span class="line-through">Cancelada</span>
+    </div>
+  </section>
+
+</aside>
+}

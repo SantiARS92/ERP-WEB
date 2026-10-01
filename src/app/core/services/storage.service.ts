@@ -8,6 +8,7 @@ const STORAGE_KEYS = {
   primaryColor: 'primary-color',
   fallbackBusinessName: 'fallback_businessName',
   fallbackBusinessLogo: 'fallback_businessLogo',
+  agendaSidebarCollapsed: 'agenda-sidebar-collapsed',
 } as const;
 
 @Injectable({
@@ -68,6 +69,15 @@ export class StorageService {
 
   setFallbackBusinessLogo(logo: string | null): void {
     this.setItem(STORAGE_KEYS.fallbackBusinessLogo, logo);
+  }
+
+  getAgendaSidebarCollapsed(): boolean | null {
+    const value = this.getItem(STORAGE_KEYS.agendaSidebarCollapsed);
+    return value === null ? null : value === 'true';
+  }
+
+  setAgendaSidebarCollapsed(collapsed: boolean): void {
+    this.setItem(STORAGE_KEYS.agendaSidebarCollapsed, String(collapsed));
   }
 
   private getItem(key: string): string | null {

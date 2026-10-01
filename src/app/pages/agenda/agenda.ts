@@ -21,6 +21,7 @@ import { SettingsStore } from '../../core/state/settings.store';
 import { buildTimeOptions, DEFAULT_END_HOUR, DEFAULT_START_HOUR, getAgendaHourRange } from '../../core/utils/agenda-hours.util';
 import { DayOfWeek } from '../../core/models/settings.model';
 import { CANCELLED_PALETTE, CategoryPalette, getCategoryPalette } from '../../core/utils/category-palette.util';
+import { AgendaSidebar, LegendItem } from './components/agenda-sidebar/agenda-sidebar';
 
 
 const MONTH_FORMATTER = new Intl.DateTimeFormat('es-ES', { month: 'short' });
@@ -29,11 +30,12 @@ const DAY_FORMATTER = new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: '
 const WEEK_DAYS: DayOfWeek[] = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
 const MONTH_YEAR_FORMATTER = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' });
 type AgendaView = 'day' | 'week' | 'month';
+const NO_PROFESSIONAL = '__none__';
 
 
 @Component({
   selector: 'app-agenda',
-  imports: [NgClass, NgStyle, RouterLink, FormsModule],
+  imports: [NgClass, NgStyle, RouterLink, FormsModule, AgendaSidebar],
   templateUrl: './agenda.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -61,6 +63,33 @@ export class Agenda implements OnInit {
   private readonly allClientsSignal = signal<Client[]>([]);
   private readonly allServicesSignal = signal<Service[]>([]);
   private readonly servicesById = computed(() => new Map(this.allServicesSignal().map((s) => [s.id, s])));
+  readonly noProfessional = NO_PROFESSIONAL;
+  readonly selectedProfessional = signal('');
+
+  /** Citas cargadas, filtradas por el profesional elegido */
+  readonly visibleAppointments = computed(() => {
+    const professional = this.selectedProfessional();
+    const apps = this.appointmentsSignal();
+    if (!professional) return apps;
+    if (professional === NO_PROFESSIONAL) return apps.filter((a) => !a.professionalName);
+    return apps.filter((a) => a.professionalName === professional);
+  });
+
+  /** Categorías de las citas visibles, sin repetir, para la leyenda del panel */
+  readonly legend = computed<LegendItem[]>(() => {
+    const items = new Map<string, LegendItem>();
+    for (const app of this.visibleAppointments()) {
+      const category = this.getService(app)?.category;
+      if (category && !items.has(category.name)) {
+        items.set(category.name, { name: category.name, icon: category.icon, palette: getCategoryPalette(category.color) });
+      }
+    }
+    return [...items.values()].sort((a, b) => a.name.localeCompare(b.name));
+  });
+
+  // Rango del resumen y del mini calendario (yyyy-MM-dd)
+  summaryStart = '';
+  summaryEnd = '';
   private readonly allProfessionalsSignal = signal<Professional[]>([]);
   private readonly filteredClientsSignal = signal<Client[]>([]);
   timeOptions: string[] = [];
@@ -166,6 +195,11 @@ export class Agenda implements OnInit {
     } else {
       this.days.push(this.buildDay(new Date(this.selectedDate)));
     }
+
+    // En la vista Mes, el resumen cuenta solo los días del mes, no los de los meses vecinos
+    const rangeDays = this.viewMode === 'month' ? this.days.filter((d) => !this.isOutsideMonth(d)) : this.days;
+    this.summaryStart = rangeDays[0].dateStr;
+    this.summaryEnd = rangeDays[rangeDays.length - 1].dateStr;
   }
 
   private buildDay(d: Date): AgendaDay {
@@ -222,6 +256,20 @@ export class Agenda implements OnInit {
   goToday() {
     this.selectedDate = new Date();
     this.initCurrentWeek();
+  }
+
+  goToDate(date: Date) {
+    this.selectedDate = new Date(date);
+    this.initCurrentWeek();
+  }
+
+  onProfessionalChange(professional: string) {
+    this.selectedProfessional.set(professional);
+    this.calculateAllStyles(); // recolocar las citas que quedan
+  }
+
+  getSummaryTitle(): string {
+    return { day: 'Resumen del día', week: 'Resumen de la semana', month: 'Resumen del mes' }[this.viewMode];
   }
 
   getTitle(): string {
@@ -285,7 +333,7 @@ export class Agenda implements OnInit {
   // --- Grid Positioning Logic ---
 
   getAppointmentsForDay(dateStr: string): Appointment[] {
-    return this.appointments.filter(a => a.appointmentDate === dateStr);
+    return this.visibleAppointments().filter((a) => a.appointmentDate === dateStr);
   }
 
   getAppointmentDuration(app: Appointment): number {
