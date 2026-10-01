@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Client, ClientPage } from '../models/client.model';
 import { environment } from '../../../environments/environment';
@@ -45,7 +45,7 @@ export class ClientApiService {
   /**
    * DELETE /api/clients/{id}  — returns 204 No Content
    */
-  deleteClient(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  deleteClient(id: number, context?: HttpContext): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${id}`, { context });
   }
 }
