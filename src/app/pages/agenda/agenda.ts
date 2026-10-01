@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { DatePipe, NgClass, NgStyle, SlicePipe } from '@angular/common';
+import { NgClass, NgStyle } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { finalize, interval } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
@@ -19,12 +19,17 @@ import { ClientsStore } from '../../core/state/clients.store';
 import { ServicesStore } from '../../core/state/services.store';
 import { SettingsStore } from '../../core/state/settings.store';
 import { buildTimeOptions, DEFAULT_END_HOUR, DEFAULT_START_HOUR, getAgendaHourRange } from '../../core/utils/agenda-hours.util';
+import { DayOfWeek } from '../../core/models/settings.model';
 
 const MONTH_FORMATTER = new Intl.DateTimeFormat('es-ES', { month: 'short' });
+const DAY_FORMATTER = new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+// Índice = Date.getDay() (0 = domingo)
+const WEEK_DAYS: DayOfWeek[] = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+
 
 @Component({
   selector: 'app-agenda',
-  imports: [DatePipe, SlicePipe, NgClass, NgStyle, RouterLink, FormsModule],
+  imports: [NgClass, NgStyle, RouterLink, FormsModule],
   templateUrl: './agenda.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -186,16 +191,25 @@ export class Agenda implements OnInit {
   getWeekDateRange(): string {
     if (!this.days.length) return '';
     const start = this.days[0].dateObj;
-    const end = this.days[6].dateObj;
+    const end = this.days[this.days.length - 1].dateObj;
+    const sameMonth = start.getMonth() === end.getMonth();
+    const sameYear = start.getFullYear() === end.getFullYear();
 
-    const startNum = start.getDate();
-    const endNum = end.getDate();
-    // Assuming same month/year for simple UI formatting as in the picture
-    const month = MONTH_FORMATTER.format(start);
-    const year = start.getFullYear();
-
-    return `${startNum} - ${endNum} ${month}, ${year}`;
+    const startLabel = sameMonth
+      ? `${start.getDate()}`
+      : `${start.getDate()} ${MONTH_FORMATTER.format(start)}${sameYear ? '' : ' ' + start.getFullYear()}`;
+    return `${startLabel} – ${end.getDate()} ${MONTH_FORMATTER.format(end)} ${end.getFullYear()}`;
   }
+
+  getDayLabel(): string {
+    return this.days.length ? DAY_FORMATTER.format(this.days[0].dateObj) : '';
+  }
+
+  goToday() {
+    this.selectedDate = new Date();
+    this.initCurrentWeek();
+  }
+
 
   toggleViewMode(mode: 'day' | 'week') {
     this.viewMode = mode;
@@ -320,7 +334,7 @@ export class Agenda implements OnInit {
               ...this.appointmentStyles,
               [item.app.id]: {
                 'top.px': this.timeToPixels(item.startH, item.startM),
-                'height.px': (item.duration / 60) * 100,
+                'height.px': (item.duration / 60) * 100 - 2,
                 'width.%': widthPercent,
                 'left.%': 5 + (item.colIdx * widthPercent)
               },
@@ -339,7 +353,7 @@ export class Agenda implements OnInit {
     const duration = Math.max(this.getAppointmentDuration(app), 45);
     return {
       'top.px': this.timeToPixels(startH, startM),
-      'height.px': (duration / 60) * 100,
+      'height.px': (duration / 60) * 100 - 2,
       'width.%': 90,
       'left.%': 5
     };
@@ -350,15 +364,50 @@ export class Agenda implements OnInit {
   }
 
   getAppointmentClass(app: Appointment): string {
-    if (app.status === 'CANCELLED') {
-      return 'bg-slate-100 border-l-4 border-slate-300 text-slate-500';
-    } else if (app.status === 'CONFIRMED') {
-      return 'bg-blue-100 border-l-4 border-blue-500 text-blue-900';
-    } else if (app.status === 'PENDING') {
-      return 'bg-orange-100 border-l-4 border-orange-500 text-orange-900';
+    switch (app.status) {
+      case 'CANCELLED': return 'bg-slate-50 border border-slate-200 text-slate-400 hover:bg-slate-100';
+      case 'PENDING': return 'bg-amber-50 border border-amber-200 border-l-[3px] border-l-amber-400 text-amber-900 hover:bg-amber-100';
+      case 'CONFIRMED': return 'bg-blue-50 border border-blue-200 border-l-[3px] border-l-blue-500 text-blue-900 hover:bg-blue-100';
+      default: return 'bg-indigo-50 border border-indigo-200 border-l-[3px] border-l-indigo-500 text-indigo-900 hover:bg-indigo-100';
     }
-    return 'bg-indigo-100 border-l-4 border-indigo-500 text-indigo-900';
   }
+
+  getStatusDotClass(app: Appointment): string {
+    switch (app.status) {
+      case 'CANCELLED': return 'bg-slate-300';
+      case 'PENDING': return 'bg-amber-400';
+      case 'CONFIRMED': return 'bg-blue-500';
+      default: return 'bg-indigo-500';
+    }
+  }
+
+  getAppointmentEndTime(app: Appointment): string {
+    const [h, m] = app.appointmentTime.split(':').map(Number);
+    const end = h * 60 + m + this.getAppointmentDuration(app);
+    return `${String(Math.floor(end / 60) % 24).padStart(2, '0')}:${String(end % 60).padStart(2, '0')}`;
+  }
+
+  /** Tramos del día fuera del horario de apertura (en px). Sin horario configurado no se sombrea nada */
+  getClosedBlocks(day: AgendaDay): { top: number; height: number }[] {
+    const openingHours = this.settingsStore.settings()?.openingHours ?? [];
+    if (!openingHours.some((h) => h.enabled)) return [];
+
+    const total = this.hours.length * 100;
+    const oh = openingHours.find((h) => h.dayOfWeek === WEEK_DAYS[day.dateObj.getDay()]);
+    if (!oh?.enabled || !oh.openingTime || !oh.closingTime) {
+      return [{ top: 0, height: total }]; // día cerrado
+    }
+
+    const [oH, oM] = oh.openingTime.split(':').map(Number);
+    const [cH, cM] = oh.closingTime.split(':').map(Number);
+    const openPx = this.timeToPixels(oH, oM);
+    const closePx = this.timeToPixels(cH, cM);
+    return [
+      { top: 0, height: openPx },
+      { top: closePx, height: total - closePx },
+    ].filter((block) => block.height > 0);
+  }
+
 
   // Píxeles desde la primera hora visible (cada hora = 100px). Ej: con inicio 08:00, 09:30 = 150px
   timeToPixels(hour: number, minute: number): number {
