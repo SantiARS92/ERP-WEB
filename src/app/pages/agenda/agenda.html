@@ -105,13 +105,14 @@
       <div class="border-r border-slate-100"></div> <!-- Empty corner -->
       
       @for (day of days; track day.dateStr) {
-        <div class="py-4 border-r border-slate-100 flex flex-col items-center justify-center">
+        <div class="py-3 border-r border-slate-100 flex flex-col items-center justify-center">
           <span class="text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-1">{{ day.dayName }}</span>
           
           <div class="w-10 h-10 flex items-center justify-center rounded-full text-[18px] font-bold transition-colors"
                [ngClass]="day.isToday ? 'bg-blue-500 text-white shadow-md' : 'text-slate-700'">
             {{ day.dayNumber }}
           </div>
+          <span class="mt-1 text-[11px] font-medium text-slate-500">{{ getDayCountLabel(day) }}</span>
         </div>
       }
     </div>
@@ -120,19 +121,11 @@
     <div class="relative grid"
          [ngStyle]="{'grid-template-columns': viewMode === 'week' ? '80px repeat(7, 1fr)' : '80px 1fr'}">
       
-      <!-- Current Time Red Line (absolute across the entire grid) -->
-      @if (currentTimePosition >= 0) {
-        <div class="absolute left-0 right-0 border-t-2 border-red-500 z-20 flex items-center shadow-sm pointer-events-none"
-             [style.top.px]="currentTimePosition">
-             <div class="absolute -left-1 w-2 h-2 rounded-full bg-red-500"></div>
-             <div class="absolute left-2 text-[11px] font-bold text-red-500 -mt-[14px] bg-white px-1 leading-none rounded">{{ currentTimeLabel }}</div>
-        </div>
-      }
 
       <!-- Background Grid Rows -->
       <div class="col-span-8 absolute inset-0 z-0 pointer-events-none flex flex-col">
         @for (hour of hours; track hour) {
-          <div class="h-[100px] border-b border-slate-100 w-full flex-shrink-0 relative">
+          <div class="border-b border-slate-100 w-full flex-shrink-0 relative" [style.height.px]="hourPx">
            <div class="absolute top-1/2 inset-x-0 border-t border-dashed border-slate-100"></div>
           </div>
 
@@ -141,42 +134,60 @@
 
       <!-- Time Labels Column (Left) -->
       <div class="relative z-0 border-r border-slate-100 bg-white">
-          @for (hour of hours; track hour; let first = $first) {
-            <div class="h-[100px] flex items-start justify-center pt-2">
-              <span class="text-[12px] font-medium text-slate-400 bg-white px-2" [class.-translate-y-4]="!first">
+        @for (hour of hours; track hour; let first = $first) {
+          <div class="flex items-start justify-center pt-2" [style.height.px]="hourPx">
+            <span class="text-[12px] font-medium text-slate-400 bg-white px-2" [class.-translate-y-4]="!first">
               {{ formatHourLabel(hour) }}
             </span>
           </div>
         }
+        @if (currentTimePosition >= 0 && isTodayVisible()) {
+          <span class="absolute left-1/2 -translate-x-1/2 z-20 rounded bg-red-600 px-1 py-0.5 text-[10px] font-bold leading-none text-white"
+                [style.top.px]="currentTimePosition - 8">{{ currentTimeLabel }}</span>
+        }
       </div>
+
 
       <!-- Days Columns (Cards Container) -->
       @for (day of days; track day.dateStr) {
-        <div class="relative border-r border-slate-100" [class.bg-blue-50/40]="day.isToday" [style.height.px]="hours.length * 100">
+        
+        <div class="relative border-r border-slate-100" [class.bg-blue-50/40]="day.isToday" [style.height.px]="hours.length * hourPx">
+          @if (day.isToday && currentTimePosition >= 0) {
+            <div class="absolute inset-x-0 z-20 border-t-2 border-red-600 pointer-events-none" [style.top.px]="currentTimePosition">
+              <span class="absolute -left-1.5 -top-[6px] h-2.5 w-2.5 rounded-full bg-red-600"></span>
+            </div>
+          }
           @for (block of getClosedBlocks(day); track $index) {
             <div class="absolute inset-x-0 bg-slate-100/70 pointer-events-none" [style.top.px]="block.top" [style.height.px]="block.height"></div>
           }
           <!-- Iterate over ALL appointments for this SPECIFIC day -->
           @for (app of getAppointmentsForDay(day.dateStr); track app.id) {
             
-            <button type="button"
-              class="absolute rounded-lg px-2.5 py-1.5 overflow-hidden flex flex-col gap-0.5 text-left cursor-pointer z-10 transition-colors"
-              [ngStyle]="getAppointmentStyle(app)"
-              [class]="getAppointmentClass(app)"
-              (click)="openEditModal(app)">
-                <div class="flex items-center gap-1.5 text-[11px] font-semibold opacity-80 shrink-0">
-                  <span class="w-1.5 h-1.5 rounded-full shrink-0" [ngClass]="getStatusDotClass(app)"></span>
-                  {{ formatTime(app.appointmentTime) }} – {{ getAppointmentEndTime(app) }}
+            @let palette = getCardPalette(app);
+              <button type="button"
+                      class="absolute rounded-lg border px-1.5 py-1 overflow-hidden flex flex-col gap-0.5 text-left cursor-pointer z-10 transition hover:brightness-95"
+                      [class.border-dashed]="app.status === 'PENDING'"
+                      [ngStyle]="getAppointmentStyle(app)"
+                      [style.background-color]="palette.bg"
+                      [style.border-color]="app.status === 'PENDING' ? '#b45309' : palette.border"
+                      [style.color]="palette.text"
+                      [title]="getAppointmentSummary(app)"
+                      [attr.aria-label]="getAppointmentSummary(app)"
+                      (click)="openEditModal(app)">
+                <div class="flex items-center gap-1.5 min-w-0">
+                    <span class="w-4 h-4 rounded-[5px] flex items-center justify-center shrink-0 text-white" [style.background-color]="palette.solid">
+                      <span class="material-symbols-outlined text-[11px]">{{ getCategoryIcon(app) }}</span>
+                    </span>
+                    <span class="text-[11px] font-bold shrink-0">{{ formatTime(app.appointmentTime) }}</span>
+                    @if (app.status === 'PENDING') {
+                      <span class="material-symbols-outlined text-[13px] text-amber-700 shrink-0" aria-hidden="true">schedule</span>
+                    }
+                  <span class="text-[11px] font-semibold truncate" [class.line-through]="app.status === 'CANCELLED'">{{ app.clientName }}</span>
                 </div>
-                <div class="font-bold leading-tight truncate shrink-0"
-                    [class.line-through]="app.status === 'CANCELLED'"
-                    [ngClass]="getAppointmentWidth(app) < 40 ? 'text-[11px]' : 'text-[13px]'">
-                  {{ app.clientName }}
-                </div>
-                @if (app.serviceName && getAppointmentWidth(app) >= 40) {
-                  <div class="text-[11px] leading-tight opacity-75 truncate shrink-0">{{ app.serviceName }}</div>
+                @if (!isCompact(app) && app.serviceName) {
+                  <div class="text-[11px] leading-tight truncate pl-[22px]">{{ app.serviceName }}</div>
                 }
-            </button>
+              </button>
          }
 
         </div>

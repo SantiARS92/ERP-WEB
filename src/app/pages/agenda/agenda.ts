@@ -20,6 +20,8 @@ import { ServicesStore } from '../../core/state/services.store';
 import { SettingsStore } from '../../core/state/settings.store';
 import { buildTimeOptions, DEFAULT_END_HOUR, DEFAULT_START_HOUR, getAgendaHourRange } from '../../core/utils/agenda-hours.util';
 import { DayOfWeek } from '../../core/models/settings.model';
+import { CANCELLED_PALETTE, CategoryPalette, getCategoryPalette } from '../../core/utils/category-palette.util';
+
 
 const MONTH_FORMATTER = new Intl.DateTimeFormat('es-ES', { month: 'short' });
 const DAY_FORMATTER = new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -39,6 +41,8 @@ export class Agenda implements OnInit {
   currentWeekStart!: Date;
   days: AgendaDay[] = [];
   startHour = DEFAULT_START_HOUR;
+  readonly hourPx = 60;
+  readonly minCardMinutes = 30;
   endHour = DEFAULT_END_HOUR;
   hours: number[] = [];
 
@@ -56,6 +60,7 @@ export class Agenda implements OnInit {
   // For the modal select/autocomplete
   private readonly allClientsSignal = signal<Client[]>([]);
   private readonly allServicesSignal = signal<Service[]>([]);
+  private readonly servicesById = computed(() => new Map(this.allServicesSignal().map((s) => [s.id, s])));
   private readonly allProfessionalsSignal = signal<Professional[]>([]);
   private readonly filteredClientsSignal = signal<Client[]>([]);
   timeOptions: string[] = [];
@@ -317,7 +322,7 @@ export class Agenda implements OnInit {
       const appsWithTime = dayApps.map(app => {
         const [h, m] = app.appointmentTime.split(':').map(Number);
         const actualDuration = this.getAppointmentDuration(app);
-        const duration = Math.max(actualDuration, 45); // Enforce min height to prevent text squishing
+        const duration = Math.max(actualDuration, this.minCardMinutes);
         const startMin = h * 60 + m;
         const endMin = startMin + duration;
         return { app, startH: h, startM: m, duration, startMin, endMin, colIdx: 0, actualDuration };
@@ -367,7 +372,7 @@ export class Agenda implements OnInit {
               ...this.appointmentStyles,
               [item.app.id]: {
                 'top.px': this.timeToPixels(item.startH, item.startM),
-                'height.px': (item.duration / 60) * 100 - 2,
+                'height.px': (item.duration / 60) * this.hourPx - 2,
                 'width.%': widthPercent,
                 'left.%': 5 + (item.colIdx * widthPercent)
               },
@@ -383,27 +388,47 @@ export class Agenda implements OnInit {
       return this.appointmentStyles[app.id];
     }
     const [startH, startM] = app.appointmentTime.split(':').map(Number);
-    const duration = Math.max(this.getAppointmentDuration(app), 45);
+    const duration = Math.max(this.getAppointmentDuration(app), this.minCardMinutes);
     return {
       'top.px': this.timeToPixels(startH, startM),
-      'height.px': (duration / 60) * 100 - 2,
+      'height.px': (duration / 60) * this.hourPx - 2,
       'width.%': 90,
       'left.%': 5
     };
   }
 
-  getAppointmentWidth(app: Appointment): number {
-    return Number(this.getAppointmentStyle(app)['width.%'] ?? 90);
+
+  private getService(app: Appointment): Service | undefined {
+    return this.servicesById().get(app.serviceId) ?? this.allServices.find((s) => s.name === app.serviceName);
   }
 
-  getAppointmentClass(app: Appointment): string {
-    switch (app.status) {
-      case 'CANCELLED': return 'bg-slate-50 border border-slate-200 text-slate-400 hover:bg-slate-100';
-      case 'PENDING': return 'bg-amber-50 border border-amber-200 border-l-[3px] border-l-amber-400 text-amber-900 hover:bg-amber-100';
-      case 'CONFIRMED': return 'bg-blue-50 border border-blue-200 border-l-[3px] border-l-blue-500 text-blue-900 hover:bg-blue-100';
-      default: return 'bg-indigo-50 border border-indigo-200 border-l-[3px] border-l-indigo-500 text-indigo-900 hover:bg-indigo-100';
-    }
+  getCardPalette(app: Appointment): CategoryPalette {
+    return app.status === 'CANCELLED' ? CANCELLED_PALETTE : getCategoryPalette(this.getService(app)?.category?.color);
   }
+
+  getCategoryIcon(app: Appointment): string {
+    return this.getService(app)?.category?.icon ?? 'event';
+  }
+
+  /** Citas tan cortas que solo caben en una línea */
+  isCompact(app: Appointment): boolean {
+    return Number(this.getAppointmentStyle(app)['height.px']) < 40;
+  }
+
+  getAppointmentSummary(app: Appointment): string {
+    const status = { PENDING: 'Pendiente', CONFIRMED: 'Confirmada', CANCELLED: 'Cancelada' }[app.status];
+    return `${this.formatTime(app.appointmentTime)} – ${this.getAppointmentEndTime(app)} · ${app.clientName} · ${app.serviceName ?? ''} · ${status}`;
+  }
+
+  getDayCountLabel(day: AgendaDay): string {
+    const count = this.getAppointmentsForDay(day.dateStr).length;
+    return count === 0 ? 'Sin citas' : count === 1 ? '1 cita' : `${count} citas`;
+  }
+
+  isTodayVisible(): boolean {
+    return this.days.some((day) => day.isToday);
+  }
+
 
   getStatusDotClass(app: Appointment): string {
     switch (app.status) {
@@ -425,7 +450,7 @@ export class Agenda implements OnInit {
     const openingHours = this.settingsStore.settings()?.openingHours ?? [];
     if (!openingHours.some((h) => h.enabled)) return [];
 
-    const total = this.hours.length * 100;
+    const total = this.hours.length * this.hourPx;
     const oh = openingHours.find((h) => h.dayOfWeek === WEEK_DAYS[day.dateObj.getDay()]);
     if (!oh?.enabled || !oh.openingTime || !oh.closingTime) {
       return [{ top: 0, height: total }]; // día cerrado
@@ -442,10 +467,9 @@ export class Agenda implements OnInit {
   }
 
 
-  // Píxeles desde la primera hora visible (cada hora = 100px). Ej: con inicio 08:00, 09:30 = 150px
+  // Píxeles desde la primera hora visible. Ej: con inicio 08:00 y 60 px por hora, 09:30 = 90px
   timeToPixels(hour: number, minute: number): number {
-    const hourPx = 100;
-    return ((hour - this.startHour) * hourPx) + ((minute / 60) * hourPx);
+    return ((hour - this.startHour) * this.hourPx) + ((minute / 60) * this.hourPx);
   }
 
 
