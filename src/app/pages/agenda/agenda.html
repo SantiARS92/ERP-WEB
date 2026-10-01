@@ -24,13 +24,13 @@
     </div>
     
     <!-- Calendar Controls row (below title, consistent with calendar UX) -->
-    <div class="flex items-center gap-3">
+    <div class="flex flex-wrap items-center gap-3">
       <!-- Date Range Navigator -->
       <div class="flex items-center rounded-xl border border-slate-200 bg-white px-2 py-1.5 shadow-sm">
         <button (click)="prev()" class="p-1.5 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors focus:outline-none">
           <span class="material-symbols-outlined text-[20px]">chevron_left</span>
         </button>
-          <div class="px-4 text-[14px] font-bold text-slate-700 min-w-[220px] text-center first-letter:uppercase">
+          <div class="px-4 text-[14px] font-bold text-slate-700 min-w-[220px] text-center whitespace-nowrap first-letter:uppercase">
             {{ getRangeLabel() }}
           </div>
         <button (click)="next()" class="p-1.5 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors focus:outline-none">
@@ -55,6 +55,20 @@
                 [class]="viewMode === 'month' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
                 class="px-4 py-1.5 text-[14px] font-semibold rounded-lg transition-all">Mes</button>
       </div>
+
+      @if (viewMode === 'day') {
+        <div class="flex items-center rounded-xl bg-slate-100 p-1"
+             [title]="selectedProfessional() ? 'Quita el filtro de profesional para ver una columna por profesional' : ''">
+          <button type="button" (click)="onDayGroupingChange('single')" [disabled]="!!selectedProfessional()"
+                  [class]="!isByProfessional() ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+                  class="px-3 py-1.5 text-[13px] font-semibold rounded-lg transition-all whitespace-nowrap disabled:cursor-not-allowed">Una columna</button>
+          <button type="button" (click)="onDayGroupingChange('professional')" [disabled]="!!selectedProfessional()"
+                  [class]="isByProfessional() ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+                  class="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-semibold rounded-lg transition-all whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60">
+            <span class="material-symbols-outlined text-[16px]">view_column</span>Por profesional
+          </button>
+        </div>
+      }
 
       <div class="ml-auto flex items-center gap-2">
         <label for="agenda-professional-filter" class="text-[13px] font-semibold text-slate-600">Profesional</label>
@@ -127,25 +141,39 @@
     
     <!-- Week Days Header -->
     <div class="sticky top-0 z-30 grid border-b border-slate-200 bg-slate-50"
-         [ngStyle]="{'grid-template-columns': viewMode === 'week' ? '80px repeat(7, 1fr)' : '80px 1fr'}">
+         [ngStyle]="{'grid-template-columns': getGridTemplateColumns()}">
       <div class="border-r border-slate-100"></div> <!-- Empty corner -->
-      
-      @for (day of days; track day.dateStr) {
-        <div class="py-3 border-r border-slate-100 flex flex-col items-center justify-center">
-          <span class="text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-1">{{ day.dayName }}</span>
-          
-          <div class="w-10 h-10 flex items-center justify-center rounded-full text-[18px] font-bold transition-colors"
-               [ngClass]="day.isToday ? 'bg-blue-500 text-white shadow-md' : 'text-slate-700'">
-            {{ day.dayNumber }}
+
+      @for (column of columns; track column.key; let i = $index) {
+        @let day = column.day;
+        @if (column.professional === undefined) {
+          <div class="py-3 border-r border-slate-100 flex flex-col items-center justify-center">
+            <span class="text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-1">{{ day.dayName }}</span>
+
+            <div class="w-10 h-10 flex items-center justify-center rounded-full text-[18px] font-bold transition-colors"
+                 [ngClass]="day.isToday ? 'bg-blue-500 text-white shadow-md' : 'text-slate-700'">
+              {{ day.dayNumber }}
+            </div>
+            <span class="mt-1 text-[11px] font-medium text-slate-500">{{ getDayCountLabel(day) }}</span>
           </div>
-          <span class="mt-1 text-[11px] font-medium text-slate-500">{{ getDayCountLabel(day) }}</span>
-        </div>
+        } @else {
+          <!-- Cabecera de un profesional (vista Día por profesional) -->
+          <div class="py-3 px-2 border-r border-slate-100 flex flex-col items-center justify-center gap-1 min-w-0">
+            <span class="w-9 h-9 flex items-center justify-center rounded-full text-[13px] font-bold" [ngClass]="getAvatarClass(i)">
+              {{ getProfessionalInitials(column.professional) }}
+            </span>
+            <span class="max-w-full truncate text-[13px] font-bold text-slate-800">{{ column.professional ?? 'Sin asignar' }}</span>
+            <span class="text-[11px] font-medium" [ngClass]="getAppointmentsForColumn(column).length ? 'text-slate-500' : 'text-emerald-700'">
+              {{ getColumnCountLabel(column) }}
+            </span>
+          </div>
+        }
       }
     </div>
 
     <!-- Time Grid Body -->
     <div class="relative grid"
-         [ngStyle]="{'grid-template-columns': viewMode === 'week' ? '80px repeat(7, 1fr)' : '80px 1fr'}">
+         [ngStyle]="{'grid-template-columns': getGridTemplateColumns()}">
       
 
       <!-- Background Grid Rows -->
@@ -175,19 +203,22 @@
 
 
       <!-- Days Columns (Cards Container) -->
-      @for (day of days; track day.dateStr) {
-        
+      @for (column of columns; track column.key; let firstColumn = $first) {
+        @let day = column.day;
         <div class="relative border-r border-slate-100" [class.bg-blue-50/40]="day.isToday" [style.height.px]="hours.length * hourPx">
           @if (day.isToday && currentTimePosition >= 0) {
             <div class="absolute inset-x-0 z-20 border-t-2 border-red-600 pointer-events-none" [style.top.px]="currentTimePosition">
-              <span class="absolute -left-1.5 -top-[6px] h-2.5 w-2.5 rounded-full bg-red-600"></span>
+              <!-- En la vista por profesional, el punto solo en la primera columna -->
+              @if (!isByProfessional() || firstColumn) {
+                <span class="absolute -left-1.5 -top-[6px] h-2.5 w-2.5 rounded-full bg-red-600"></span>
+              }
             </div>
           }
           @for (block of getClosedBlocks(day); track $index) {
             <div class="absolute inset-x-0 bg-slate-100/70 pointer-events-none" [style.top.px]="block.top" [style.height.px]="block.height"></div>
           }
           <!-- Iterate over ALL appointments for this SPECIFIC day -->
-          @for (app of getAppointmentsForDay(day.dateStr); track app.id) {
+          @for (app of getAppointmentsForColumn(column); track app.id) {
             
             @let palette = getCardPalette(app);
               <button type="button"

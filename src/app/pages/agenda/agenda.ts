@@ -31,6 +31,23 @@ const WEEK_DAYS: DayOfWeek[] = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THU
 const MONTH_YEAR_FORMATTER = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' });
 type AgendaView = 'day' | 'week' | 'month';
 const NO_PROFESSIONAL = '__none__';
+// Colores de los avatares en la vista Día por profesional
+const AVATAR_CLASSES = [
+  'bg-blue-100 text-blue-800',
+  'bg-teal-100 text-teal-800',
+  'bg-pink-100 text-pink-800',
+  'bg-violet-100 text-violet-800',
+  'bg-amber-100 text-amber-800',
+  'bg-slate-200 text-slate-700',
+];
+
+/** Columna de la cuadrícula horaria: un día, o un profesional dentro de un día */
+interface AgendaColumn {
+  key: string;
+  day: AgendaDay;
+  /** undefined = todas las citas del día; null = citas sin profesional */
+  professional?: string | null;
+}
 
 
 @Component({
@@ -65,6 +82,8 @@ export class Agenda implements OnInit {
   private readonly servicesById = computed(() => new Map(this.allServicesSignal().map((s) => [s.id, s])));
   readonly noProfessional = NO_PROFESSIONAL;
   readonly selectedProfessional = signal('');
+  readonly dayGrouping = signal<'single' | 'professional'>('professional');
+  columns: AgendaColumn[] = [];
 
   /** Citas cargadas, filtradas por el profesional elegido */
   readonly visibleAppointments = computed(() => {
@@ -169,7 +188,10 @@ export class Agenda implements OnInit {
       this.allServices = services.filter((service) => service.active);
       this.calculateAllStyles();
     });
-    this.professionalApi.getProfessionals(true).subscribe(res => this.allProfessionals = res);
+    this.professionalApi.getProfessionals(true).subscribe(res => {
+      this.allProfessionals = res;
+      this.calculateAllStyles(); // las columnas por profesional dependen de esta lista
+    });
   }
 
   generateDays() {
@@ -200,6 +222,7 @@ export class Agenda implements OnInit {
     const rangeDays = this.viewMode === 'month' ? this.days.filter((d) => !this.isOutsideMonth(d)) : this.days;
     this.summaryStart = rangeDays[0].dateStr;
     this.summaryEnd = rangeDays[rangeDays.length - 1].dateStr;
+    this.columns = this.buildColumns();
   }
 
   private buildDay(d: Date): AgendaDay {
@@ -266,6 +289,61 @@ export class Agenda implements OnInit {
   onProfessionalChange(professional: string) {
     this.selectedProfessional.set(professional);
     this.calculateAllStyles(); // recolocar las citas que quedan
+  }
+
+  onDayGroupingChange(grouping: 'single' | 'professional') {
+    this.dayGrouping.set(grouping);
+    this.calculateAllStyles();
+  }
+
+  /** Vista Día con una columna por profesional (solo sin filtro de profesional) */
+  isByProfessional(): boolean {
+    return this.viewMode === 'day' && this.dayGrouping() === 'professional' && !this.selectedProfessional();
+  }
+
+  private buildColumns(): AgendaColumn[] {
+    if (!this.isByProfessional()) {
+      return this.days.map((day) => ({ key: day.dateStr, day }));
+    }
+
+    const day = this.days[0];
+    const dayApps = this.getAppointmentsForDay(day.dateStr);
+    // Profesionales activos, más los de citas cuyo profesional ya no está en la lista
+    const names = this.allProfessionals.map((p) => p.fullName);
+    for (const app of dayApps) {
+      if (app.professionalName && !names.includes(app.professionalName)) names.push(app.professionalName);
+    }
+
+    const columns: AgendaColumn[] = names.map((name) => ({ key: name, day, professional: name }));
+    if (dayApps.some((a) => !a.professionalName)) {
+      columns.push({ key: NO_PROFESSIONAL, day, professional: null });
+    }
+    // Sin profesionales cargados todavía: una sola columna
+    return columns.length ? columns : [{ key: day.dateStr, day }];
+  }
+
+  getAppointmentsForColumn(column: AgendaColumn): Appointment[] {
+    const apps = this.getAppointmentsForDay(column.day.dateStr);
+    if (column.professional === undefined) return apps;
+    return apps.filter((a) => (a.professionalName || null) === column.professional);
+  }
+
+  getColumnCountLabel(column: AgendaColumn): string {
+    const count = this.getAppointmentsForColumn(column).length;
+    return count === 0 ? 'Libre' : count === 1 ? '1 cita' : `${count} citas`;
+  }
+
+  getProfessionalInitials(name: string | null | undefined): string {
+    if (!name) return '?';
+    return name.split(' ').filter(Boolean).slice(0, 2).map((word) => word[0].toUpperCase()).join('');
+  }
+
+  getAvatarClass(index: number): string {
+    return AVATAR_CLASSES[index % AVATAR_CLASSES.length];
+  }
+
+  getGridTemplateColumns(): string {
+    return `80px repeat(${this.columns.length || 1}, minmax(0, 1fr))`;
   }
 
   getSummaryTitle(): string {
@@ -363,8 +441,10 @@ export class Agenda implements OnInit {
   calculateAllStyles() {
     this.updateHourRange();
     this.appointmentStyles = {};
-    for (const day of this.days) {
-      const dayApps = this.getAppointmentsForDay(day.dateStr);
+    this.columns = this.buildColumns();
+    // Los solapes se calculan por columna (por día, o por profesional en la vista Día)
+    for (const column of this.columns) {
+      const dayApps = this.getAppointmentsForColumn(column);
       if (!dayApps.length) continue;
 
       const appsWithTime = dayApps.map(app => {
