@@ -351,8 +351,8 @@ export class Configuracion implements OnInit {
   }
 
   saveProfessional() {
-    if (!this.editingProfessional.fullName || !this.editingProfessional.specialty) {
-      this.notification.warning('Nombre y especialidad son obligatorios');
+    if (!this.editingProfessional.fullName || !this.editingProfessional.specialty || !this.editingProfessional.email) {
+      this.notification.warning('Nombre, especialidad y email son obligatorios');
       return;
     }
 
@@ -411,7 +411,12 @@ export class Configuracion implements OnInit {
   toggleProfessionalStatus(p: Professional) {
     const updated = { ...p, active: !p.active };
     if (p.id) {
-      this.professionalApi.updateProfessional(p.id, updated).subscribe(() => this.loadAll());
+      this.professionalApi.updateProfessional(p.id, updated).subscribe({
+        next: () => this.loadAll(),
+        error: (err) => {
+          this.notification.error(err.error?.message || 'Error al actualizar el estado del profesional');
+        }
+      });
     }
   }
 
