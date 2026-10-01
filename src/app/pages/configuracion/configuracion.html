@@ -23,6 +23,10 @@
       </div>
       <!-- Save status indicator -->
       <div class="flex items-center h-9">
+        <button (click)="saveAllSettings()" [disabled]="!hasUnsavedChanges"
+          class="px-4 py-2 rounded-lg bg-blue-600 text-white text-[13px] font-semibold hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed transition-colors">
+          Guardar Cambios
+        </button>
         <!-- Saving -->
         @if (saveStatus === 'saving') {
           <div

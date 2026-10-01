@@ -1,8 +1,7 @@
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { Subject, debounceTime, takeUntil } from 'rxjs';
 import { ThemeService, PrimaryColor, ThemeMode } from '../../core/services/theme.service';
 import { ProfessionalApiService } from '../../core/services/professional-api.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -52,11 +51,9 @@ type ProfessionalDraft = Professional & { accessPassword?: string };
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Configuracion implements OnInit, OnDestroy {
+export class Configuracion implements OnInit {
   // Accordion state
   private readonly expandedSectionSignal = signal<string | null>('perfil');
-  private destroy$ = new Subject<void>();
-  private autoSave$ = new Subject<void>();
   private router = inject(Router);
   themeService = inject(ThemeService);
   private settingsStore = inject(SettingsStore);
@@ -96,6 +93,7 @@ export class Configuracion implements OnInit, OnDestroy {
   private readonly professionalsSignal = signal<Professional[]>([]);
   private readonly isSubmittingSignal = signal(false);
   private readonly saveStatusSignal = signal<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  private readonly hasUnsavedChangesSignal = signal(false);
   private saveResetTimer: ReturnType<typeof setTimeout> | null = null;
 
   // For adding/editing professional (Modal mini-state)
@@ -124,6 +122,8 @@ export class Configuracion implements OnInit, OnDestroy {
   set isSubmitting(value: boolean) { this.isSubmittingSignal.set(value); }
   get saveStatus() { return this.saveStatusSignal(); }
   set saveStatus(value: 'idle' | 'saving' | 'saved' | 'error') { this.saveStatusSignal.set(value); }
+  get hasUnsavedChanges() { return this.hasUnsavedChangesSignal(); }
+  set hasUnsavedChanges(value: boolean) { this.hasUnsavedChangesSignal.set(value); }
   get isProfessionalModalOpen() { return this.isProfessionalModalOpenSignal(); }
   set isProfessionalModalOpen(value: boolean) { this.isProfessionalModalOpenSignal.set(value); }
   get editingProfessional() { return this.editingProfessionalSignal(); }
@@ -131,25 +131,12 @@ export class Configuracion implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadAll();
-    this.setupAutoSave();
   }
 
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
-  }
-
-  setupAutoSave() {
-    this.autoSave$.pipe(
-      debounceTime(800),
-      takeUntil(this.destroy$)
-    ).subscribe(() => {
-      this.triggerSave();
-    });
-  }
+  
 
   onFieldChange() {
-    this.autoSave$.next();
+    this.hasUnsavedChangesSignal.set(true);
   }
 
   private ensureOpeningHours() {
@@ -205,6 +192,7 @@ export class Configuracion implements OnInit, OnDestroy {
         this.settings = this.buildPersistedSettings(data);
         this.isSubmitting = false;
         this.saveStatus = 'saved';
+        this.hasUnsavedChangesSignal.set(false);
         this.saveResetTimer = setTimeout(() => { this.saveStatus = 'idle'; }, 3000);
       },
       error: () => {
