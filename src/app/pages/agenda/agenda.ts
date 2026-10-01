@@ -25,6 +25,8 @@ const MONTH_FORMATTER = new Intl.DateTimeFormat('es-ES', { month: 'short' });
 const DAY_FORMATTER = new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 // Índice = Date.getDay() (0 = domingo)
 const WEEK_DAYS: DayOfWeek[] = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+const MONTH_YEAR_FORMATTER = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' });
+type AgendaView = 'day' | 'week' | 'month';
 
 
 @Component({
@@ -41,7 +43,8 @@ export class Agenda implements OnInit {
   hours: number[] = [];
 
   private readonly appointmentsSignal = signal<Appointment[]>([]);
-  viewMode: 'day' | 'week' = 'week';
+  viewMode: AgendaView = 'week';
+  readonly weekDayNames = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
   selectedDate: Date = new Date();
 
   // Modal State
@@ -137,33 +140,39 @@ export class Agenda implements OnInit {
 
   generateDays() {
     this.days = [];
-    const dayNames = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
 
     if (this.viewMode === 'week') {
       for (let i = 0; i < 7; i++) {
         const d = new Date(this.currentWeekStart);
         d.setDate(this.currentWeekStart.getDate() + i);
-
-        this.days.push({
-          dateObj: d,
-          dateStr: this.formatDate(d),
-          dayName: dayNames[(d.getDay() + 6) % 7], // Correct mapping for Monday start
-          dayNumber: d.getDate(),
-          isToday: this.isToday(d)
-        });
+        this.days.push(this.buildDay(d));
+      }
+    } else if (this.viewMode === 'month') {
+      // Semanas completas (lunes a domingo) que cubren el mes seleccionado
+      const year = this.selectedDate.getFullYear();
+      const month = this.selectedDate.getMonth();
+      const first = new Date(year, month, 1);
+      const last = new Date(year, month + 1, 0);
+      const start = new Date(year, month, 1 - ((first.getDay() + 6) % 7));
+      const end = new Date(year, month + 1, (6 - ((last.getDay() + 6) % 7)));
+      for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        this.days.push(this.buildDay(new Date(d)));
       }
     } else {
-      // Day mode
-      const d = new Date(this.selectedDate);
-      this.days.push({
-        dateObj: d,
-        dateStr: this.formatDate(d),
-        dayName: dayNames[(d.getDay() + 6) % 7],
-        dayNumber: d.getDate(),
-        isToday: this.isToday(d)
-      });
+      this.days.push(this.buildDay(new Date(this.selectedDate)));
     }
   }
+
+  private buildDay(d: Date): AgendaDay {
+    return {
+      dateObj: d,
+      dateStr: this.formatDate(d),
+      dayName: this.weekDayNames[(d.getDay() + 6) % 7], // lunes = 0
+      dayNumber: d.getDate(),
+      isToday: this.isToday(d),
+    };
+  }
+
 
   loadAppointments() {
     const startStr = this.days[0].dateStr;
@@ -210,33 +219,57 @@ export class Agenda implements OnInit {
     this.initCurrentWeek();
   }
 
+  getTitle(): string {
+    return { day: 'Agenda del Día', week: 'Agenda Semanal', month: 'Agenda Mensual' }[this.viewMode];
+  }
 
-  toggleViewMode(mode: 'day' | 'week') {
+  getRangeLabel(): string {
+    if (this.viewMode === 'week') return this.getWeekDateRange();
+    if (this.viewMode === 'month') return MONTH_YEAR_FORMATTER.format(this.selectedDate);
+    return this.getDayLabel();
+  }
+
+  isOutsideMonth(day: AgendaDay): boolean {
+    return day.dateObj.getMonth() !== this.selectedDate.getMonth();
+  }
+
+  /** Citas del día ordenadas por hora (la vista Mes enseña las 3 primeras) */
+  getSortedAppointmentsForDay(dateStr: string): Appointment[] {
+    return [...this.getAppointmentsForDay(dateStr)].sort((a, b) => a.appointmentTime.localeCompare(b.appointmentTime));
+  }
+
+  openDay(day: AgendaDay) {
+    this.selectedDate = new Date(day.dateObj);
+    this.toggleViewMode('day');
+  }
+
+  onMonthAppointmentClick(app: Appointment, event: Event) {
+    event.stopPropagation(); // que no se abra también la vista Día
+    this.openEditModal(app);
+  }
+
+
+
+  toggleViewMode(mode: AgendaView) {
     this.viewMode = mode;
-    this.generateDays();
-    this.loadAppointments();
+    this.initCurrentWeek();
   }
 
-  // Navigation
-  prev() {
-    if (this.viewMode === 'week') {
-      this.currentWeekStart.setDate(this.currentWeekStart.getDate() - 7);
-      this.selectedDate.setDate(this.selectedDate.getDate() - 7);
+  // Navegación: un día, una semana o un mes según la vista
+  prev() { this.moveDate(-1); }
+  next() { this.moveDate(1); }
+
+  private moveDate(step: number) {
+    const d = this.selectedDate;
+    if (this.viewMode === 'month') {
+      this.selectedDate = new Date(d.getFullYear(), d.getMonth() + step, 1);
     } else {
-      this.selectedDate.setDate(this.selectedDate.getDate() - 1);
+      const days = this.viewMode === 'week' ? 7 : 1;
+      this.selectedDate = new Date(d.getFullYear(), d.getMonth(), d.getDate() + step * days);
     }
     this.initCurrentWeek();
   }
 
-  next() {
-    if (this.viewMode === 'week') {
-      this.currentWeekStart.setDate(this.currentWeekStart.getDate() + 7);
-      this.selectedDate.setDate(this.selectedDate.getDate() + 7);
-    } else {
-      this.selectedDate.setDate(this.selectedDate.getDate() + 1);
-    }
-    this.initCurrentWeek();
-  }
 
   // Etiqueta de la hora en 24 h (ej. 08:00, 17:00)
   formatHourLabel(hour: number): string {
