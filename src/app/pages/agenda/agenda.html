@@ -10,7 +10,7 @@
           <span class="text-slate-400 text-[15px]">›</span>
           <span class="text-slate-600">Agenda</span>
         </div>
-        <h1 class="text-[28px] font-bold text-slate-900 leading-tight">Agenda Semanal</h1>
+        <h1 class="text-[28px] font-bold text-slate-900 leading-tight">{{ getTitle() }}</h1>
         <p class="text-[14px] text-slate-500 mt-0.5">Gestione sus citas y horarios.</p>
       </div>
 
@@ -30,13 +30,18 @@
         <button (click)="prev()" class="p-1.5 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors focus:outline-none">
           <span class="material-symbols-outlined text-[20px]">chevron_left</span>
         </button>
-        <div class="px-4 text-[14px] font-bold text-slate-700 min-w-[140px] text-center">
-          {{ viewMode === 'week' ? getWeekDateRange() : (days[0]?.dateObj | date:'dd MMM, yyyy') }}
-        </div>
+          <div class="px-4 text-[14px] font-bold text-slate-700 min-w-[220px] text-center first-letter:uppercase">
+            {{ getRangeLabel() }}
+          </div>
         <button (click)="next()" class="p-1.5 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors focus:outline-none">
           <span class="material-symbols-outlined text-[20px]">chevron_right</span>
         </button>
       </div>
+
+      <button type="button" (click)="goToday()"
+        class="px-4 py-2 rounded-xl border border-slate-200 bg-white text-[14px] font-semibold text-slate-700 hover:bg-slate-50 shadow-sm transition-colors">
+      Hoy
+      </button>
 
       <!-- View Toggles -->
       <div class="flex items-center rounded-xl bg-slate-100 p-1">
@@ -46,15 +51,56 @@
         <button (click)="toggleViewMode('week')"
                 [class]="viewMode === 'week' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
                 class="px-4 py-1.5 text-[14px] font-semibold rounded-lg transition-all">Semana</button>
+        <button (click)="toggleViewMode('month')"
+                [class]="viewMode === 'month' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+                class="px-4 py-1.5 text-[14px] font-semibold rounded-lg transition-all">Mes</button>
       </div>
     </div>
   </div>
+  
+  @if (viewMode === 'month') {
+    <!-- Month Grid -->
+    <div class="flex-1 overflow-auto bg-white px-8 py-6">
+      <div class="grid grid-cols-7 border-l border-t border-slate-200 rounded-xl overflow-hidden">
+        @for (name of weekDayNames; track name) {
+          <div class="py-2.5 text-center text-[12px] font-bold text-slate-500 uppercase tracking-widest bg-slate-50 border-r border-b border-slate-200">{{ name }}</div>
+        }
+
+        @for (day of days; track day.dateStr) {
+          <div role="button" tabindex="0" (click)="openDay(day)" (keydown.enter)="openDay(day)"
+               class="min-h-[120px] p-2 border-r border-b border-slate-200 flex flex-col gap-1 cursor-pointer hover:bg-slate-50 transition-colors"
+               [class.bg-slate-50/60]="isOutsideMonth(day)">
+            <div class="flex justify-end">
+              <span class="w-7 h-7 flex items-center justify-center rounded-full text-[13px] font-bold"
+                    [ngClass]="day.isToday ? 'bg-blue-500 text-white' : (isOutsideMonth(day) ? 'text-slate-300' : 'text-slate-700')">
+                {{ day.dayNumber }}
+              </span>
+            </div>
+
+            @let dayApps = getSortedAppointmentsForDay(day.dateStr);
+            @for (app of dayApps.slice(0, 3); track app.id) {
+              <button type="button" (click)="onMonthAppointmentClick(app, $event)"
+                      class="w-full flex items-center gap-1.5 px-1.5 py-0.5 rounded-md text-[11px] text-left hover:bg-white hover:shadow-sm transition">
+                <span class="w-1.5 h-1.5 rounded-full shrink-0" [ngClass]="getStatusDotClass(app)"></span>
+                <span class="font-semibold text-slate-500 shrink-0">{{ formatTime(app.appointmentTime) }}</span>
+                <span class="truncate" [ngClass]="app.status === 'CANCELLED' ? 'line-through text-slate-400' : 'text-slate-700'">{{ app.clientName }}</span>
+              </button>
+            }
+            @if (dayApps.length > 3) {
+              <span class="px-1.5 text-[11px] font-semibold text-blue-600">+{{ dayApps.length - 3 }} más</span>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  } @else {
+
 
   <!-- Calendar Grid Area (Scrollable body) -->
   <div class="flex-1 overflow-auto bg-white relative pb-20">
     
     <!-- Week Days Header -->
-    <div class="sticky top-0 z-10 grid border-b border-slate-200 bg-slate-50"
+    <div class="sticky top-0 z-30 grid border-b border-slate-200 bg-slate-50"
          [ngStyle]="{'grid-template-columns': viewMode === 'week' ? '80px repeat(7, 1fr)' : '80px 1fr'}">
       <div class="border-r border-slate-100"></div> <!-- Empty corner -->
       
@@ -76,7 +122,7 @@
       
       <!-- Current Time Red Line (absolute across the entire grid) -->
       @if (currentTimePosition >= 0) {
-        <div class="absolute left-0 right-0 border-t-2 border-red-500 z-10 flex items-center shadow-sm pointer-events-none"
+        <div class="absolute left-0 right-0 border-t-2 border-red-500 z-20 flex items-center shadow-sm pointer-events-none"
              [style.top.px]="currentTimePosition">
              <div class="absolute -left-1 w-2 h-2 rounded-full bg-red-500"></div>
              <div class="absolute left-2 text-[11px] font-bold text-red-500 -mt-[14px] bg-white px-1 leading-none rounded">{{ currentTimeLabel }}</div>
@@ -86,16 +132,18 @@
       <!-- Background Grid Rows -->
       <div class="col-span-8 absolute inset-0 z-0 pointer-events-none flex flex-col">
         @for (hour of hours; track hour) {
-          <div class="h-[100px] border-b border-slate-100 w-full flex-shrink-0"></div>
+          <div class="h-[100px] border-b border-slate-100 w-full flex-shrink-0 relative">
+           <div class="absolute top-1/2 inset-x-0 border-t border-dashed border-slate-100"></div>
+          </div>
+
         }
       </div>
 
       <!-- Time Labels Column (Left) -->
       <div class="relative z-0 border-r border-slate-100 bg-white">
-        @for (hour of hours; track hour) {
-          <div class="h-[100px] flex items-start justify-center pt-2">
-            <!-- First label '08 AM' goes slightly above the first row physically in design -->
-            <span class="text-[12px] font-medium text-slate-400 transform -translate-y-4 bg-white px-2">
+          @for (hour of hours; track hour; let first = $first) {
+            <div class="h-[100px] flex items-start justify-center pt-2">
+              <span class="text-[12px] font-medium text-slate-400 bg-white px-2" [class.-translate-y-4]="!first">
               {{ formatHourLabel(hour) }}
             </span>
           </div>
@@ -104,56 +152,32 @@
 
       <!-- Days Columns (Cards Container) -->
       @for (day of days; track day.dateStr) {
-        <div class="relative border-r border-slate-100 h-full min-h-[900px]">
-          
+        <div class="relative border-r border-slate-100" [class.bg-blue-50/40]="day.isToday" [style.height.px]="hours.length * 100">
+          @for (block of getClosedBlocks(day); track $index) {
+            <div class="absolute inset-x-0 bg-slate-100/70 pointer-events-none" [style.top.px]="block.top" [style.height.px]="block.height"></div>
+          }
           <!-- Iterate over ALL appointments for this SPECIFIC day -->
           @for (app of getAppointmentsForDay(day.dateStr); track app.id) {
             
-            <button type="button" class="absolute rounded-lg p-2 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-all cursor-pointer z-10 group text-left"
-                 [ngStyle]="getAppointmentStyle(app)"
-                 [class]="getAppointmentClass(app)"
-                  (click)="openEditModal(app)">
-              
-              <!-- Client Name - Smaller font if multiple in slot -->
-              <div class="font-bold leading-tight mb-0.5 truncate shrink-0"
-                   [ngClass]="getAppointmentWidth(app) < 40 ? 'text-[11px]' : 'text-[13px]'">
-                {{ app.clientName }}
-              </div>
-              
-              <!-- Badges - Hide labels if very narrow -->
-              <div class="flex flex-wrap gap-1 mb-1 shrink-0">
-                @if (app.status === 'CANCELLED') {
-                  <div class="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-200/50 text-slate-500 text-[9px] font-bold uppercase tracking-wider w-fit">
-                    {{ getAppointmentWidth(app) < 30 ? 'C' : 'Cancelada' }}
-                  </div>
+            <button type="button"
+              class="absolute rounded-lg px-2.5 py-1.5 overflow-hidden flex flex-col gap-0.5 text-left cursor-pointer z-10 transition-colors"
+              [ngStyle]="getAppointmentStyle(app)"
+              [class]="getAppointmentClass(app)"
+              (click)="openEditModal(app)">
+                <div class="flex items-center gap-1.5 text-[11px] font-semibold opacity-80 shrink-0">
+                  <span class="w-1.5 h-1.5 rounded-full shrink-0" [ngClass]="getStatusDotClass(app)"></span>
+                  {{ formatTime(app.appointmentTime) }} – {{ getAppointmentEndTime(app) }}
+                </div>
+                <div class="font-bold leading-tight truncate shrink-0"
+                    [class.line-through]="app.status === 'CANCELLED'"
+                    [ngClass]="getAppointmentWidth(app) < 40 ? 'text-[11px]' : 'text-[13px]'">
+                  {{ app.clientName }}
+                </div>
+                @if (app.serviceName && getAppointmentWidth(app) >= 40) {
+                  <div class="text-[11px] leading-tight opacity-75 truncate shrink-0">{{ app.serviceName }}</div>
                 }
-                @if (app.status === 'PENDING') {
-                  <div class="inline-flex items-center px-1.5 py-0.5 rounded bg-orange-200/50 text-orange-500 text-[9px] font-bold uppercase tracking-wider w-fit whitespace-nowrap">
-                    {{ getAppointmentWidth(app) < 30 ? 'P' : 'S. Conf' }}
-                  </div>
-                }
-                @if (app.status === 'CONFIRMED') {
-                  <div class="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-200/50 text-blue-500 text-[9px] font-bold uppercase tracking-wider w-fit">
-                    {{ getAppointmentWidth(app) < 30 ? 'OK' : 'Confirmada' }}
-                  </div>
-                }
-              </div>
-              
-              <!-- Service - Hide if very narrow -->
-              @if (app.serviceName && getAppointmentWidth(app) >= 40) {
-                <div class="text-[11px] leading-tight opacity-80 truncate shrink-0">{{ app.serviceName }}</div>
-              }
-              
-              <!-- Time - Always show but potentially smaller -->
-              <div class="flex items-center gap-1 mt-auto font-semibold opacity-70 shrink-0"
-                   [ngClass]="getAppointmentWidth(app) < 30 ? 'text-[9px]' : 'text-[11px]'">
-                <span class="material-symbols-outlined shrink-0" 
-                      [ngStyle]="{'font-size': getAppointmentWidth(app) < 30 ? '10px' : '12px'}">schedule</span>
-                {{ app.appointmentTime | slice:0:5 }}
-              </div>
             </button>
-            
-          }
+         }
 
         </div>
       }
@@ -161,7 +185,7 @@
     </div>
 
   </div>
-
+    }   
   <!-- MODAL: Modificar Cita -->
   @if (isEditModalOpen) {
     <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
@@ -285,7 +309,7 @@
                 <span class="block text-[13px] font-bold text-slate-700">Hora *</span>
                 <button type="button" (click)="toggleTimeDropdown($event)" 
                         class="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-white text-left flex items-center justify-between hover:border-slate-300 transition-all text-slate-700 font-medium lg:text-[15px]">
-                  <span>{{ formatTimeAMPM(selectedAppointment.appointmentTime || '') }}</span>
+                  <span>{{ formatTime(selectedAppointment.appointmentTime || '') }}</span>
                   <span class="material-symbols-outlined text-slate-400 text-[20px]">schedule</span>
                 </button>
                 
@@ -293,7 +317,7 @@
                   <div class="absolute z-20 bottom-full mb-2 w-full bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden max-h-48 overflow-y-auto animate-in slide-in-from-bottom-2">
                     @for (time of timeOptions; track time) {
                       <button type="button" (click)="selectTime(time)" class="w-full px-4 py-3 hover:bg-slate-50 cursor-pointer text-[14px] font-medium text-slate-700 transition-colors text-left">
-                        {{ formatTimeAMPM(time) }}
+                        {{ formatTime(time) }}
                       </button>
                     }
                   </div>

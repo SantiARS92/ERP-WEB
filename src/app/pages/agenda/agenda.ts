@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { DatePipe, NgClass, NgStyle, SlicePipe } from '@angular/common';
+import { NgClass, NgStyle } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { finalize, interval } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
@@ -10,52 +10,62 @@ import { Appointment, AgendaDay } from '../../core/models/appointment.model';
 import { ProfessionalApiService } from '../../core/services/professional-api.service';
 import { FormsModule } from '@angular/forms';
 import { Professional } from '../../core/models/professional.model';
-import { toIsoDate } from '../../core/utils/date.util';
+import { formatTime24, toIsoDate } from '../../core/utils/date.util';
 import { Client } from '../../core/models/client.model';
 import { Service } from '../../core/models/service.model';
 import { NotificationService } from '../../core/services/notification.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { ClientsStore } from '../../core/state/clients.store';
 import { ServicesStore } from '../../core/state/services.store';
+import { SettingsStore } from '../../core/state/settings.store';
+import { buildTimeOptions, DEFAULT_END_HOUR, DEFAULT_START_HOUR, getAgendaHourRange } from '../../core/utils/agenda-hours.util';
+import { DayOfWeek } from '../../core/models/settings.model';
 
 const MONTH_FORMATTER = new Intl.DateTimeFormat('es-ES', { month: 'short' });
+const DAY_FORMATTER = new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+// Índice = Date.getDay() (0 = domingo)
+const WEEK_DAYS: DayOfWeek[] = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+const MONTH_YEAR_FORMATTER = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' });
+type AgendaView = 'day' | 'week' | 'month';
+
 
 @Component({
   selector: 'app-agenda',
-  imports: [DatePipe, SlicePipe, NgClass, NgStyle, RouterLink, FormsModule],
+  imports: [NgClass, NgStyle, RouterLink, FormsModule],
   templateUrl: './agenda.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Agenda implements OnInit {
   currentWeekStart!: Date;
   days: AgendaDay[] = [];
-  hours: number[] = [8, 9, 10, 11, 12, 13, 14, 15, 16]; // 08 AM to 04 PM
+  startHour = DEFAULT_START_HOUR;
+  endHour = DEFAULT_END_HOUR;
+  hours: number[] = [];
+
   private readonly appointmentsSignal = signal<Appointment[]>([]);
-  viewMode: 'day' | 'week' = 'week';
+  viewMode: AgendaView = 'week';
+  readonly weekDayNames = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
   selectedDate: Date = new Date();
-  
+
   // Modal State
   private readonly isEditModalOpenSignal = signal(false);
   private readonly selectedAppointmentSignal = signal<Partial<Appointment>>({});
   private readonly isSubmittingSignal = signal(false);
   readonly canManageAppointments = computed(() => this.authService.currentUser()?.role !== UserRole.GUEST);
-  
+
   // For the modal select/autocomplete
   private readonly allClientsSignal = signal<Client[]>([]);
   private readonly allServicesSignal = signal<Service[]>([]);
   private readonly allProfessionalsSignal = signal<Professional[]>([]);
   private readonly filteredClientsSignal = signal<Client[]>([]);
-  timeOptions = [
-    '09:00', '09:30', '10:00', '10:30', 
-    '11:00', '11:30', '12:00', '12:30',
-    '13:00', '13:30', '14:00', '14:30',
-    '15:00', '15:30', '16:00', '16:30'
-  ];
-  
+  timeOptions: string[] = [];
+
+
   // Real time indicator
+  readonly formatTime = formatTime24;
   private readonly currentTimePositionSignal = signal(0);
   private readonly destroyRef = inject(DestroyRef);
-  
+
   private appointmentApi = inject(AppointmentApiService);
   private professionalApi = inject(ProfessionalApiService);
   public authService = inject(AuthService);
@@ -63,6 +73,8 @@ export class Agenda implements OnInit {
   private confirm = inject(ConfirmService);
   private clientsStore = inject(ClientsStore);
   private servicesStore = inject(ServicesStore);
+  private settingsStore = inject(SettingsStore);
+
 
   get appointments() { return this.appointmentsSignal(); }
   set appointments(value: Appointment[]) { this.appointmentsSignal.set(value); }
@@ -85,10 +97,16 @@ export class Agenda implements OnInit {
 
   ngOnInit() {
     this.selectedDate = new Date();
+    this.updateHourRange();
+    // Los ajustes se cargan al arrancar la app, antes del login; si no llegaron, se piden ahora
+    if (!this.settingsStore.settings()) {
+      this.settingsStore.load().then(() => this.calculateAllStyles());
+    }
+
     this.initCurrentWeek();
     this.calculateCurrentTimePosition();
     this.loadAllData();
-    
+
     // Update red line every minute
     interval(60000)
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -104,8 +122,8 @@ export class Agenda implements OnInit {
   initCurrentWeek() {
     const today = this.selectedDate;
     const dayOfWeek = today.getDay(); // 0 (Sun) - 6 (Sat)
-    const diffToMonday = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); 
-    
+    const diffToMonday = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+
     this.currentWeekStart = new Date(today.getFullYear(), today.getMonth(), diffToMonday);
     this.generateDays();
     this.loadAppointments();
@@ -122,38 +140,44 @@ export class Agenda implements OnInit {
 
   generateDays() {
     this.days = [];
-    const dayNames = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
-    
+
     if (this.viewMode === 'week') {
       for (let i = 0; i < 7; i++) {
         const d = new Date(this.currentWeekStart);
         d.setDate(this.currentWeekStart.getDate() + i);
-        
-        this.days.push({
-          dateObj: d,
-          dateStr: this.formatDate(d),
-          dayName: dayNames[(d.getDay() + 6) % 7], // Correct mapping for Monday start
-          dayNumber: d.getDate(),
-          isToday: this.isToday(d)
-        });
+        this.days.push(this.buildDay(d));
+      }
+    } else if (this.viewMode === 'month') {
+      // Semanas completas (lunes a domingo) que cubren el mes seleccionado
+      const year = this.selectedDate.getFullYear();
+      const month = this.selectedDate.getMonth();
+      const first = new Date(year, month, 1);
+      const last = new Date(year, month + 1, 0);
+      const start = new Date(year, month, 1 - ((first.getDay() + 6) % 7));
+      const end = new Date(year, month + 1, (6 - ((last.getDay() + 6) % 7)));
+      for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        this.days.push(this.buildDay(new Date(d)));
       }
     } else {
-      // Day mode
-      const d = new Date(this.selectedDate);
-      this.days.push({
-        dateObj: d,
-        dateStr: this.formatDate(d),
-        dayName: dayNames[(d.getDay() + 6) % 7],
-        dayNumber: d.getDate(),
-        isToday: this.isToday(d)
-      });
+      this.days.push(this.buildDay(new Date(this.selectedDate)));
     }
   }
 
+  private buildDay(d: Date): AgendaDay {
+    return {
+      dateObj: d,
+      dateStr: this.formatDate(d),
+      dayName: this.weekDayNames[(d.getDay() + 6) % 7], // lunes = 0
+      dayNumber: d.getDate(),
+      isToday: this.isToday(d),
+    };
+  }
+
+
   loadAppointments() {
     const startStr = this.days[0].dateStr;
-    const endStr = this.days[6].dateStr;
-    
+    const endStr = this.days[this.days.length - 1].dateStr;
+
     this.appointmentApi.getAppointments(startStr, endStr).subscribe((data: Appointment[]) => {
       this.appointments = data;
       this.calculateAllStyles();
@@ -161,7 +185,7 @@ export class Agenda implements OnInit {
   }
 
   // --- Helpers ---
-  
+
   formatDate(date: Date): string {
     return toIsoDate(date);
   }
@@ -169,61 +193,92 @@ export class Agenda implements OnInit {
   isToday(date: Date): boolean {
     const today = new Date();
     return date.getDate() === today.getDate() &&
-           date.getMonth() === today.getMonth() &&
-           date.getFullYear() === today.getFullYear();
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear();
   }
 
   getWeekDateRange(): string {
     if (!this.days.length) return '';
     const start = this.days[0].dateObj;
-    const end = this.days[6].dateObj;
-    
-    const startNum = start.getDate();
-    const endNum = end.getDate();
-    // Assuming same month/year for simple UI formatting as in the picture
-    const month = MONTH_FORMATTER.format(start);
-    const year = start.getFullYear();
-    
-    return `${startNum} - ${endNum} ${month}, ${year}`;
+    const end = this.days[this.days.length - 1].dateObj;
+    const sameMonth = start.getMonth() === end.getMonth();
+    const sameYear = start.getFullYear() === end.getFullYear();
+
+    const startLabel = sameMonth
+      ? `${start.getDate()}`
+      : `${start.getDate()} ${MONTH_FORMATTER.format(start)}${sameYear ? '' : ' ' + start.getFullYear()}`;
+    return `${startLabel} – ${end.getDate()} ${MONTH_FORMATTER.format(end)} ${end.getFullYear()}`;
   }
 
-  toggleViewMode(mode: 'day' | 'week') {
+  getDayLabel(): string {
+    return this.days.length ? DAY_FORMATTER.format(this.days[0].dateObj) : '';
+  }
+
+  goToday() {
+    this.selectedDate = new Date();
+    this.initCurrentWeek();
+  }
+
+  getTitle(): string {
+    return { day: 'Agenda del Día', week: 'Agenda Semanal', month: 'Agenda Mensual' }[this.viewMode];
+  }
+
+  getRangeLabel(): string {
+    if (this.viewMode === 'week') return this.getWeekDateRange();
+    if (this.viewMode === 'month') return MONTH_YEAR_FORMATTER.format(this.selectedDate);
+    return this.getDayLabel();
+  }
+
+  isOutsideMonth(day: AgendaDay): boolean {
+    return day.dateObj.getMonth() !== this.selectedDate.getMonth();
+  }
+
+  /** Citas del día ordenadas por hora (la vista Mes enseña las 3 primeras) */
+  getSortedAppointmentsForDay(dateStr: string): Appointment[] {
+    return [...this.getAppointmentsForDay(dateStr)].sort((a, b) => a.appointmentTime.localeCompare(b.appointmentTime));
+  }
+
+  openDay(day: AgendaDay) {
+    this.selectedDate = new Date(day.dateObj);
+    this.toggleViewMode('day');
+  }
+
+  onMonthAppointmentClick(app: Appointment, event: Event) {
+    event.stopPropagation(); // que no se abra también la vista Día
+    this.openEditModal(app);
+  }
+
+
+
+  toggleViewMode(mode: AgendaView) {
     this.viewMode = mode;
-    this.generateDays();
-    this.loadAppointments();
+    this.initCurrentWeek();
   }
 
-  // Navigation
-  prev() {
-    if (this.viewMode === 'week') {
-      this.currentWeekStart.setDate(this.currentWeekStart.getDate() - 7);
-      this.selectedDate.setDate(this.selectedDate.getDate() - 7);
+  // Navegación: un día, una semana o un mes según la vista
+  prev() { this.moveDate(-1); }
+  next() { this.moveDate(1); }
+
+  private moveDate(step: number) {
+    const d = this.selectedDate;
+    if (this.viewMode === 'month') {
+      this.selectedDate = new Date(d.getFullYear(), d.getMonth() + step, 1);
     } else {
-      this.selectedDate.setDate(this.selectedDate.getDate() - 1);
+      const days = this.viewMode === 'week' ? 7 : 1;
+      this.selectedDate = new Date(d.getFullYear(), d.getMonth(), d.getDate() + step * days);
     }
     this.initCurrentWeek();
   }
 
-  next() {
-    if (this.viewMode === 'week') {
-      this.currentWeekStart.setDate(this.currentWeekStart.getDate() + 7);
-      this.selectedDate.setDate(this.selectedDate.getDate() + 7);
-    } else {
-      this.selectedDate.setDate(this.selectedDate.getDate() + 1);
-    }
-    this.initCurrentWeek();
-  }
 
-  // Format hour label (e.g. 08 AM)
+  // Etiqueta de la hora en 24 h (ej. 08:00, 17:00)
   formatHourLabel(hour: number): string {
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    let h = hour % 12;
-    if (h === 0) h = 12; // 12 PM/AM
-    return `${String(h).padStart(2, '0')} ${ampm}`;
+    return `${String(hour).padStart(2, '0')}:00`;
   }
+
 
   // --- Grid Positioning Logic ---
-  
+
   getAppointmentsForDay(dateStr: string): Appointment[] {
     return this.appointments.filter(a => a.appointmentDate === dateStr);
   }
@@ -233,7 +288,27 @@ export class Agenda implements OnInit {
     return srv ? srv.durationMinutes : 60; // Default to 60 if not found
   }
 
+  updateHourRange() {
+    const range = getAgendaHourRange(this.settingsStore.settings()?.openingHours);
+
+    // Ampliar el rango para que ninguna cita quede fuera de la cuadrícula
+    for (const app of this.appointments) {
+      const [h, m] = app.appointmentTime.split(':').map(Number);
+      const endMin = h * 60 + m + this.getAppointmentDuration(app);
+      range.start = Math.min(range.start, h);
+      range.end = Math.max(range.end, Math.ceil(endMin / 60));
+    }
+
+    this.startHour = range.start;
+    this.endHour = Math.min(range.end, 24);
+    this.hours = Array.from({ length: this.endHour - this.startHour }, (_, i) => this.startHour + i);
+    this.timeOptions = buildTimeOptions(this.startHour, this.endHour);
+    this.calculateCurrentTimePosition();
+  }
+
+
   calculateAllStyles() {
+    this.updateHourRange();
     this.appointmentStyles = {};
     for (const day of this.days) {
       const dayApps = this.getAppointmentsForDay(day.dateStr);
@@ -271,7 +346,7 @@ export class Agenda implements OnInit {
 
       for (const cluster of clusters) {
         const columns: number[] = [];
-        
+
         for (const item of cluster) {
           let colIdx = columns.findIndex(endTime => endTime <= item.startMin);
           if (colIdx === -1) {
@@ -291,10 +366,10 @@ export class Agenda implements OnInit {
             this.appointmentStyles = {
               ...this.appointmentStyles,
               [item.app.id]: {
-              'top.px': this.timeToPixels(item.startH, item.startM),
-              'height.px': (item.duration / 60) * 100,
-              'width.%': widthPercent,
-              'left.%': 5 + (item.colIdx * widthPercent)
+                'top.px': this.timeToPixels(item.startH, item.startM),
+                'height.px': (item.duration / 60) * 100 - 2,
+                'width.%': widthPercent,
+                'left.%': 5 + (item.colIdx * widthPercent)
               },
             };
           }
@@ -311,7 +386,7 @@ export class Agenda implements OnInit {
     const duration = Math.max(this.getAppointmentDuration(app), 45);
     return {
       'top.px': this.timeToPixels(startH, startM),
-      'height.px': (duration / 60) * 100,
+      'height.px': (duration / 60) * 100 - 2,
       'width.%': 90,
       'left.%': 5
     };
@@ -322,36 +397,64 @@ export class Agenda implements OnInit {
   }
 
   getAppointmentClass(app: Appointment): string {
-    if (app.status === 'CANCELLED') {
-      return 'bg-slate-100 border-l-4 border-slate-300 text-slate-500';
-    } else if (app.status === 'CONFIRMED') {
-      return 'bg-blue-100 border-l-4 border-blue-500 text-blue-900';
-    } else if (app.status === 'PENDING') {
-      return 'bg-orange-100 border-l-4 border-orange-500 text-orange-900';
+    switch (app.status) {
+      case 'CANCELLED': return 'bg-slate-50 border border-slate-200 text-slate-400 hover:bg-slate-100';
+      case 'PENDING': return 'bg-amber-50 border border-amber-200 border-l-[3px] border-l-amber-400 text-amber-900 hover:bg-amber-100';
+      case 'CONFIRMED': return 'bg-blue-50 border border-blue-200 border-l-[3px] border-l-blue-500 text-blue-900 hover:bg-blue-100';
+      default: return 'bg-indigo-50 border border-indigo-200 border-l-[3px] border-l-indigo-500 text-indigo-900 hover:bg-indigo-100';
     }
-    return 'bg-indigo-100 border-l-4 border-indigo-500 text-indigo-900';
   }
 
-  // Calculates pixels from 08:00 AM. 
-  // Base constants: each hour = row height of 100px.
-  // Example: 08:00 = 0px, 09:30 = 150px
-  timeToPixels(hour: number, minute: number): number {
-    const baseHour = 8;
-    const hourPx = 100;
-    
-    // clamp bounds slightly if appointment overlaps outside
-    const safeHour = Math.max(8, Math.min(hour, 17)); 
-    const diffHours = safeHour - baseHour;
-    
-    return (diffHours * hourPx) + ((minute / 60) * hourPx);
+  getStatusDotClass(app: Appointment): string {
+    switch (app.status) {
+      case 'CANCELLED': return 'bg-slate-300';
+      case 'PENDING': return 'bg-amber-400';
+      case 'CONFIRMED': return 'bg-blue-500';
+      default: return 'bg-indigo-500';
+    }
   }
+
+  getAppointmentEndTime(app: Appointment): string {
+    const [h, m] = app.appointmentTime.split(':').map(Number);
+    const end = h * 60 + m + this.getAppointmentDuration(app);
+    return `${String(Math.floor(end / 60) % 24).padStart(2, '0')}:${String(end % 60).padStart(2, '0')}`;
+  }
+
+  /** Tramos del día fuera del horario de apertura (en px). Sin horario configurado no se sombrea nada */
+  getClosedBlocks(day: AgendaDay): { top: number; height: number }[] {
+    const openingHours = this.settingsStore.settings()?.openingHours ?? [];
+    if (!openingHours.some((h) => h.enabled)) return [];
+
+    const total = this.hours.length * 100;
+    const oh = openingHours.find((h) => h.dayOfWeek === WEEK_DAYS[day.dateObj.getDay()]);
+    if (!oh?.enabled || !oh.openingTime || !oh.closingTime) {
+      return [{ top: 0, height: total }]; // día cerrado
+    }
+
+    const [oH, oM] = oh.openingTime.split(':').map(Number);
+    const [cH, cM] = oh.closingTime.split(':').map(Number);
+    const openPx = this.timeToPixels(oH, oM);
+    const closePx = this.timeToPixels(cH, cM);
+    return [
+      { top: 0, height: openPx },
+      { top: closePx, height: total - closePx },
+    ].filter((block) => block.height > 0);
+  }
+
+
+  // Píxeles desde la primera hora visible (cada hora = 100px). Ej: con inicio 08:00, 09:30 = 150px
+  timeToPixels(hour: number, minute: number): number {
+    const hourPx = 100;
+    return ((hour - this.startHour) * hourPx) + ((minute / 60) * hourPx);
+  }
+
 
   calculateCurrentTimePosition() {
     const now = new Date();
     const h = now.getHours();
     const m = now.getMinutes();
-    
-    if (h >= 8 && h < 17) {
+
+    if (h >= this.startHour && h < this.endHour) {
       this.currentTimePosition = this.timeToPixels(h, m);
     } else {
       this.currentTimePosition = -1; // hide if out of bounds
@@ -432,14 +535,6 @@ export class Agenda implements OnInit {
     this.isStatusDropdownOpen = false;
     this.isClientDropdownOpen = false;
     this.filteredClients = [];
-  }
-
-  formatTimeAMPM(time: string): string {
-    if (!time) return '';
-    const [h, m] = time.split(':').map(Number);
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    const hour = h % 12 || 12;
-    return `${String(hour).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
   }
 
   updateAppointment() {
