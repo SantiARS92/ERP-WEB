@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ClientApiService } from '../../core/services/client-api.service';
 import { Client } from '../../core/models/client.model';
 import { finalize } from 'rxjs';
@@ -20,6 +20,7 @@ export class CreateClient {
   private router = inject(Router);
   private notification = inject(NotificationService);
   private clientsStore = inject(ClientsStore);
+  private readonly returnUrl = this.getSafeReturnUrl(inject(ActivatedRoute).snapshot.queryParamMap.get('returnUrl'));
 
   readonly form = createClientForm(inject(NonNullableFormBuilder));
   readonly isSubmitting = signal(false);
@@ -40,9 +41,13 @@ export class CreateClient {
     this.clientApi.createClient(payload)
       .pipe(finalize(() => this.isSubmitting.set(false)))
       .subscribe({
-        next: () => {
+        next: (client) => {
           this.clientsStore.refresh().subscribe();
-          this.router.navigate(['/clientes']);
+          if (this.returnUrl) {
+            this.router.navigate([this.returnUrl], { queryParams: { newClientId: client.id } });
+          } else {
+            this.router.navigate(['/clientes']);
+          }
         },
         error: () => {
           this.errorMessage.set('No se pudo guardar el cliente. Revisa la conexión con el backend o los datos introducidos.');
@@ -51,6 +56,10 @@ export class CreateClient {
   }
 
   cancel() {
-    this.router.navigate(['/clientes']);
+    this.router.navigateByUrl(this.returnUrl ?? '/clientes');
+  }
+
+  private getSafeReturnUrl(url: string | null): string | null {
+    return url && url.startsWith('/') && !url.startsWith('//') ? url : null;
   }
 }

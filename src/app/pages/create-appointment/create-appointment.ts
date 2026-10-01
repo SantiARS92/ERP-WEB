@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, HostListener, inject, OnInit, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AppointmentApiService } from '../../core/services/appointment-api.service';
 import { ProfessionalApiService } from '../../core/services/professional-api.service';
@@ -16,6 +16,8 @@ import { buildAppointmentPayload, createAppointmentForm, todayIsoDate } from '..
 import { SettingsStore } from '../../core/state/settings.store';
 import { buildTimeOptions, getAgendaHourRange } from '../../core/utils/agenda-hours.util';
 import { formatTime24 } from '../../core/utils/date.util';
+
+const APPOINTMENT_DRAFT_KEY = 'appointmentDraft';
 
 @Component({
   selector: 'app-create-appointment',
@@ -45,6 +47,7 @@ export class CreateAppointment implements OnInit {
   private appointmentApi = inject(AppointmentApiService);
   private professionalApi = inject(ProfessionalApiService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private eRef = inject(ElementRef);
   private notification = inject(NotificationService);
   private clientsStore = inject(ClientsStore);
@@ -62,6 +65,7 @@ export class CreateAppointment implements OnInit {
   set professionals(value: Professional[]) { this.professionalsSignal.set(value); }
 
   ngOnInit() {
+    this.restoreDraft();
     this.loadClients();
     this.loadServices();
     this.loadProfessionals();
@@ -82,7 +86,33 @@ export class CreateAppointment implements OnInit {
   loadClients() {
     this.clientsStore.ensureLoaded().subscribe((clients) => {
       this.clients = clients;
+      this.selectNewClientFromQuery();
     });
+  }
+
+  goToCreateClient() {
+    sessionStorage.setItem(APPOINTMENT_DRAFT_KEY, JSON.stringify(this.form.getRawValue()));
+    this.router.navigate(['/clientes/crear'], { queryParams: { returnUrl: '/agenda/crear' } });
+  }
+
+  private restoreDraft() {
+    const draft = sessionStorage.getItem(APPOINTMENT_DRAFT_KEY);
+    if (!draft) return;
+    sessionStorage.removeItem(APPOINTMENT_DRAFT_KEY);
+    try {
+      this.form.patchValue(JSON.parse(draft));
+    } catch {
+      this.form.reset();
+    }
+  }
+
+  private selectNewClientFromQuery() {
+    const newClientId = this.route.snapshot.queryParamMap.get('newClientId');
+    if (!newClientId) return;
+    const client = this.clients.find(c => String(c.id) === newClientId);
+    if (client) {
+      this.selectClient(client);
+    }
   }
 
   @HostListener('document:click', ['$event'])
@@ -164,6 +194,7 @@ export class CreateAppointment implements OnInit {
       }))
       .subscribe({
         next: () => {
+          sessionStorage.removeItem(APPOINTMENT_DRAFT_KEY);
           this.router.navigate(['/agenda']);
         },
         error: () => {
@@ -175,6 +206,7 @@ export class CreateAppointment implements OnInit {
   protected readonly todayIsoDate = todayIsoDate;
 
   cancel() {
+    sessionStorage.removeItem(APPOINTMENT_DRAFT_KEY);
     this.router.navigate(['/agenda']);
   }
 }
