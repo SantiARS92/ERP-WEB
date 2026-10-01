@@ -1,12 +1,8 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
-import { ProfessionalApiService } from '../../core/services/professional-api.service';
-import { Professional } from '../../core/models/professional.model';
-import { HttpContext } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { silentError } from '../../core/http/http-contexts';
 import { SettingsStore } from '../../core/state/settings.store';
 
 @Component({
@@ -15,32 +11,18 @@ import { SettingsStore } from '../../core/state/settings.store';
   templateUrl: './login.html',
   styleUrls: ['./login.css']
 })
-export class Login implements OnInit {
+export class Login {
   authService = inject(AuthService);
   settingsStore = inject(SettingsStore);
-  professionalApi = inject(ProfessionalApiService);
   private router = inject(Router);
   
   readonly settings = this.settingsStore.settings;
-  
-  readonly professionals = signal<Professional[]>([]);
 
   username = '';
   password = '';
   readonly showPassword = signal(false);
   readonly isLoading = signal(false);
   readonly error = signal('');
-
-  ngOnInit() {
-    this.loadProfessionals();
-  }
-
-  loadProfessionals() {
-    this.professionalApi.getProfessionals(true, new HttpContext().set(silentError, true)).subscribe({
-      next: (data) => this.professionals.set(data),
-      error: () => console.error('Error loading professionals for login')
-    });
-  }
 
   togglePassword() {
     this.showPassword.update(v => !v);
@@ -58,6 +40,7 @@ export class Login implements OnInit {
     this.authService.login(this.username, this.password).subscribe({
       next: () => {
         this.isLoading.set(false);
+        this.settingsStore.load();
         this.router.navigate(['/panel']);
       },
       error: (err) => {

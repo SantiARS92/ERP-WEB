@@ -5,6 +5,7 @@ import { silentError } from '../http/http-contexts';
 import { BusinessSettings } from '../models/settings.model';
 import { SettingsApiService } from '../services/settings-api.service';
 import { StorageService } from '../services/storage.service';
+import { AuthService } from '../services/auth.service';
 
 @Injectable({
   providedIn: 'root'
@@ -12,6 +13,7 @@ import { StorageService } from '../services/storage.service';
 export class SettingsStore {
   private settingsApi = inject(SettingsApiService);
   private storage = inject(StorageService);
+  private auth = inject(AuthService);
   private readonly settingsSignal = signal<BusinessSettings | null>(null);
   private readonly isLoadingSignal = signal(false);
   private readonly errorSignal = signal<unknown | null>(null);
@@ -21,6 +23,13 @@ export class SettingsStore {
   readonly error = this.errorSignal.asReadonly();
 
   async load(): Promise<void> {
+    if (!this.auth.isAdmin()) {
+      const fallback = this.applyLocalStorageFallback(this.emptySettings());
+      if (fallback.businessName || fallback.businessLogo) {
+        this.settingsSignal.set(fallback);
+      }
+      return;
+    }
     this.isLoadingSignal.set(true);
     this.errorSignal.set(null);
 
