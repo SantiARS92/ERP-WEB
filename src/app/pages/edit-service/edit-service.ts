@@ -9,6 +9,8 @@ import { ConfirmService } from '../../core/services/confirm.service';
 import { CategoriesStore } from '../../core/state/categories.store';
 import { ServicesStore } from '../../core/state/services.store';
 import { buildServicePayload, createServiceForm, serviceToFormValue } from '../../shared/forms/service-form';
+import { HttpContext } from '@angular/common/http';
+import { silentError } from '../../core/http/http-contexts';
 
 @Component({
   selector: 'app-edit-service',
@@ -83,12 +85,12 @@ export class EditService implements OnInit {
 
     if (!confirmed) return;
 
-    this.serviceApi.deleteService(this.serviceId).subscribe({
+    this.serviceApi.deleteService(this.serviceId, new HttpContext().set(silentError, true)).subscribe({
       next: () => {
         this.servicesStore.refresh().subscribe();
         this.router.navigate(['/servicios']);
       },
-      error: () => this.notification.error('Ocurrió un error al eliminar el servicio.')
+      error: (err) => this.notification.error(err.error?.message || 'Ocurrió un error al eliminar el servicio.')
     });
   }
 }

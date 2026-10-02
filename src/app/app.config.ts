@@ -20,8 +20,12 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZonelessChangeDetection(),
-    provideAppInitializer(() => inject(AuthService).reconstructSession()),
-    provideAppInitializer(() => inject(SettingsStore).load()),
+    provideAppInitializer(async () => {
+      const auth = inject(AuthService);
+      const settings = inject(SettingsStore);
+      await auth.reconstructSession();
+      await settings.load();
+    }),
     provideAppInitializer(() => {
       inject(ThemeService).initializeTheme();
     }),

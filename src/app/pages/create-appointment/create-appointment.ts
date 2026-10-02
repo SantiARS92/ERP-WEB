@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ElementRef, HostListener, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, ElementRef, HostListener, inject, OnInit, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -13,6 +13,9 @@ import { NotificationService } from '../../core/services/notification.service';
 import { ClientsStore } from '../../core/state/clients.store';
 import { ServicesStore } from '../../core/state/services.store';
 import { buildAppointmentPayload, createAppointmentForm, todayIsoDate } from '../../shared/forms/appointment-form';
+import { SettingsStore } from '../../core/state/settings.store';
+import { buildTimeOptions, getAgendaHourRange } from '../../core/utils/agenda-hours.util';
+import { formatTime24 } from '../../core/utils/date.util';
 
 @Component({
   selector: 'app-create-appointment',
@@ -26,17 +29,18 @@ export class CreateAppointment implements OnInit {
   isTimeDropdownOpen = false;
   isStatusDropdownOpen = false;
   isClientDropdownOpen = false;
-  
+
   private readonly clientsSignal = signal<Client[]>([]);
   private readonly filteredClientsSignal = signal<Client[]>([]);
   private readonly servicesSignal = signal<Service[]>([]);
   private readonly professionalsSignal = signal<Professional[]>([]);
-  timeOptions = [
-    '09:00', '09:30', '10:00', '10:30', 
-    '11:00', '11:30', '12:00', '12:30',
-    '13:00', '13:30', '14:00', '14:30',
-    '15:00', '15:30', '16:00', '16:30'
-  ];
+  private settingsStore = inject(SettingsStore);
+  readonly timeOptions = computed(() => {
+    const { start, end } = getAgendaHourRange(this.settingsStore.settings()?.openingHours);
+    return buildTimeOptions(start, end);
+  });
+  readonly formatTime = formatTime24;
+
 
   private appointmentApi = inject(AppointmentApiService);
   private professionalApi = inject(ProfessionalApiService);
@@ -83,7 +87,7 @@ export class CreateAppointment implements OnInit {
 
   @HostListener('document:click', ['$event'])
   clickout(event: Event) {
-    if(!this.eRef.nativeElement.contains(event.target)) {
+    if (!this.eRef.nativeElement.contains(event.target)) {
       this.closeAllDropdowns();
     }
   }
@@ -118,17 +122,6 @@ export class CreateAppointment implements OnInit {
   selectClient(client: Client) {
     this.form.patchValue({ clientName: client.fullName, clientId: client.id ?? null });
     this.isClientDropdownOpen = false;
-  }
-
-  // Formatting helper for time dropdown display
-  formatTimeAMPM(time24: string): string {
-    if (!time24) return '';
-    const [hStr, mStr] = time24.split(':');
-    let h = parseInt(hStr, 10);
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    h = h % 12;
-    if (h === 0) h = 12;
-    return `${String(h).padStart(2, '0')}:${mStr} ${ampm}`;
   }
 
   selectTime(time: string, event: Event) {

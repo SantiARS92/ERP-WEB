@@ -23,6 +23,10 @@
       </div>
       <!-- Save status indicator -->
       <div class="flex items-center h-9">
+        <button (click)="saveAllSettings()" [disabled]="!hasUnsavedChanges"
+          class="px-4 py-2 rounded-lg bg-blue-600 text-white text-[13px] font-semibold hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed transition-colors">
+          Guardar Cambios
+        </button>
         <!-- Saving -->
         @if (saveStatus === 'saving') {
           <div
@@ -204,48 +208,34 @@
             <div class="mt-10 pt-8 border-t border-slate-100">
               <h3 class="text-[15px] font-bold text-slate-800 mb-6">Días Festivos y Cierres Especiales</h3>
               <div class="flex flex-col md:flex-row gap-8">
-                <!-- Dummy Calendar (Visual presentation matching mockup) -->
+                <!-- Functional Calendar  -->
                 <div class="w-full md:w-[320px] bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
                   <div class="flex justify-between items-center mb-6">
-                    <span class="material-symbols-outlined text-slate-400 cursor-pointer hover:text-slate-600">chevron_left</span>
-                    <span class="font-bold text-[14px] text-slate-800">Octubre 2023</span>
-                    <span class="material-symbols-outlined text-slate-400 cursor-pointer hover:text-slate-600">chevron_right</span>
+                    <span (click)="previousMonth()" class="material-symbols-outlined text-slate-400 cursor-pointer hover:text-slate-600">chevron_left</span>
+                    <span class="font-bold text-[14px] text-slate-800">{{ calendarMonthLabel }}</span>
+                    <span (click)="nextMonth()" class="material-symbols-outlined text-slate-400 cursor-pointer hover:text-slate-600">chevron_right</span>
                   </div>
                   <div class="grid grid-cols-7 gap-1 text-center text-[11px] font-bold text-slate-400 mb-2">
                     <div>Lu</div><div>Ma</div><div>Mi</div><div>Ju</div><div>Vi</div><div>Sa</div><div>Do</div>
                   </div>
                   <div class="grid grid-cols-7 gap-y-2 gap-x-1 text-center text-[13px] font-medium text-slate-600">
-                    <div class="py-1.5 opacity-0"></div><div class="py-1.5 opacity-0"></div><div class="py-1.5 opacity-0"></div>
-                    <div class="py-1.5 opacity-0"></div><div class="py-1.5 opacity-0"></div>
-                    <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">1</div><div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">2</div>
-                    <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">3</div><div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">4</div>
-                    <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">5</div><div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">6</div>
-                    <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">7</div><div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">8</div>
-                    <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">9</div>
-                    <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">10</div>
-                    <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">11</div>
-                    <div class="py-1.5 bg-red-100 text-red-600 font-bold rounded-full cursor-pointer">12</div>
-                    <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">13</div>
-                    <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">14</div>
-                    <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">15</div>
-                    <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">16</div>
-                    <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">17</div>
-                    <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">18</div>
-                    <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">19</div>
-                    <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">20</div>
-                    <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">21</div>
-                    <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">22</div>
-                    <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">23</div>
-                    <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">24</div>
-                    <div class="py-1.5 bg-red-100 text-red-600 font-bold rounded-full cursor-pointer">25</div>
-                    <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">26</div>
-                    <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">27</div>
-                    <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">28</div>
-                    <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">29</div>
-                    <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">30</div>
-                    <div class="py-1.5 hover:bg-slate-100 rounded-full cursor-pointer">31</div>
+                    @for (day of calendarDays; track $index) {
+                      @if (day) {
+                        <div (click)="toggleClosureDate(day.dateStr)"
+                          class="py-1.5 rounded-full cursor-pointer"
+                          [class.bg-red-100]="day.hasClosure"
+                          [class.text-red-600]="day.hasClosure"
+                          [class.font-bold]="day.hasClosure"
+                          [class.hover:bg-slate-100]="!day.hasClosure">
+                          {{ day.dayNumber }}
+                        </div>
+                      } @else {
+                        <div class="py-1.5 opacity-0"></div>
+                      }
+                    }
                   </div>
                 </div>
+
                 <div class="flex-1 space-y-5">
                   <p class="text-[13px] text-slate-500 leading-relaxed">Haz clic en las fechas del calendario para marcar días festivos o cierres excepcionales. Estos días se mostrarán como no disponibles en tu página de reservas pública.</p>
                   <div>
@@ -257,17 +247,28 @@
                     </div>
                     <div class="space-y-3">
                       @for (c of settings.specialClosures; track c; let i = $index) {
-                        <div class="border border-red-100 bg-red-50/50 rounded-xl px-4 py-3 flex items-center gap-4">
+                        <div class="border rounded-xl px-4 py-3 flex items-center gap-4"
+                          [class.border-red-100]="c.closureDate" [class.bg-red-50/50]="c.closureDate"
+                          [class.border-amber-200]="!c.closureDate" [class.bg-amber-50/50]="!c.closureDate">
                           <div class="flex items-center gap-3 flex-1">
-                            <span class="material-symbols-outlined text-red-400 text-[18px]">event_busy</span>
-                            <input type="date" [ngModel]="c.closureDate" (ngModelChange)="updateClosure(i, { closureDate: $event })" class="bg-transparent border-b border-red-200 text-[13px] font-semibold text-red-600 focus:outline-none focus:border-red-400 w-32">
-                            <input type="text" [ngModel]="c.reason" (ngModelChange)="updateClosure(i, { reason: $event })" placeholder="Motivo (opcional)" class="bg-transparent border-b border-red-200 text-[13px] text-red-500 focus:outline-none focus:border-red-400 flex-1">
+                            <span class="material-symbols-outlined text-[18px]" [class.text-red-400]="c.closureDate" [class.text-amber-400]="!c.closureDate">
+                              {{ c.closureDate ? 'event_busy' : 'edit_calendar' }}
+                            </span>
+                            <input type="date" [ngModel]="c.closureDate" (change)="updateClosure(i, { closureDate: $event.target.value })"
+                              class="bg-transparent border-b text-[13px] font-semibold focus:outline-none w-32"
+                              [class.border-red-200]="c.closureDate" [class.text-red-600]="c.closureDate" [class.focus:border-red-400]="c.closureDate"
+                              [class.border-amber-300]="!c.closureDate" [class.text-amber-600]="!c.closureDate" [class.focus:border-amber-400]="!c.closureDate">
+                            <input type="text" [ngModel]="c.reason" (ngModelChange)="updateClosure(i, { reason: $event })" placeholder="Motivo (opcional)"
+                              class="bg-transparent border-b text-[13px] flex-1 focus:outline-none"
+                              [class.border-red-200]="c.closureDate" [class.text-red-500]="c.closureDate"
+                              [class.border-amber-300]="!c.closureDate" [class.text-amber-500]="!c.closureDate">
                           </div>
                           <button (click)="removeClosure(i)" class="text-red-400 hover:text-red-600 transition-colors">
                             <span class="material-symbols-outlined text-[18px]">close</span>
                           </button>
                         </div>
                       }
+
                       @if (settings.specialClosures.length === 0) {
                         <div class="text-center py-6 border border-dashed border-slate-200 rounded-xl text-slate-400 text-[13px]">
                           No hay cierres especiales programados.
@@ -370,7 +371,7 @@
       <!-- 4. Gestión del Equipo -->
       @if (isAdmin()) {
         <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)] transition-all duration-300">
-          <button (click)="toggleSection('equipo')" class="w-full flex items-center justify-between px-6 py-5 bg-white hover:bg-slate-50/50 transition-colors">
+           <div role="button" tabindex="0" (click)="toggleSection('equipo')" (keydown.enter)="toggleSection('equipo')" (keydown.space)="toggleSection('equipo'); $event.preventDefault()" class="w-full flex items-center justify-between px-6 py-5 bg-white hover:bg-slate-50/50 transition-colors">
             <div class="flex items-center gap-3">
               @if (expandedSection !== 'equipo') {
                 <div class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
@@ -388,7 +389,7 @@
               <span class="material-symbols-outlined text-slate-400 transition-transform duration-300"
               [class.rotate-180]="expandedSection === 'equipo'">expand_more</span>
             </div>
-          </button>
+          </div>
 
           @if (expandedSection === 'equipo') {
             <div class="px-6 pb-6 border-t border-slate-100 pt-6 animate-in slide-in-from-top-2 duration-300">
@@ -520,10 +521,13 @@
             <div>
               <label for="professional-email" class="block text-[13px] font-bold text-slate-800 mb-2">Email</label>
               <input id="professional-email" type="email" [(ngModel)]="editingProfessional.email" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[14px] focus:outline-none focus:border-blue-400">
+              @if (editingProfessional.email) {
+                <p class="text-[11px] text-slate-400 mt-1.5">El email se usará como nombre de usuario para iniciar sesión.</p>
+              }
             </div>
           </div>
           <div>
-            <label for="professional-accessPassword" class="block text-[13px] font-bold text-slate-800 mb-2">Clave de Acceso (JWT)</label>
+            <label for="professional-accessPassword" class="block text-[13px] font-bold text-slate-800 mb-2">Clave de Acceso</label>
             <input id="professional-accessPassword" type="password" [(ngModel)]="editingProfessional.accessPassword" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[14px] focus:outline-none focus:border-blue-400"
               [placeholder]="editingProfessional.id ? 'Dejar en blanco para mantener actual' : 'Mínimo 6 caracteres'">
             @if (editingProfessional.id) {

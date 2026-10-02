@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 
+import { HttpContext } from '@angular/common/http';
+import { silentError } from '../../core/http/http-contexts';
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ClientApiService } from '../../core/services/client-api.service';
@@ -98,13 +100,13 @@ export class EditClient implements OnInit {
 
     if (!confirmed) return;
 
-    this.clientApi.deleteClient(this.clientId).subscribe({
+    this.clientApi.deleteClient(this.clientId, new HttpContext().set(silentError, true)).subscribe({
       next: () => {
         this.clientsStore.refresh().subscribe();
         this.router.navigate(['/clientes']);
       },
-      error: () => {
-        this.notification.error('Ocurrió un error al eliminar el cliente.');
+      error: (err) => {
+        this.notification.error(err.error?.message || 'Ocurrió un error al eliminar el cliente.');
       }
     });
   }

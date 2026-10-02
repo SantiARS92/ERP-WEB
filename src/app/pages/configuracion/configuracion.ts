@@ -1,8 +1,7 @@
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { Subject, debounceTime, takeUntil } from 'rxjs';
 import { ThemeService, PrimaryColor, ThemeMode } from '../../core/services/theme.service';
 import { ProfessionalApiService } from '../../core/services/professional-api.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -52,11 +51,9 @@ type ProfessionalDraft = Professional & { accessPassword?: string };
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Configuracion implements OnInit, OnDestroy {
+export class Configuracion implements OnInit {
   // Accordion state
   private readonly expandedSectionSignal = signal<string | null>('perfil');
-  private destroy$ = new Subject<void>();
-  private autoSave$ = new Subject<void>();
   private router = inject(Router);
   themeService = inject(ThemeService);
   private settingsStore = inject(SettingsStore);
@@ -93,9 +90,11 @@ export class Configuracion implements OnInit, OnDestroy {
     cip: ''
   });
 
+  private readonly calendarMonthSignal = signal(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   private readonly professionalsSignal = signal<Professional[]>([]);
   private readonly isSubmittingSignal = signal(false);
   private readonly saveStatusSignal = signal<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  private readonly hasUnsavedChangesSignal = signal(false);
   private saveResetTimer: ReturnType<typeof setTimeout> | null = null;
 
   // For adding/editing professional (Modal mini-state)
@@ -124,32 +123,49 @@ export class Configuracion implements OnInit, OnDestroy {
   set isSubmitting(value: boolean) { this.isSubmittingSignal.set(value); }
   get saveStatus() { return this.saveStatusSignal(); }
   set saveStatus(value: 'idle' | 'saving' | 'saved' | 'error') { this.saveStatusSignal.set(value); }
+  get hasUnsavedChanges() { return this.hasUnsavedChangesSignal(); }
+  set hasUnsavedChanges(value: boolean) { this.hasUnsavedChangesSignal.set(value); }
   get isProfessionalModalOpen() { return this.isProfessionalModalOpenSignal(); }
   set isProfessionalModalOpen(value: boolean) { this.isProfessionalModalOpenSignal.set(value); }
   get editingProfessional() { return this.editingProfessionalSignal(); }
   set editingProfessional(value: ProfessionalDraft) { this.editingProfessionalSignal.set(value); }
+  get calendarMonth() { return this.calendarMonthSignal(); }
+  set calendarMonth(value: Date) { this.calendarMonthSignal.set(value); }
+
+  get calendarMonthLabel(): string {
+    const monthNames = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+    const d = this.calendarMonth;
+    return `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+  }
+  get calendarDays():Array<{ dateStr: string; dayNumber: number; hasClosure: boolean } | null> {
+    const d = this.calendarMonth;
+    const year = d.getFullYear();
+    const month = d.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const leadingEmpty = (firstDay.getDay() + 6) % 7; // Lunes = 0
+
+    const closuredates = new Set(this.settings.specialClosures.map(c => c.closureDate));
+    const cells: Array<{ dateStr: string; dayNumber: number; hasClosure: boolean } | null> = [];
+    for (let i = 0; i < leadingEmpty; i++) cells.push(null);
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      cells.push({ dateStr, dayNumber: day, hasClosure: closuredates.has(dateStr) });
+    }
+    return cells;
+  }
 
   ngOnInit(): void {
     this.loadAll();
-    this.setupAutoSave();
   }
 
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
-  }
-
-  setupAutoSave() {
-    this.autoSave$.pipe(
-      debounceTime(800),
-      takeUntil(this.destroy$)
-    ).subscribe(() => {
-      this.triggerSave();
-    });
-  }
+  
 
   onFieldChange() {
-    this.autoSave$.next();
+    this.hasUnsavedChangesSignal.set(true);
   }
 
   private ensureOpeningHours() {
@@ -205,6 +221,7 @@ export class Configuracion implements OnInit, OnDestroy {
         this.settings = this.buildPersistedSettings(data);
         this.isSubmitting = false;
         this.saveStatus = 'saved';
+        this.hasUnsavedChangesSignal.set(false);
         this.saveResetTimer = setTimeout(() => { this.saveStatus = 'idle'; }, 3000);
       },
       error: () => {
@@ -284,6 +301,29 @@ export class Configuracion implements OnInit, OnDestroy {
     this.onFieldChange();
   }
 
+  previousMonth() {
+    const d = this.calendarMonth;
+    this.calendarMonthSignal.set(new Date(d.getFullYear(), d.getMonth() - 1, 1));
+  }
+
+  nextMonth() {
+    const d = this.calendarMonth;
+    this.calendarMonthSignal.set(new Date(d.getFullYear(), d.getMonth() + 1, 1));
+  }
+
+  toggleClosureDate(dateStr: string) {
+    const existingIndex = this.settings.specialClosures.findIndex(c => c.closureDate === dateStr);
+    if (existingIndex >= 0) {
+      this.removeClosure(existingIndex);
+    } else {
+      this.settings = {
+        ...this.settings,
+        specialClosures: [...this.settings.specialClosures, { closureDate: dateStr, reason: '' }],
+      };
+      this.onFieldChange();
+    }
+  }
+
   removeClosure(index: number) {
     this.settings = {
       ...this.settings,
@@ -311,8 +351,8 @@ export class Configuracion implements OnInit, OnDestroy {
   }
 
   saveProfessional() {
-    if (!this.editingProfessional.fullName || !this.editingProfessional.specialty) {
-      this.notification.warning('Nombre y especialidad son obligatorios');
+    if (!this.editingProfessional.fullName || !this.editingProfessional.specialty || !this.editingProfessional.email) {
+      this.notification.warning('Nombre, especialidad y email son obligatorios');
       return;
     }
 
@@ -371,7 +411,12 @@ export class Configuracion implements OnInit, OnDestroy {
   toggleProfessionalStatus(p: Professional) {
     const updated = { ...p, active: !p.active };
     if (p.id) {
-      this.professionalApi.updateProfessional(p.id, updated).subscribe(() => this.loadAll());
+      this.professionalApi.updateProfessional(p.id, updated).subscribe({
+        next: () => this.loadAll(),
+        error: (err) => {
+          this.notification.error(err.error?.message || 'Error al actualizar el estado del profesional');
+        }
+      });
     }
   }
 

@@ -6,7 +6,7 @@
     <div class="flex items-start justify-between mb-8">
       <div>
         <div class="text-[13px] font-medium text-slate-500 mb-1 flex items-center gap-1.5">
-          <span class="hover:text-blue-600 cursor-pointer transition-colors" routerLink="/servicios">Servicios</span>
+          <span class="hover:text-blue-600 cursor-pointer transition-colors" routerLink="/panel">Inicio</span>
           <span class="text-slate-400 text-[15px]">›</span>
           <span class="text-slate-600">Categorías</span>
         </div>
@@ -92,80 +92,12 @@
 
   <!-- Overlay Modal -->
   @if (isModalOpen()) {
-  <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-    <!-- Modal Content -->
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-      
-      <!-- Header -->
-      <div class="px-6 py-5 border-b border-slate-100 flex flex-col relative">
-        <button (click)="closeModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-600 transition-colors">
-          <span class="material-symbols-outlined text-[20px]">close</span>
-        </button>
-        <h3 class="text-[20px] font-bold text-slate-900 tracking-tight">
-          {{ isEditMode() ? 'Editar Categoría' : 'Añadir Nueva Categoría' }}
-        </h3>
-        <p class="text-[13px] text-slate-500 font-medium mt-1">
-          {{ isEditMode() ? 'Modifique los detalles de esta clasificación de servicios.' : 'Complete los detalles para crear una nueva clasificación de servicios.' }}
-        </p>
-      </div>
-
-      <!-- Body -->
-      <div class="p-6 space-y-6">
-        
-        <!-- Category Name -->
-        <div>
-          <label for="category-name" class="block text-[13px] font-bold text-slate-800 mb-2">Nombre de la Categoría</label>
-          <input id="category-name" type="text" [(ngModel)]="categoryForm.name" placeholder="Ej. Depilación, Tratamientos..." class="w-full px-4 py-3 rounded-xl border border-slate-200 text-[14px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-shadow">
-        </div>
-
-        <!-- Color/Icon Selection -->
-        <div>
-          <span class="block text-[13px] font-bold text-slate-800 mb-3">Color o Icono Distintivo</span>
-          
-          <!-- Colors Row -->
-          <div class="flex items-center gap-3 mb-4">
-            @for (c of ['#DCEBFF', '#E9D9F7', '#FFE4E6', '#ECFDF5', '#FFF7ED', '#3B82F6']; track c) {
-              <button (click)="selectColor(c)" 
-                      [style.background-color]="c"
-                      class="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110"
-                      [class.border-2]="categoryForm.color === c"
-                      [class.border-slate-800]="categoryForm.color === c">
-                @if (categoryForm.color === c) {
-                  <span class="material-symbols-outlined text-[16px] font-bold" [class.text-white]="c === '#3B82F6'" [class.text-slate-800]="c !== '#3B82F6'">check</span>
-                }
-              </button>
-            }
-          </div>
-
-          <!-- Icons Row -->
-          <div class="grid grid-cols-6 gap-3 w-fit">
-            @for (icon of icons; track icon) {
-              <button (click)="selectIcon(icon)" 
-                      [class.border-blue-400]="categoryForm.icon === icon"
-                      [class.text-blue-500]="categoryForm.icon === icon"
-                      class="w-10 h-10 rounded-xl border border-slate-200 text-slate-400 hover:border-blue-400 hover:text-blue-500 flex items-center justify-center transition-colors">
-                <span class="material-symbols-outlined text-[20px]">{{ icon }}</span>
-              </button>
-            }
-          </div>
-        </div>
-
-      </div>
-
-      <!-- Footer -->
-      <div class="flex items-center justify-end gap-3 px-6 py-5 bg-slate-50/50 border-t border-slate-100">
-        <button (click)="closeModal()" class="px-5 py-2.5 rounded-xl text-[14px] font-bold text-slate-600 hover:bg-slate-100 transition-colors">
-          Cancelar
-        </button>
-        <button (click)="saveCategory()" class="px-5 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-[14px] transition-colors shadow-sm">
-          {{ isEditMode() ? 'Guardar Cambios' : 'Guardar Categoría' }}
-        </button>
-      </div>
-
-    </div>
-  </div>
+    <app-category-modal
+      [category]="editingCategory()"
+      (saved)="onCategorySaved()"
+      (closed)="closeModal()" />
   }
-
+  
   <!-- Delete Confirmation Modal -->
   @if (isDeleteModalOpen()) {
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">

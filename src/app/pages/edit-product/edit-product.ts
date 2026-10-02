@@ -13,10 +13,11 @@ import { ConfirmService } from '../../core/services/confirm.service';
 import { CategoriesStore } from '../../core/state/categories.store';
 import { ProductsStore } from '../../core/state/products.store';
 import { buildProductPayload, createProductForm, productToFormValue } from '../../shared/forms/product-form';
+import { CategoryModal } from '../../shared/components/category-modal/category-modal';
 
 @Component({
   selector: 'app-edit-product',
-  imports: [RouterLink, FormsModule, ReactiveFormsModule, VariantConfigComponent],
+  imports: [RouterLink, FormsModule, ReactiveFormsModule, VariantConfigComponent, CategoryModal],
   templateUrl: './edit-product.html',
   styles: ``,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -35,9 +36,12 @@ export class EditProduct implements OnInit {
 
   isEditMode = false;
   private readonly isSubmittingSignal = signal(false);
-  
+
   private readonly selectedVariantToEditSignal = signal<InventoryVariant | null>(null);
   private readonly editingVariantDraftSignal = signal<InventoryVariant | null>(null);
+
+  readonly isCategoryModalOpen = signal(false);
+  private previousCategoryId = 0;
 
   readonly form = createProductForm(this.fb);
   private readonly productSignal = signal<Product>({
@@ -107,14 +111,38 @@ export class EditProduct implements OnInit {
     });
   }
 
+  onCategoryChange(event: Event) {
+    const value = Number((event.target as HTMLSelectElement).value);
+    if (value === -1) {
+      this.form.controls.categoryId.setValue(this.previousCategoryId);
+      this.isCategoryModalOpen.set(true);
+    } else {
+      this.previousCategoryId = value;
+    }
+  }
+
+  onCategoryCreated(category: Category) {
+    this.isCategoryModalOpen.set(false);
+    this.categoriesStore.refresh().subscribe({
+      next: (data) => {
+        this.categories = data;
+        if (category.id) {
+          this.form.controls.categoryId.setValue(category.id);
+          this.previousCategoryId = category.id;
+        }
+      }
+    });
+  }
+
   loadProduct(id: number) {
     this.productApi.getProductById(id).subscribe({
       next: (data) => {
-        this.product = { 
+        this.product = {
           ...data,
           variants: data.variants ? data.variants.map(v => ({ ...v })) : []
         };
         this.form.setValue(productToFormValue(this.product));
+        this.previousCategoryId = this.product.categoryId ?? 0;
       },
       error: (err) => {
         console.error('Error loading product:', err);
@@ -223,4 +251,6 @@ export class EditProduct implements OnInit {
     if (v.stock <= v.minimumStock) return { label: 'Bajo Stock', cls: 'text-orange-500' };
     return { label: 'En Stock', cls: 'text-emerald-500' };
   }
+
+
 }

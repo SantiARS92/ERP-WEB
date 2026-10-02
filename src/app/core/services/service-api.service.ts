@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Service, ServicePage } from '../models/service.model';
 import { environment } from '../../../environments/environment';
@@ -41,7 +41,7 @@ export class ServiceApiService {
     return this.http.put<Service>(`${this.apiUrl}/${id}`, service);
   }
 
-  deleteService(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  deleteService(id: number, context?: HttpContext): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`, { context });
   }
 }

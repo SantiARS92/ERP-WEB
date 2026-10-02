@@ -35,6 +35,11 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
         refreshTokenSubject.next(null);
 
         return authService.refreshAccessToken().pipe(
+          catchError((refreshError) => {
+            isRefreshing = false;
+            authService.logout();
+            return throwError(() => refreshError);
+          }),
           switchMap((res) => {
             isRefreshing = false;
             refreshTokenSubject.next(res.accessToken);
@@ -43,13 +48,9 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
                 Authorization: `Bearer ${res.accessToken}`
               }
             }));
-          }),
-          catchError((refreshError) => {
-            isRefreshing = false;
-            authService.logout();
-            return throwError(() => refreshError);
           })
         );
+
       }
 
         return refreshTokenSubject.pipe(

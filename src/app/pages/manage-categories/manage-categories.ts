@@ -12,44 +12,28 @@ import { catchError, debounceTime, distinctUntilChanged, map, of, startWith, swi
 import { NotificationService } from '../../core/services/notification.service';
 import { CategoriesStore } from '../../core/state/categories.store';
 import { ServicesStore } from '../../core/state/services.store';
+import { CategoryModal } from '../../shared/components/category-modal/category-modal';
 
 @Component({
   selector: 'app-manage-categories',
-  imports: [FormsModule, RouterLink, PaginationComponent],
+  imports: [FormsModule, RouterLink, PaginationComponent, CategoryModal],
   templateUrl: './manage-categories.html',
   styles: ``,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ManageCategories {
   readonly isModalOpen = signal(false);
-  readonly isEditMode = signal(false);
+  readonly editingCategory = signal<Category | undefined>(undefined);
   readonly isDeleteModalOpen = signal(false);
   readonly searchText = signal('');
   readonly selectedCategoryName = signal('');
   readonly currentPage = signal(0);
   readonly pageSize = 10;
-  readonly icons = [
-    // Estética y belleza
-    'spa', 'content_cut', 'brush', 'palette', 'clean_hands', 'face',
-    'face_3', 'self_care', 'health_and_beauty', 'massage', 'hand_gesture', 'soap',
-    // Agua y bienestar
-    'water_drop', 'shower', 'bathtub', 'hot_tub', 'pool', 'self_improvement',
-    // Salud y deporte
-    'fitness_center', 'healing', 'medical_services', 'favorite', 'local_florist', 'eco',
-    // Tienda y productos
-    'diamond', 'checkroom', 'storefront', 'shopping_bag', 'inventory_2', 'redeem',
-  ];
 
   private readonly refreshTick = signal(0);
   categoryToDelete?: Category;
 
-  // Category Form State
-  categoryForm: Category = {
-    name: '',
-    icon: 'spa',
-    color: '#DCEBFF'
-  };
-  editingId?: number;
+
 
   public authService = inject(AuthService);
   readonly isAdmin = computed(() => this.authService.hasRole([UserRole.ADMIN]));
@@ -89,15 +73,7 @@ export class ManageCategories {
 
   // Opens the Add/Edit Category Modal
   openModal(category?: Category) {
-    if (category) {
-      this.isEditMode.set(true);
-      this.editingId = category.id;
-      this.categoryForm = { ...category };
-    } else {
-      this.isEditMode.set(false);
-      this.editingId = undefined;
-      this.categoryForm = { name: '', icon: 'spa', color: '#DCEBFF' };
-    }
+    this.editingCategory.set(category);
     this.isModalOpen.set(true);
   }
 
@@ -105,28 +81,11 @@ export class ManageCategories {
     this.isModalOpen.set(false);
   }
 
-  saveCategory() {
-    if (!this.categoryForm.name) return;
-
-    const request = this.isEditMode() && this.editingId
-      ? this.categoryApi.updateCategory(this.editingId, this.categoryForm)
-      : this.categoryApi.createCategory(this.categoryForm);
-
-    request.subscribe({
-      next: () => {
-        this.categoriesStore.refresh().subscribe();
-        this.servicesStore.refresh().subscribe();
-        this.refreshTick.update((value) => value + 1);
-        this.closeModal();
-      },
-      error: (err) => {
-        if (err.status === 409) {
-          this.notification.error('Ya existe una categoría con ese nombre.');
-        } else {
-          this.notification.error(`Error al guardar categoría: ${err.message}`);
-        }
-      }
-    });
+  onCategorySaved() {
+    this.categoriesStore.refresh().subscribe();
+    this.servicesStore.refresh().subscribe();
+    this.refreshTick.update((value) => value + 1);
+    this.closeModal();
   }
 
   deleteCategory(cat: Category) {
@@ -161,13 +120,5 @@ export class ManageCategories {
         this.closeDeleteModal();
       }
     });
-  }
-
-  selectColor(color: string) {
-    this.categoryForm.color = color;
-  }
-
-  selectIcon(icon: string) {
-    this.categoryForm.icon = icon;
   }
 }

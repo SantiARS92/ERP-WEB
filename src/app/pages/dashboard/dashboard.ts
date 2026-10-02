@@ -11,7 +11,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { UserRole } from '../../core/models/user.model';
 import { from, of } from 'rxjs';
 import { catchError, mergeMap, toArray } from 'rxjs/operators';
-import { toIsoDate } from '../../core/utils/date.util';
+import { formatTime24, toIsoDate } from '../../core/utils/date.util';
 
 @Component({
   selector: 'app-dashboard',
@@ -60,7 +60,7 @@ export class Dashboard implements OnInit {
   // Próximas Citas Table
   get proximasCitas() { return this.proximasCitasSignal(); }
   set proximasCitas(value: Appointment[]) { this.proximasCitasSignal.set(value); }
-  
+
   // Date tracking
   todayStr = '';
 
@@ -78,14 +78,14 @@ export class Dashboard implements OnInit {
         this.citasHoyCount = data.length;
         this.proximasCitas = data.sort((a, b) => a.appointmentTime.localeCompare(b.appointmentTime)).slice(0, 5);
         this.porConfirmarCount = data.filter(a => a.status === 'PENDING').length;
-        
+
         // Calculate Top Service roughly based on today
         if (data.length > 0) {
           const serviceCounts = data.reduce((acc, curr) => {
             acc[curr.serviceName || ''] = (acc[curr.serviceName || ''] || 0) + 1;
             return acc;
           }, {} as Record<string, number>);
-          
+
           let maxSrv = 'Limpieza Facial';
           let maxCount = 0;
           for (const [srv, count] of Object.entries(serviceCounts)) {
@@ -118,7 +118,7 @@ export class Dashboard implements OnInit {
       next: (res) => {
         const variantProducts = res.content.filter(p => p.hasVariants && p.id !== undefined);
 
-        if (variantProducts.length > 0) {
+        if (variantProducts.length > 0 && !this.authService.isGuest()) {
           from(variantProducts).pipe(
             mergeMap(
               p => this.productApi.getProductById(p.id as number).pipe(catchError(() => of(p))),
@@ -196,11 +196,5 @@ export class Dashboard implements OnInit {
     return status;
   }
 
-  formatTimeAMPM(time: string): string {
-    if (!time) return '';
-    const [h, m] = time.split(':').map(Number);
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    const hour = h % 12 || 12;
-    return `${String(hour).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
-  }
+  readonly formatTime = formatTime24;
 }
