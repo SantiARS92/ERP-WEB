@@ -1,4 +1,11 @@
-# AppPimes
+# ERP — PYMES Frontend
+
+![Angular](https://img.shields.io/badge/Angular_21-DD0031?style=flat&logo=angular&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
+
+> 🔗 **Backend complementario:** [ERP-API (Spring Boot)](https://github.com/SantiARS92/ERP-API)
+
+Interfaz web para la gestión operativa de pymes y pequeños negocios. Desarrollada con Angular, consume la API REST del backend ERP-API e incluye módulos para clientes, agenda, servicios, ventas, gastos, inventario e informes.
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.1.4.
 
